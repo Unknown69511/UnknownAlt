@@ -1,0 +1,106 @@
+name: Normalize repository privacy metadata
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  normalize:
+    if: github.repository == 'Unknown69511/UnknownAlt' && github.actor == 'Unknown69511' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Record privacy policy using the public identity
+        env:
+          TZ: UTC
+        run: |
+          git config user.name 'Unknown69511'
+          git config user.email '275345990+Unknown69511@users.noreply.github.com'
+          mkdir -p docs
+          cat > docs/PRIVACY.md <<'EOF'
+          # Maintainer privacy policy
+
+          Use the public alias Unknown69511 and GitHub no-reply email for commits.
+          Commit author and committer dates must use UTC (+0000). Local time offsets
+          can disclose regional information even when names and emails are private.
+          Set TZ=UTC when committing, or explicitly supply UTC author/committer dates.
+          Browser-created commits may record the browser's timezone: run the owner-only
+          metadata normalization action after such edits, and verify the result.
+
+          Never commit accounts, sessions, cookies, credentials, personal configuration,
+          databases, logs, caches, local paths, machine identifiers, or signing keys.
+          Keep private backups outside the repository. Use neutral build directories
+          and the existing build-path remapping and release artifact privacy checks.
+          Inspect image metadata and packaged resources before publishing releases.
+          Preserve required third-party copyright and license notices.
+
+          History normalization changes commit IDs and removes invalidated commit
+          signatures, while preserving source trees, commit times and parent order.
+          Existing clones must be refreshed carefully; do not merge the old history
+          back into the cleaned branch. Published installer bytes and update signatures
+          remain unchanged unless an artifact itself requires a separately signed fix.
+
+          Rewriting refs cannot erase other people's downloads, clones, screenshots,
+          GitHub event records or cached/unreachable commit pages. Contact GitHub Support
+          when server-side removal is required. Revoke exposed credentials immediately;
+          deleting their text is not sufficient. Never post credential values in reports.
+          EOF
+          git add docs/PRIVACY.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Document repository privacy and UTC commit policy'
+          fi
+      - name: Normalize reachable commit and release-tag metadata
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          def git(*args, data=None):
+              return subprocess.check_output(['git', *args], input=data)
+          refs = git('ls-remote', '--refs', 'origin').decode().splitlines()
+          old_refs = {}
+          for line in refs:
+              sha, ref = line.split()
+              assert ref == 'refs/heads/main' or re.fullmatch(r'refs/tags/v\d+\.\d+\.\d+', ref), 'Unexpected ref requires review'
+              old_refs[ref] = sha
+          assert old_refs['refs/heads/main'] == os.environ['GITHUB_SHA'], 'Branch changed; retry from current main'
+          tips = {'refs/heads/main': git('rev-parse','HEAD').decode().strip()}
+          for ref in old_refs:
+              if ref.startswith('refs/tags/'):
+                  assert git('cat-file','-t',old_refs[ref]).strip() == b'commit', 'Annotated tag requires explicit review'
+                  tips[ref] = old_refs[ref]
+          commits = git('rev-list','--reverse','--topo-order',*tips.values()).decode().splitlines()
+          mapping = {}
+          changed = 0
+          allowed = {b'275345990+Unknown69511@users.noreply.github.com', b'noreply@github.com'}
+          for old in commits:
+              raw = git('cat-file','commit',old)
+              headers, message = raw.split(b'\n\n',1)
+              result=[]; skip=False
+              for line in headers.split(b'\n'):
+                  if line.startswith(b' '):
+                      if not skip: result.append(line)
+                      continue
+                  skip=line.startswith((b'gpgsig ', b'gpgsig-sha256 '))
+                  if skip: continue
+                  if line.startswith(b'parent '):
+                      line=b'parent '+mapping[line[7:].decode()].encode()
+                  if line.startswith((b'author ',b'committer ')):
+                      match=re.fullmatch(rb'(author|committer) (.*) <([^>]+)> (\d+) ([+-]\d{4})',line)
+                      assert match and match[3] in allowed, 'Identity requires private review'
+                      alias=b'GitHub' if match[3]==b'noreply@github.com' else b'Unknown69511'
+                      line=match[1]+b' '+alias+b' <'+match[3]+b'> '+match[4]+b' +0000'
+                  result.append(line)
+              sanitized=b'\n'.join(result)+b'\n\n'+message
+              new=git('hash-object','-t','commit','-w','--stdin',data=sanitized).decode().strip()
+              assert git('rev-parse',old+'^{tree}') == git('rev-parse',new+'^{tree}'), 'Source tree changed'
+              mapping[old]=new
+              changed+=new!=old
+          args=['push','--atomic','origin']
+          for ref, old in old_refs.items():
+              args.append('--force-with-lease='+ref+':'+old)
+              args.append(mapping[tips[ref]]+':'+ref)
+          pushed=subprocess.run(['git',*args],capture_output=True)
+          assert pushed.returncode == 0, 'Atomic push failed; refs were not partially updated. Check branch/tag permissions or retry after concurrent edits.'
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write(f'Normalized {len(commits)} reachable commits; {changed} commit IDs changed. All source trees preserved. Main and release tags updated atomically with leases. UTC and public/no-reply identities verified.\n')
+          PY
