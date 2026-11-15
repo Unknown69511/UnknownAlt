@@ -8,7 +8,7 @@ Source and Windows installers are public at [Unknown69511/UnknownAlt](https://gi
 
 Public builds check for updates without a GitHub account, sign-in, token or publisher credentials. Accounts, sessions, settings and encryption keys stay independent and local to each Windows user. No creator accounts, cookies, passwords, private keys, local databases or personal settings are included in source or release packages.
 
-The app verifies the owner's pinned P-256 signature and installer hash/size. It never uses the original product's feeds or signing key. Checks run on startup and hourly; **Update** appears beside **Refresh** for a newer signed version. The owner reviews and signs releases locally; CI builds unsigned candidates and never receives the private signing key or publishes automatically. See [updates and publication](docs/UPDATES.md).
+The app verifies the owner's pinned P-256 signature and installer hash/size. It never uses the original product's feeds or signing key. Checks run on startup and hourly. **Update** stays visible beside **Refresh**: clicking checks for a release, tells you when you are up to date, and installs a verified newer version when available. The owner reviews and signs releases locally; CI builds unsigned candidates and never receives the private signing key or publishes automatically. See [updates and publication](docs/UPDATES.md).
 
 Public read access does not grant repository write access. The owner invites collaborators only by exact approved GitHub username. Private-only 1.1.3 clients need one manual installation of the public 1.1.4 or newer bootstrap to switch channels; existing encrypted accounts/settings remain compatible.
 

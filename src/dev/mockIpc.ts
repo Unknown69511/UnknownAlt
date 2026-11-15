@@ -98,11 +98,12 @@ const NEXT_VERSION = APP_VERSION.replace(/^(\d+)\.(\d+)\..*$/, (_, a, b) => `${a
 const DEMO = import.meta.env.MODE === "demo";
 const UPDATE_PREVIEW = import.meta.env.DEV && !DEMO ? new URLSearchParams(location.search).get("updatePreview") : null;
 const previewUpdate = UPDATE_PREVIEW === "available" || UPDATE_PREVIEW === "error";
+const previewConfigured = previewUpdate || UPDATE_PREVIEW === "current" || UPDATE_PREVIEW === "checking" || UPDATE_PREVIEW === "check-error";
 let appUpdate: AppUpdate = {
-  configured: previewUpdate,
+  configured: previewConfigured,
   current: APP_VERSION,
   available: previewUpdate ? NEXT_VERSION : null,
-  state: previewUpdate ? "available" : "unconfigured",
+  state: previewUpdate ? "available" : previewConfigured ? "idle" : "unconfigured",
   downloaded: 0,
   total: null,
   error: null,
@@ -1365,6 +1366,24 @@ async function handle(cmd: string, args: Args): Promise<unknown> {
     case "self_update_status":
       return { ...appUpdate };
     case "self_update_check":
+      if (UPDATE_PREVIEW === "check-error") {
+        appUpdate = { ...appUpdate, state: "error", error: "Preview update check failed." };
+        return fail("network", appUpdate.error!);
+      }
+      if (previewConfigured) {
+        appUpdate = { ...appUpdate, state: "checking", error: null };
+        void emit("app://update", { ...appUpdate });
+        if (UPDATE_PREVIEW === "checking") {
+          setTimeout(() => {
+            appUpdate = { ...appUpdate, state: "idle", available: null };
+            void emit("app://update", { ...appUpdate });
+          }, 150);
+          return { ...appUpdate };
+        }
+        await sleep(300);
+        appUpdate = { ...appUpdate, state: appUpdate.available ? "available" : "idle" };
+        void emit("app://update", { ...appUpdate });
+      }
       return { ...appUpdate };
     case "update_auth_status":
     case "update_auth_start":
