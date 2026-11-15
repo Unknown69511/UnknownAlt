@@ -23,13 +23,25 @@ $env:CFLAGS=(@($env:CFLAGS,'/DUNKNOWNALT_BUILD_PRIVACY_V1')|Where-Object{$_}) -j
 $env:CXXFLAGS=(@($env:CXXFLAGS,'/DUNKNOWNALT_BUILD_PRIVACY_V1')|Where-Object{$_}) -join ' '
 $env:AWS_LC_SYS_CFLAGS=$env:CFLAGS
 $env:AWS_LC_SYS_CXXFLAGS=$env:CXXFLAGS
-# Avoid changing an already supplied broader Rust mapping: this preserves a
-# clean build cache while still covering every default source/toolchain root.
-$existing=@([regex]::Matches([string]$env:RUSTFLAGS,'--remap-path-prefix=(?:"([^"]+)"|([^ ]+))')|ForEach-Object{
- $value=if($_.Groups[1].Success){$_.Groups[1].Value}else{$_.Groups[2].Value}
- $value.Split('=')[0].TrimEnd('\','/')
+# Cargo splits RUSTFLAGS on whitespace, without shell quote removal. Pass
+# generated arguments through its unit-separated encoding so quotes never
+# become part of a mapping and Windows paths with spaces remain one argument.
+# Preserve caller arguments with Cargo's own precedence and splitting rules.
+$rustArguments=[Collections.Generic.List[string]]::new()
+if($env:CARGO_ENCODED_RUSTFLAGS){
+ foreach($argument in $env:CARGO_ENCODED_RUSTFLAGS.Split([char]31)){$rustArguments.Add($argument)}
+}elseif($env:RUSTFLAGS){
+ foreach($argument in ([regex]::Split($env:RUSTFLAGS.Trim(),'\s+'))){$rustArguments.Add($argument)}
+}
+# An existing broader mapping preserves a clean build cache. A quoted prefix
+# is not considered coverage: rustc receives those quotes literally.
+$existing=@($rustArguments|Where-Object{$_.StartsWith('--remap-path-prefix=')}|ForEach-Object{
+ $value=$_.Substring('--remap-path-prefix='.Length)
+ $separator=$value.LastIndexOf('=')
+ if($separator -gt 0){$value.Substring(0,$separator).TrimEnd('\','/')}
 })
 foreach($root in $roots){
  $covered=@($existing|Where-Object{$root.Equals($_,[StringComparison]::OrdinalIgnoreCase) -or $root.StartsWith($_+'\',[StringComparison]::OrdinalIgnoreCase)}).Count -gt 0
- if(-not $covered){$env:RUSTFLAGS=([string]$env:RUSTFLAGS+' --remap-path-prefix="'+$root+'=unknownalt-build"').Trim()}
+ if(-not $covered){$rustArguments.Add('--remap-path-prefix='+$root+'=unknownalt-build')}
 }
+$env:CARGO_ENCODED_RUSTFLAGS=$rustArguments -join [char]31
