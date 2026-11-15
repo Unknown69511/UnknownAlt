@@ -1,0 +1,65 @@
+node_modules/
+dist/
+dist-demo/
+dist-installer/
+dist-runtime/
+src-tauri/target/
+src-tauri/gen/
+*.log
+.vite/
+.claude/
+installers/
+*.pem
+*.pfx
+*.p12
+*.key
+.env*
+release-secrets/
+# Runtime data and private update credentials must never enter source/history.
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+**/UnknownAlt.update-auth*
+**/location.json
+**/.window-state.json
+webview/
+webview-sessions/
+logs/
+caches/
+artifacts/
+# Cloudflare's local state from `wrangler dev`.
+.wrangler/
+# AI tooling context and working notes, not source. The recorded Roblox responses the tests read
+# (docs/research/fixtures) stay.
+.impeccable/
+/DESIGN.md
+/PRODUCT.md
+/docs/DESIGN.md
+/docs/MILESTONES.md
+/docs/memory-test.md
+/docs/research/*
+!/docs/research/fixtures/
+
+# Personal exports, browser profiles and local service configuration.
+/data/
+/profiles/
+/backups/
+/local/
+*.cookies
+cookies*.txt
+passwords*.txt
+accounts*.json
+sessions*.json
+*.update-auth*
+**/Cookies
+**/Login Data
+**/Local State
+**/.ssh/
+**/.aws/
+**/.azure/
+*.user
+*.suo
+*.pdb

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "appId": "com.unknownalt.desktop",
+  "channel": "stable",
+  "version": "9.8.7",
+  "platform": "windows-x86_64",
+  "installer": {
+    "fileName": "UnknownAlt-Setup-9.8.7.exe",
+    "url": "https://github.com/UnknownAltTests/UnknownAlt/releases/download/v9.8.7/UnknownAlt-Setup-9.8.7.exe",
+    "sha256": "c6ded811403936c7a8180f70b41704a8fb828624172b6da750d40e0c556a0e36",
+    "size": 44
+  }
+}
