@@ -1,0 +1,48 @@
+name: Build UnknownAlt
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install packaging dependencies
+        shell: powershell
+        run: choco upgrade innosetup strawberryperl --no-progress -y
+      - name: Build executable and installer
+        shell: powershell
+        run: .\scripts\build-installer.ps1
+      - name: Prepare application artifact
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path dist-distribution -Force | Out-Null
+          Copy-Item -LiteralPath src-tauri\target\release\unknownalt.exe -Destination dist-distribution\UnknownAlt.exe
+          Copy-Item -LiteralPath LICENSE, REBRANDING.md -Destination dist-distribution
+      - uses: actions/upload-artifact@v7
+        with:
+          name: UnknownAlt-Windows
+          path: |
+            dist-distribution/UnknownAlt.exe
+            dist-distribution/LICENSE
+            dist-distribution/REBRANDING.md
+            dist-installer/UnknownAlt-Setup-*.exe
+          if-no-files-found: error

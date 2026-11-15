@@ -1,0 +1,68 @@
+name: Build Unknown alt release candidate
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unknownalt-private-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref_type == 'tag' && github.actor == github.repository_owner
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_TARGET_DIR: C:\unknownalt-target
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Require owned repository and matching version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $private = & gh api "repos/$env:GITHUB_REPOSITORY" --jq .private
+          if ($LASTEXITCODE -ne 0 -or $private.Trim() -ne 'false') { throw 'This release candidate targets the public UnknownAlt repository.' }
+          node scripts/release-configure.mjs --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -cne "v$version") { throw 'The tag must match all package/Cargo/Tauri version fields.' }
+          "UNKNOWNALT_RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Release verification tests
+        run: node scripts/release-test.mjs
+      - name: Windows update recovery tests
+        shell: powershell
+        run: .\scripts\test-update-helper.ps1
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install build dependencies
+        shell: pwsh
+        run: choco upgrade innosetup strawberryperl --no-progress -y
+      - name: Build canonical signed-update installer
+        shell: pwsh
+        run: .\scripts\build-installer.ps1
+      - name: Preserve unsigned release candidate
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: UnknownAlt-Candidate-${{ env.UNKNOWNALT_RELEASE_VERSION }}
+          path: dist-installer/UnknownAlt-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+# No signing key or publisher credential is exposed to workflows. The owner
+# downloads/reviews the candidate, signs its exact bytes LOCALLY, and uploads
+# only the four public-format assets to a release in THIS repository.
+# Repository collaborators cannot forge installed-client updates without that key.
