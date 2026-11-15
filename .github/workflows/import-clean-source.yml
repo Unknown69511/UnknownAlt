@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       sha256:
-        description: SHA-256 of the locally audited UnknownAlt-Source-1.1.4.zip
+        description: SHA-256 of the locally audited source ZIP attached to the draft release
+        required: true
+        type: string
+      version:
+        description: Version of the draft release (for example 1.1.5)
         required: true
         type: string
 
@@ -13,19 +17,29 @@ permissions:
 
 jobs:
   import:
-    if: github.repository == 'Unknown69511/UnknownAlt' && github.actor == 'Unknown69511' && github.event.repository.private == true
+    if: github.repository == 'Unknown69511/UnknownAlt' && github.actor == 'Unknown69511' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
+      - name: Download the owner-audited source snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          gh release download "v$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --pattern "UnknownAlt-Source-$RELEASE_VERSION.zip" --dir "$RUNNER_TEMP/unknownalt-import"
       - name: Verify and extract the clean snapshot
         env:
           EXPECTED_SHA256: ${{ inputs.sha256 }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           python3 - <<'PY'
           import hashlib, os, pathlib, re, stat, zipfile
-          archive = pathlib.Path('UnknownAlt-Source-1.1.4.zip')
+          version = os.environ['RELEASE_VERSION']
+          assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version), 'Invalid version'
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'unknownalt-import' / f'UnknownAlt-Source-{version}.zip'
           expected = os.environ['EXPECTED_SHA256'].lower()
           assert re.fullmatch(r'[0-9a-f]{64}', expected), 'Invalid checksum'
           assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Snapshot checksum mismatch'
@@ -52,6 +66,8 @@ jobs:
                   rel.write_bytes(data)
           PY
       - name: Commit clean source without old history
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           git config user.name 'Unknown69511'
           git config user.email '275345990+Unknown69511@users.noreply.github.com'
@@ -62,9 +78,9 @@ jobs:
             esac
           done
           echo 'Fresh history uses approved GitHub no-reply identities only.'
-          git rm UnknownAlt-Source-1.1.4.zip
           git add .
-          git commit -m 'Import audited UnknownAlt 1.1.4 source snapshot'
+          git diff --cached --quiet && exit 0
+          git commit -m "Keep Update visible and check on click (UnknownAlt $RELEASE_VERSION)"
           git log --all --format='%ae%n%ce' | while IFS= read -r identity; do
             case "$identity" in
               '275345990+Unknown69511@users.noreply.github.com'|'41898282+github-actions[bot]@users.noreply.github.com'|'noreply@github.com') ;;
