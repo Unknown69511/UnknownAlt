@@ -31,6 +31,7 @@ param([switch]$Dev, [string]$InnoCompiler, [string]$PerlBin, [string]$WebView2In
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+& (Join-Path $PSScriptRoot 'build-paths.ps1') -SourceRoot $root
 
 function Stop-Build([string]$What, [string]$Fix) {
     Write-Host "build-installer: $What" -ForegroundColor Red
@@ -118,6 +119,7 @@ try {
 $meta = & cargo metadata --no-deps --format-version 1 --manifest-path "$root\src-tauri\Cargo.toml" | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { Stop-Build 'cargo metadata failed' 'run it yourself to see why' }
 $exe = Join-Path $meta.target_directory 'release\unknownalt.exe'
+& (Join-Path $PSScriptRoot 'assert-build-privacy.ps1') -Executable $exe -SourceRoot $root
 
 Write-Host 'Compiling the installer'
 $isccArgs = @('/Q', "/DAppVersion=$version", "/DAppNumVersion=$($version -replace '[-+].*$','')", "/DAppExe=$exe", "/DWebView2Installer=$WebView2Installer", "/DWebView2Sha256=$runtimeHash")

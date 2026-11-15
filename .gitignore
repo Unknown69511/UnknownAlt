@@ -29,6 +29,7 @@ webview/
 webview-sessions/
 logs/
 caches/
+cache/
 artifacts/
 # Cloudflare's local state from `wrangler dev`.
 .wrangler/
@@ -63,3 +64,22 @@ sessions*.json
 *.user
 *.suo
 *.pdb
+.git-credentials
+.npmrc
+credentials.*
+tokens*.json
+tokens*.txt
+secrets.*
+.secrets/
+*.local.json
+*.local.toml
+*.local.yaml
+*.local.yml
+id_rsa
+id_ed25519
+id_ecdsa
+*.ppk
+*.p8
+*.keystore
+*.jks
+/private/
