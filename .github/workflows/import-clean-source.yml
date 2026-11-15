@@ -1,0 +1,75 @@
+name: Import audited clean source
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha256:
+        description: SHA-256 of the locally audited UnknownAlt-Source-1.1.4.zip
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.repository == 'Unknown69511/UnknownAlt' && github.actor == 'Unknown69511' && github.event.repository.private == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Verify and extract the clean snapshot
+        env:
+          EXPECTED_SHA256: ${{ inputs.sha256 }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, re, stat, zipfile
+          archive = pathlib.Path('UnknownAlt-Source-1.1.4.zip')
+          expected = os.environ['EXPECTED_SHA256'].lower()
+          assert re.fullmatch(r'[0-9a-f]{64}', expected), 'Invalid checksum'
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Snapshot checksum mismatch'
+          blocked_dirs = {'.git', 'node_modules', 'target', 'dist', 'dist-runtime', 'dist-installer', 'release-secrets', 'webview', 'webview-sessions', 'logs', 'caches', 'artifacts'}
+          with zipfile.ZipFile(archive) as z:
+              files = z.infolist()
+              assert 100 < len(files) < 1000 and sum(i.file_size for i in files) < 100_000_000, 'Unexpected snapshot size'
+              seen = set()
+              for item in files:
+                  p = pathlib.PurePosixPath(item.filename)
+                  assert not p.is_absolute() and p.parts[0] == 'UnknownAlt' and '..' not in p.parts and '\\' not in item.filename, 'Unsafe ZIP path'
+                  rel = pathlib.Path(*p.parts[1:])
+                  assert rel.parts and rel.as_posix().lower() not in seen, 'Duplicate ZIP path'
+                  seen.add(rel.as_posix().lower())
+                  assert not any(part.lower() in blocked_dirs for part in rel.parts), 'Generated or personal directory'
+                  assert not stat.S_ISLNK(item.external_attr >> 16), 'Linked ZIP entry'
+                  name = rel.name.lower()
+                  assert not re.search(r'\.(?:pem|pfx|p12|key|db(?:-.*)?|sqlite3?(?:-.*)?|log)$', name) and not name.startswith('.env') and not name.startswith('unknownalt.update-auth'), 'Private file'
+                  data = z.read(item)
+                  if rel.as_posix().startswith('.github/workflows/'):
+                      assert rel.is_file() and rel.read_bytes().replace(b'\r\n', b'\n') == data.replace(b'\r\n', b'\n'), 'Create matching workflows before importing'
+                      continue
+                  rel.parent.mkdir(parents=True, exist_ok=True)
+                  rel.write_bytes(data)
+          PY
+      - name: Commit clean source without old history
+        run: |
+          git config user.name 'Unknown69511'
+          git config user.email '275345990+Unknown69511@users.noreply.github.com'
+          git log --all --format='%ae%n%ce' | while IFS= read -r identity; do
+            case "$identity" in
+              '275345990+Unknown69511@users.noreply.github.com'|'41898282+github-actions[bot]@users.noreply.github.com'|'noreply@github.com') ;;
+              *) echo 'Commit privacy check failed: non-approved email in fresh history'; exit 1 ;;
+            esac
+          done
+          echo 'Fresh history uses approved GitHub no-reply identities only.'
+          git rm UnknownAlt-Source-1.1.4.zip
+          git add .
+          git commit -m 'Import audited UnknownAlt 1.1.4 source snapshot'
+          git log --all --format='%ae%n%ce' | while IFS= read -r identity; do
+            case "$identity" in
+              '275345990+Unknown69511@users.noreply.github.com'|'41898282+github-actions[bot]@users.noreply.github.com'|'noreply@github.com') ;;
+              *) echo 'Commit privacy check failed: non-approved email in fresh history'; exit 1 ;;
+            esac
+          done
+          echo 'Fresh history uses approved GitHub no-reply identities only.'
+          git push
