@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       version:
-        description: Version of the draft release (for example 1.1.5)
+        description: Version of the draft release (for example 1.2.0)
         required: true
         type: string
 
@@ -36,7 +36,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           python3 - <<'PY'
-          import hashlib, os, pathlib, re, stat, zipfile
+          import hashlib, os, pathlib, re, stat, zipfile, subprocess
           version = os.environ['RELEASE_VERSION']
           assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version), 'Invalid version'
           archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'unknownalt-import' / f'UnknownAlt-Source-{version}.zip'
@@ -44,6 +44,11 @@ jobs:
           assert re.fullmatch(r'[0-9a-f]{64}', expected), 'Invalid checksum'
           assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Snapshot checksum mismatch'
           blocked_dirs = {'.git', 'node_modules', 'target', 'dist', 'dist-runtime', 'dist-installer', 'release-secrets', 'webview', 'webview-sessions', 'logs', 'caches', 'artifacts'}
+          # Replace the checkout's old source too, including files removed by this release.
+          # This is an ephemeral runner checkout; preserve Git metadata and the reviewed workflows.
+          for tracked in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+              if tracked and not tracked.startswith('.github/workflows/'):
+                  pathlib.Path(tracked).unlink(missing_ok=True)
           with zipfile.ZipFile(archive) as z:
               files = z.infolist()
               assert 100 < len(files) < 1000 and sum(i.file_size for i in files) < 100_000_000, 'Unexpected snapshot size'
@@ -68,6 +73,7 @@ jobs:
       - name: Commit clean source without old history
         env:
           RELEASE_VERSION: ${{ inputs.version }}
+          TZ: UTC
         run: |
           git config user.name 'Unknown69511'
           git config user.email '275345990+Unknown69511@users.noreply.github.com'
@@ -80,7 +86,7 @@ jobs:
           echo 'Fresh history uses approved GitHub no-reply identities only.'
           git add .
           git diff --cached --quiet && exit 0
-          git commit -m "Keep Update visible and check on click (UnknownAlt $RELEASE_VERSION)"
+          git commit -m "Import audited UnknownAlt $RELEASE_VERSION source"
           git log --all --format='%ae%n%ce' | while IFS= read -r identity; do
             case "$identity" in
               '275345990+Unknown69511@users.noreply.github.com'|'41898282+github-actions[bot]@users.noreply.github.com'|'noreply@github.com') ;;
