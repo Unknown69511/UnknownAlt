@@ -1,9 +1,9 @@
 # Maintainer privacy policy
 
 Use the public alias Unknown69511 and GitHub no-reply email for commits.
-Commit author and committer dates must use Pacific Time (PST/PDT). Local time offsets
+Commit author and committer dates must use UTC (UTC). Local time offsets
 can disclose regional information even when names and emails are private.
-Set TZ=America/Los_Angeles when committing, or explicitly supply PST/PDT author/committer dates.
+Set TZ=UTC when committing, or explicitly supply UTC author/committer dates.
 Browser-created commits may record the browser's timezone: run the owner-only
 metadata normalization action after such edits, and verify the result.
 
