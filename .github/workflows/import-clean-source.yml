@@ -56,6 +56,8 @@ jobs:
               for item in files:
                   p = pathlib.PurePosixPath(item.filename)
                   assert not p.is_absolute() and p.parts[0] == 'UnknownAlt' and '..' not in p.parts and '\\' not in item.filename, 'Unsafe ZIP path'
+                  if item.is_dir():
+                      continue
                   rel = pathlib.Path(*p.parts[1:])
                   assert rel.parts and rel.as_posix().lower() not in seen, 'Duplicate ZIP path'
                   seen.add(rel.as_posix().lower())
