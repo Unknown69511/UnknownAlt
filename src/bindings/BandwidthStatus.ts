@@ -9,6 +9,6 @@ export type BandwidthStatus = {
  */
 kbps: number, 
 /**
- * The policy UnknownAlt set is in force: applied since Windows last started.
+ * The policy Unknown alt set is in force: applied since Windows last started.
  */
 active: boolean, };

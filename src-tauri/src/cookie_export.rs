@@ -1,7 +1,8 @@
 //! "Export cookies": every chosen account's cookie as `username:cookie` lines in a plain-text file
 //! in `<data dir>\exports`, selected in Explorer. Anyone with the file can sign into those
-//! accounts, so it goes after `DELETE_AFTER`, at the next start if Unknown alt closed first, or when the
-//! user says. Only files Unknown alt wrote are ever deleted; neither cookies nor names reach the log.
+//! accounts, so it goes after `DELETE_AFTER`, when UnknownAlt quits (`exit_cleanup`), at the next start
+//! if UnknownAlt was killed or crashed, or when the user says. Only files UnknownAlt wrote are ever deleted;
+//! neither cookies nor names reach the log.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -63,7 +64,9 @@ fn is_export(path: &Path) -> bool {
 /// Writes `text` to a new export file and remembers it; returns its path.
 pub fn write(data_dir: &Path, text: &str) -> Result<PathBuf> {
     let dir = data_dir.join(DIR);
+    // For this Windows user only: a data folder moved elsewhere may let others read what it holds.
     std::fs::create_dir_all(&dir)?;
+    secure_exports(&dir)?;
     let mut path = dir.join(file_name(local_now()));
     // Two exports within a second: the second gets its own file.
     for n in 2.. {
@@ -167,5 +170,27 @@ mod tests {
         let left = (path.exists(), other.exists());
         let _ = std::fs::remove_dir_all(&d);
         assert_eq!(left, (false, true));
+    }
+}
+
+/// Replace any previous directory ACL with an inheritable, protected current-user-only ACL.
+/// Fail closed before writing credentials, including when a moved data directory already exists.
+fn secure_exports(dir: &Path) -> Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{HLOCAL, LocalFree};
+    use windows::Win32::Security::{PSECURITY_DESCRIPTOR, SetFileSecurityW, DACL_SECURITY_INFORMATION, PROTECTED_DACL_SECURITY_INFORMATION};
+    use windows::Win32::Security::Authorization::ConvertStringSecurityDescriptorToSecurityDescriptorW;
+    let sid = crate::self_update::auth::current_user_sid()?;
+    let sddl: Vec<u16> = format!("D:P(A;OICI;FA;;;{sid})").encode_utf16().chain(Some(0)).collect();
+    let path: Vec<u16> = dir.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut descriptor = PSECURITY_DESCRIPTOR::default();
+    let fail = || AppError::Invalid("Windows could not secure the cookie-export folder. Nothing was exported.".into());
+    // SAFETY: input strings are terminated and alive; Windows owns descriptor until LocalFree.
+    unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(PCWSTR(sddl.as_ptr()), 1, &mut descriptor, None).map_err(|_| fail())?;
+        let result = SetFileSecurityW(PCWSTR(path.as_ptr()), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, descriptor).ok();
+        LocalFree(Some(HLOCAL(descriptor.0)));
+        result.map_err(|_| fail())
     }
 }

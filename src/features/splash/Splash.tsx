@@ -64,6 +64,13 @@ export function Splash() {
     return () => clearTimeout(t);
   }, [state]);
 
+  // A background window or reduced motion may never dispatch transitionend.
+  useEffect(() => {
+    if (state !== "out") return;
+    const done = setTimeout(() => setState("gone"), 600);
+    return () => clearTimeout(done);
+  }, [state]);
+
   if (state === "gone") return null;
   return (
     <div
@@ -94,3 +101,4 @@ export function Splash() {
     </div>
   );
 }
+

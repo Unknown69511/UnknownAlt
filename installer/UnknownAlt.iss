@@ -68,6 +68,7 @@ Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm
 Source: "{#AppExe}"; DestDir: "{app}"; DestName: "UnknownAlt.exe"; Flags: ignoreversion
 Source: "..\src-tauri\icons\icon.ico"; DestDir: "{app}"; DestName: "UnknownAlt.ico"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
+Source: "..\NOTICE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\REBRANDING.md"; DestDir: "{app}"; Flags: ignoreversion
 ; Extracted only when needed, never copied into the app or its account-data folder.
 Source: "{#WebView2Installer}"; DestDir: "{tmp}"; DestName: "UnknownAlt-WebView2-Prerequisite.exe"; Flags: dontcopy nocompression
@@ -75,6 +76,11 @@ Source: "{#WebView2Installer}"; DestDir: "{tmp}"; DestName: "UnknownAlt-WebView2
 [Icons]
 Name: "{autoprograms}\UnknownAlt"; Filename: "{app}\UnknownAlt.exe"; IconFilename: "{app}\UnknownAlt.ico"
 Name: "{autodesktop}\UnknownAlt"; Filename: "{app}\UnknownAlt.exe"; IconFilename: "{app}\UnknownAlt.ico"; Tasks: desktopicon
+
+[Registry]
+Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: ""; ValueData: "URL:UnknownAlt"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\unknownalt\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\UnknownAlt.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\UnknownAlt.exe"; Description: "{cm:LaunchProgram,Unknown alt}"; Flags: nowait postinstall skipifsilent; Check: WebView2Installed
@@ -249,3 +255,4 @@ begin
     DelTree(ExpandConstant('{userappdata}\com.unknownalt.desktop'), True, True, True);
   end;
 end;
+

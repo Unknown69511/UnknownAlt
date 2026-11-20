@@ -1,10 +1,10 @@
 # Unknown alt
 
-A local Windows account manager and multi-client launcher. The display name is **Unknown alt**; code identifiers, executable names and data filenames use **UnknownAlt**. The charcoal coffee mascot is used in the app, native icons and shortcuts. Brown (`#8b5e3c`) is the factory accent, alongside all existing selectable colors. Donate, News and Upstream navigation are removed. The top Discord button opens https://discord.gg/8EVsaWTH8S.
+A local Windows account manager and multi-client launcher. The display name is **Unknown alt**; code identifiers, executable names and data filenames use **UnknownAlt**. The charcoal coffee mascot is used in the app, native icons and shortcuts. Brown (`#8b5e3c`) is the factory accent, alongside all existing selectable colors. Donate, News and Upstream navigation are removed. The top Discord button opens https://discord.gg/8EVsaWTH8S. See [the 1.2.0 changes](CHANGELOG.md) for first-run setup, Take control, lighter previews, session locking, Discord controls, group defaults and safer sign-in.
 
 ## Download and signed updates
 
-Source and Windows installers are public at [Unknown69511/UnknownAlt](https://github.com/Unknown69511/UnknownAlt). Download the full Windows x64 installer from [Releases](https://github.com/Unknown69511/UnknownAlt/releases/latest). It includes Microsoft's offline WebView2 prerequisite and needs no developer tools or publisher PC.
+Source and Windows installers are public at [Unknown69511/UnknownAlt](https://github.com/Unknown69511/UnknownAlt). Download the Windows x64 installer from [Releases](https://github.com/Unknown69511/UnknownAlt/releases/latest). The small installer downloads Microsoft's WebView2 runtime if it is missing; an optional offline installer bundles it. Neither needs developer tools or the publisher PC.
 
 Public builds check for updates without a GitHub account, sign-in, token or publisher credentials. Accounts, sessions, settings and encryption keys stay independent and local to each Windows user. No creator accounts, cookies, passwords, private keys, local databases or personal settings are included in source or release packages.
 
@@ -46,3 +46,4 @@ Checks include `npm run build`, `node scripts/release-test.mjs` and `powershell.
 ## License and compatibility
 
 Derived from [inspectsoftware/RoALT v1.1.0](https://github.com/inspectsoftware/RoALT/tree/d16b3e277ce24859a5159354a6f289891b09fe2f); original copyright and [MIT license](LICENSE) are retained. Old-name strings remain only where required to read existing encrypted records/imports, reject original-product update sources, identify external service contracts, or document provenance. See [rebranding and compatibility](REBRANDING.md).
+

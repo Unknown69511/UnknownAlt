@@ -1,7 +1,7 @@
 # Maintainer privacy policy
 
 Use the public alias Unknown69511 and GitHub no-reply email for commits.
-Commit author and committer dates must use UTC (UTC). Local time offsets
+Commit author and committer dates must use UTC. Local time offsets
 can disclose regional information even when names and emails are private.
 Set TZ=UTC when committing, or explicitly supply UTC author/committer dates.
 Browser-created commits may record the browser's timezone: run the owner-only

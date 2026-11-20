@@ -4,7 +4,7 @@ import type { LaunchTarget } from "./LaunchTarget";
 import type { Limits } from "./Limits";
 
 /**
- * A Roblox client UnknownAlt started and is following.
+ * A Roblox client Unknown alt started and is following.
  */
 export type Instance = { id: string, accountId: number, pid: number, state: InstanceState, target: LaunchTarget, placeId: number | null, jobId: string | null, 
 /**
@@ -33,7 +33,7 @@ afkAt: number | null,
  */
 throttled: boolean, 
 /**
- * Its window was made small by UnknownAlt (`instance_micro`, `instances_tile`); "Normal size"
+ * Its window was made small by Unknown alt (`instance_micro`, `instances_tile`); "Normal size"
  * puts it back.
  */
 micro: boolean, 
@@ -42,7 +42,7 @@ micro: boolean,
  */
 fpsCap: number | null, 
 /**
- * UnknownAlt is working on relaunching it (`instances::rejoin`). Not kept over a restart of UnknownAlt.
+ * Unknown alt is working on relaunching it (`instances::rejoin`). Not kept over a restart of UnknownAlt.
  */
 relaunching: boolean, 
 /**
@@ -57,4 +57,9 @@ signInProblem: boolean,
 /**
  * What it really has now, settings' limits included (`limits` is only what was set on it).
  */
-appliedLimits: Limits, };
+appliedLimits: Limits, 
+/**
+ * The user took control of it ("Take control"): until it closes or is given back, UnknownAlt doesn't
+ * rejoin, restart, close, press anti-AFK keys in, limit or lay it out.
+ */
+held: boolean, };

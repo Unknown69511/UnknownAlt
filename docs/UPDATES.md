@@ -15,7 +15,7 @@ Only the configured repository and allowlisted GitHub HTTPS asset storage can se
 Keep the existing signing private key local and **outside this repository and CI**. Do not generate a replacement casually: installed clients trust the current key.
 
 ```powershell
-node scripts/release-version.mjs 1.1.5
+node scripts/release-version.mjs 1.2.1
 node scripts/release-configure.mjs --check
 node scripts/release-test.mjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-update-helper.ps1
@@ -50,3 +50,4 @@ Later public versions update without sign-in. Failed checks, invalid signatures 
 Audit every branch, tag, commit author/committer/message, historical blob, release note and download. If history contains a personal email or private file, keep it private and publish a sanitized copy with fresh history. Use a GitHub no-reply email for new commits.
 
 Exclude `.env`, accounts, cookies, passwords, session tokens, private keys, personal databases, private service configuration, logs, caches and browser profiles. Preserve required license notices. Inspect extracted binaries/installers for personal paths and build metadata. Build from neutral source/registry/target locations, remap Rust paths and follow `DISTRIBUTION.md`.
+

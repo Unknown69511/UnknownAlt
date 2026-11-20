@@ -154,7 +154,7 @@ fn secure_file(file:&Path)->Result<()> {
     Ok(())
 }
 
-fn current_user_sid()->Result<String> {
+pub(crate) fn current_user_sid()->Result<String> {
     use windows::Win32::Foundation::{CloseHandle,HANDLE,HLOCAL,LocalFree};
     use windows::Win32::Security::{GetTokenInformation,TOKEN_QUERY,TOKEN_USER,TokenUser};
     use windows::Win32::Security::Authorization::ConvertSidToStringSidW;

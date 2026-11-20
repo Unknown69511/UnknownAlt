@@ -2,6 +2,6 @@
 import type { LaunchTarget } from "./LaunchTarget";
 
 /**
- * `browse://play`: a Play or Join on Browse's page, for UnknownAlt to launch.
+ * `browse://play`: a Play or Join on Browse's page, for Unknown alt to launch.
  */
 export type BrowsePlay = { accountId: number, target: LaunchTarget, };

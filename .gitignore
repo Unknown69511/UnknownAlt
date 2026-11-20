@@ -83,3 +83,6 @@ id_ecdsa
 *.keystore
 *.jks
 /private/
+
+# Fallback native test exports; canonical generated IPC types live in src/bindings.
+/src-tauri/bindings/

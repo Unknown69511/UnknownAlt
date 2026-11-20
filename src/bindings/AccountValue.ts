@@ -22,7 +22,7 @@ value: number | null,
  */
 top: Array<LimitedItem>, 
 /**
- * Not every copy was counted (the inventory is bigger than UnknownAlt reads, or Roblox stopped answering).
+ * Not every copy was counted (the inventory is bigger than Unknown alt reads, or Roblox stopped answering).
  */
 partial: boolean, 
 /**

@@ -27,7 +27,7 @@ use crate::launcher::update::{FILE_SHARE_READ, TempDir, blocking};
 use crate::model::AppUpdate;
 
 #[path = "update_auth.rs"]
-mod auth;
+pub(crate) mod auth;
 pub use auth::UpdateAuth;
 
 pub const UPDATE_EVENT: &str = "app://update";

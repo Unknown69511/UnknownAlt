@@ -2,28 +2,14 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { DISCORD_INVITE } from "../../../app/links";
 import { t } from "../../../i18n";
 import { Button } from "../../../ui/Button";
-import { useRow } from "../kit/rowError";
+import { replayOnboarding } from "../../onboarding/qa";
+import { toastError } from "../../../ui/Toast";
 import { SettingRow } from "../kit/SettingRow";
-
-/** The local product version; the distributed license retains developer attribution. */
 export function VersionRow() {
-  const version = import.meta.env.APP_VERSION;
-  return (
-    <SettingRow id="version" name={`Unknown alt ${version}`} title={<span className="set-label">Unknown alt</span>} detail="MIT licensed · inspectsoftware">
-      <span className="mono text-fg-2">v{version}</span>
-    </SettingRow>
-  );
-}
 
-function Support() {
-  const row = useRow();
-  return <Button size="md" iconEnd="external" onClick={() => openUrl(DISCORD_INVITE).catch(row.fail)}>{t("app.joinDiscord")}</Button>;
+ return <SettingRow id="version" name={`Unknown alt ${import.meta.env.APP_VERSION}`} title={<span className="set-label">Unknown alt <span className="mono">{import.meta.env.APP_VERSION}</span></span>} detail="MIT licensed · inspectsoftware">
+ <Button size="md" iconEnd="external" onClick={() => openUrl("https://github.com/Unknown69511/UnknownAlt/releases").catch(toastError)}>{t("settings.openReleases")}</Button></SettingRow>;
 }
+export function ReplayTourRow() { return <SettingRow id="replayTour"><Button size="md" onClick={replayOnboarding}>{t("onboarding.replayButton")}</Button></SettingRow>; }
+export function SupportRow() { return <SettingRow id="support" title={<span className="set-label">{t("app.joinDiscord")}</span>}><Button size="md" iconEnd="external" onClick={() => openUrl(DISCORD_INVITE).catch(toastError)}>{t("app.joinDiscord")}</Button></SettingRow>; }
 
-export function SupportRow() {
-  return (
-    <SettingRow id="support" title={<span className="set-label">{t("app.joinDiscord")}</span>}>
-      <Support />
-    </SettingRow>
-  );
-}
