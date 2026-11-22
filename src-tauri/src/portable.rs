@@ -330,6 +330,7 @@ mod native {
                 portable_backup,
                 crate::bulletins::update_bulletins,
                 crate::analytics::public_analytics_search,
+                crate::analytics_archive::analytics_archive,
                 crate::analytics::public_analytics_snapshot,
                 crate::analytics::public_analytics_trending,
                 crate::analytics::public_analytics_studio,

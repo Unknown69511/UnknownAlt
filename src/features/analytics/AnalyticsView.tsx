@@ -1,99 +1,75 @@
-import { useEffect, useState } from "react";
-import { Icon } from "../../ui/Icon";
-import { DiscoverView } from "../discover/DiscoverView";
-import { category, count, useDiscovery, useGameSearch } from "../discover/catalog";
+import { useEffect, useRef, useState } from "react";
+import { Icon, type IconName } from "../../ui/Icon";
+import { useGameSearch } from "../discover/catalog";
 import { GameDetails } from "./GameDetails";
 import { GameUpdateTracker } from "./GameUpdateTracker";
+import { MarketOverview, MarketSection, RankedGames, sections, type Section } from "./Market";
 import { MyGames } from "./MyGames";
 import { trackGame, useAnalyticsStore, useWatchlistCollector } from "./store";
-import type { PublicGame } from "./types";
+import { count } from "../discover/catalog";
+import "./analytics.css";
 
-const tabs = ["Overview", "Trending", "Charts", "Genres", "Watchlist", "My Games"] as const;
-type Tab = typeof tabs[number];
+const icons: Record<Section, IconName> = {
+  Overview: "grid", Studios: "accounts", "Top Earners": "star", Games: "play",
+  Rising: "rocket", Trends: "bolt", Genres: "palette", Charts: "chart",
+  "New Games": "plus", "New Highs": "gauge", Calendar: "clock", Watchlist: "heart", "My Games": "lock",
+};
 
 export function AnalyticsView({ initialGame }: { initialGame?: number }) {
-  const [tab, chooseTab] = useState<Tab>("Overview");
-  const [selected, open] = useState<number | null>(initialGame ?? null);
-  useEffect(() => { if (initialGame != null) open(initialGame); }, [initialGame]);
-  return <main className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
-    <header className="space-y-3">
-      <div><h1 className="text-xl font-semibold">Roblox Analytics</h1></div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Analytics views">
-        {tabs.map((name) => <button key={name} className={tab === name ? "btn btn-primary" : "btn"} aria-pressed={tab === name}
-          onClick={() => { chooseTab(name); open(null); }}>{name}</button>)}
-      </div>
-    </header>
-    {selected != null ? <GameDetails key={selected} id={selected} select={open} back={() => open(null)} />
-      : tab === "My Games" ? <MyGames />
-      : tab === "Genres" ? <Genres select={open} />
-      : tab === "Watchlist" ? <Watchlist select={open} />
-      : tab === "Overview" ? <Overview select={open} />
-      : <DiscoverView key={tab} embedded initialList={tab === "Charts" ? "Most popular" : "Trending"} analyze={open} />}
-  </main>;
-}
-
-function GameList({ games, select }: { games: PublicGame[]; select: (id: number) => void }) {
-  return <div className="grid gap-2 md:grid-cols-2">{games.map((game) =>
-    <button key={game.universeId} className="panel flex gap-3 p-3 items-center text-start min-w-0" onClick={() => select(game.universeId)}>
-      {game.icon && <img src={game.icon} alt="" width={44} height={44} className="rounded-md shrink-0" loading="lazy" />}
-      <span className="min-w-0 flex-1"><span className="block font-medium truncate">{game.name}</span>
-        <span className="text-sm text-fg-2">{[game.creator.name, category(game)].filter(Boolean).join(" · ")}</span></span>
-      <span className="text-sm tabular-nums">{game.playing == null ? "Unavailable" : `${count(game.playing)} playing`}</span>
-    </button>)}</div>;
-}
-
-function Overview({ select }: { select: (id: number) => void }) {
+  const [tab, chooseTab] = useState<Section>("Overview");
+  const [picked, setPicked] = useState<string>();
+  const [selection, setSelection] = useState<number[]>(initialGame ? [initialGame] : []);
   const [input, setInput] = useState("");
   const [term, setTerm] = useState("");
-  const catalog = useDiscovery(!term);
+  const scroll = useRef<HTMLElement>(null);
   const search = useGameSearch(term);
-  const { records, watch, follows } = useAnalyticsStore();
-  const games = catalog.data?.snapshot.games ?? [];
-  const trending = catalog.data?.trending.flatMap((id) => games.filter((game) => game.universeId === id)) ?? [];
-  const hits = search.data?.games ?? (search.isError ? Object.values(records).map((row) => row.game)
+  const selected = selection.at(-1);
+  const saved = useAnalyticsStore().records;
+  const open = (id: number) => setSelection((rows) => rows.at(-1) === id ? rows : [...rows, id].slice(-20));
+  const go = (section: Section, filter?: string) => {
+    chooseTab(section);
+    setPicked(filter);
+    setSelection([]);
+    setTerm("");
+    setInput("");
+  };
+  useEffect(() => { if (initialGame != null) setSelection([initialGame]); }, [initialGame]);
+  useEffect(() => { scroll.current?.scrollTo({ top: 0 }); }, [selected, tab, picked, term]);
+  const hits = search.data?.games ?? (search.isError ? Object.values(saved).map((row) => row.game)
     .filter((game) => game.name.toLowerCase().includes(term.toLowerCase())) : []);
-  const ranked = term ? hits : trending;
-  const current = term ? search : catalog;
-  return <section className="space-y-4">
-    <form className="flex items-center gap-2" onSubmit={(event) => {
-      event.preventDefault(); const next = input.trim(); if (term === next) void current.refetch(); else setTerm(next);
-    }}>
-      <input type="search" className="field flex-1" aria-label="Find a Roblox game" data-find="" placeholder="Game name, place ID, or Roblox URL" maxLength={300}
-        value={input} onChange={(event) => setInput(event.target.value)} />
-      <button type="submit" className="btn btn-primary"><Icon name="search" />Search</button>
-      {term && <button className="btn" type="button" onClick={() => { setTerm(""); setInput(""); }}>Clear</button>}
-    </form>
-    {!term && <div className="grid gap-2 sm:grid-cols-3">
-      <div className="panel p-4"><p className="text-sm text-fg-2">Games in current catalog</p><strong className="text-xl">{catalog.data ? games.length : "—"}</strong></div>
-      <div className="panel p-4"><p className="text-sm text-fg-2">Watchlist</p><strong className="text-xl">{watch.length}</strong></div>
-      <div className="panel p-4"><p className="text-sm text-fg-2">Following updates</p><strong className="text-xl">{follows.length}</strong></div>
-    </div>}
-    <h2 className="font-semibold">{term ? "Search results" : "Trending on Roblox"}</h2>
-    {current.isFetching && <p role="status" className="text-sm text-fg-2">Loading public Roblox data…</p>}
-    {current.isError && <p role="status" className="text-sm text-fg-2">Roblox could not be reached. Saved observations remain available.</p>}
-    {current.isSuccess && !ranked.length && <p role="status" className="text-sm text-fg-2">{term ? "No accessible games matched that search." : "No trending games were returned."}</p>}
-    <GameList games={ranked} select={select} />
-  </section>;
-}
-
-function Genres({ select }: { select: (id: number) => void }) {
-  const catalog = useDiscovery();
-  const [chosen, choose] = useState("");
-  const genres = new Map<string, number>();
-  for (const game of catalog.data?.snapshot.games ?? []) {
-    const name = category(game);
-    if (name) genres.set(name, (genres.get(name) ?? 0) + 1);
-  }
-  return <section className="space-y-3">
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Roblox genres">
-      {[...genres.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([genre, size]) =>
-        <button key={genre} className={chosen === genre ? "btn btn-primary" : "btn"} aria-pressed={chosen === genre}
-          onClick={() => choose(genre)}>{genre}<span className="text-xs text-fg-2">{size}</span></button>)}
+  return <main ref={scroll} className="analytics-shell flex-1 min-h-0 overflow-auto">
+    <div className="analytics-content">
+      <header className="analytics-header">
+        <div className="analytics-title"><span className="analytics-title-icon"><Icon name="chart" size={23} /></span>
+          <div><h1>Roblox Analytics</h1><p className="text-sm text-fg-2">Experience performance, records, and creator insights</p></div></div>
+        <form className="analytics-search" onSubmit={(event) => {
+          event.preventDefault();
+          const next = input.trim();
+          setSelection([]);
+          if (term === next && next) void search.refetch(); else setTerm(next);
+        }}>
+          <Icon name="search" /><input type="search" className="field" aria-label="Find a Roblox game" data-find=""
+            placeholder="Search games by name or Roblox URL" maxLength={300} value={input} onChange={(event) => setInput(event.target.value)} />
+          <button type="submit" className="btn btn-primary">Search</button>
+          {term && <button type="button" className="btn" aria-label="Clear game search" onClick={() => { setInput(""); setTerm(""); setSelection([]); }}><Icon name="x" /></button>}
+        </form>
+      </header>
+      <nav className="analytics-nav" aria-label="Analytics sections">
+        {sections.map((name) => <button key={name} aria-current={tab === name && !term && !selected ? "page" : undefined}
+          onClick={() => go(name)}><Icon name={icons[name]} size={14} />{name}</button>)}
+      </nav>
+      {selected != null ? <GameDetails key={selected} id={selected} select={open} back={() => setSelection((rows) => rows.slice(0, -1))} />
+        : term ? <section className="panel analytics-market-card">
+          <header className="analytics-panel-heading"><h2>Results for “{term}”</h2></header>
+          {search.isFetching && <p role="status" className="analytics-feedback analytics-loading">Searching Roblox…</p>}
+          {search.isError && <p role="status" className="analytics-feedback">Roblox search is unavailable. {hits.length ? "Showing saved matches." : ""}</p>}
+          {search.isSuccess && !hits.length && <p role="status" className="analytics-feedback">No accessible games matched the search.</p>}
+          <RankedGames games={hits.map((game) => ({ ...game, creator: game.creator.name ?? undefined, iconUrl: game.icon ?? undefined,
+            genre: game.genre ?? undefined, playing: game.playing ?? undefined, visits: game.visits ?? undefined }))} select={open} position={false} />
+        </section> : tab === "My Games" ? <MyGames /> : tab === "Watchlist" ? <Watchlist select={open} />
+          : tab === "Overview" ? <MarketOverview select={open} go={go} /> : <MarketSection key={`${tab}:${picked}`} section={tab} select={open} picked={picked} />}
     </div>
-    {catalog.isError && <p className="text-sm">Roblox genres are temporarily unavailable. <button className="btn btn-sm" onClick={() => void catalog.refetch()}>Retry</button></p>}
-    {!chosen && <p className="text-sm text-fg-2">{genres.size ? "Choose a genre to browse experiences from the loaded Roblox catalog." : "Waiting for Roblox genre data."}</p>}
-    {chosen && <DiscoverView key={chosen} analyze={select} initialGenre={chosen} embedded />}
-  </section>;
+  </main>;
 }
 
 function Watchlist({ select }: { select: (id: number) => void }) {

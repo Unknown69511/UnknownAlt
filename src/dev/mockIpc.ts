@@ -1457,6 +1457,7 @@ async function handle(cmd: string, args: Args): Promise<unknown> {
     case "online_ping":
       return !DEMO && settings.onlineCount ? { online: 1284, playing: 5120 } : null;
     case "update_bulletins": return { items: [], unavailable: [] };
+    case "analytics_archive": return null;
     case "public_analytics_search":
     case "public_analytics_snapshot":
     case "public_similar_games":

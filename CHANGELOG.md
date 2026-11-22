@@ -1,3 +1,12 @@
+# UnknownALT 1.2.7
+
+- Rebuilt Roblox Analytics with a platform activity dashboard, game records,
+  official Roblox charts, studio portfolios, and an activity calendar.
+- Added recorded history from RoWatcher and RobloxGameStats, chart zoom,
+  date ranges, comparison overlays, and CSV source attribution.
+- Added labeled spending estimates and coverage notes. Existing watchlists,
+  account data, and Roblox Open Cloud Creator Analytics remain compatible.
+
 # UnknownALT 1.2.6
 
 - Rebuilt Roblox Analytics around individual game pages, public chart and genre

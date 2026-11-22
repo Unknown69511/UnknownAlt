@@ -1008,6 +1008,7 @@ fn main() {
             commands::self_update_status,
             bulletins::update_bulletins,
             analytics::public_analytics_search,
+            analytics_archive::analytics_archive,
             analytics::public_analytics_snapshot,
             analytics::public_analytics_trending,
             analytics::public_analytics_studio,

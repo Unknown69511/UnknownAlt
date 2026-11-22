@@ -381,6 +381,8 @@ export const api = {
   /** UnknownAlt's version and the newer release the last check found (no network). */
   selfUpdateStatus: () => invoke<AppUpdate>("self_update_status"),
   updateBulletins: () => invoke<Bulletins>("update_bulletins"),
+  analyticsArchive: (kind: string, universe?: number, filter?: string, page?: number) =>
+    invoke<unknown>("analytics_archive", { kind, universe, filter, page }),
   publicAnalyticsSearch: (query: string) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_search", { query }),
   publicAnalyticsSnapshot: (universes: number[], details: boolean) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_snapshot", { universes, details }),
   publicAnalyticsTrending: () => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_trending"),

@@ -4,6 +4,7 @@
 mod i18n;
 mod bulletins;
 mod analytics;
+mod analytics_archive;
 mod roblox_status;
 #[cfg(windows)]
 mod fullscreen;

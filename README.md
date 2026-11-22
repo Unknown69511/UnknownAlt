@@ -54,12 +54,22 @@ lists. Growth and underrated rankings cover the displayed catalog. Newly
 released uses Roblox's public experience creation dates. Similar games come
 from Roblox recommendations or genre and description matches in loaded games.
 
-**Tools → Analytics** shows public counts, watchlists, history and comparisons
-on a shared timeline. Open a game to view badges, passes, screenshots, update
-markers, previous-week results and CSV exports. Watched games are sampled
-every five minutes while the app runs. Records and growth refer to locally
-observed samples. Older history buckets keep the highest observed player
-count. Gaps represent missing samples and remain visible in comparisons.
+**Tools → Analytics** shows Roblox's official game charts, independent platform
+samples, player records, studios, genres, and a game activity calendar. Search
+Roblox by name or link to open a game's analytics. Charts support date ranges,
+drag-to-zoom, game comparisons and attributed CSV exports.
+
+Game player history comes from [RoWatcher daily records](https://rowatcher.com/developers)
+(CC BY 4.0, up to 730 days) and [RobloxGameStats](https://robloxgamestats.com/docs/api)
+hourly and daily records. Coverage varies by game and metric. Platform totals
+cover experiences tracked by the named provider. Figures titled **Est.** are
+model estimates. The **Official Top Earning** chart shows Roblox ranking order
+without dollar amounts. Missing dates remain gaps.
+
+Watched games still support local samples and notifications. A bounded public
+history cache enables offline viewing when previously requested records are
+available. Public analytics uses anonymous requests and never shares saved
+Roblox credentials with either data provider.
 
 **Tools → Roblox Status** shows service health, current incidents and resolved
 incident history. In-app alerts can be enabled on that page. Press **F11**
