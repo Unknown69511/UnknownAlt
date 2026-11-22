@@ -258,6 +258,7 @@ export type LaunchActivity = {
 /** A started client's stage from its tracked instance (as the backend mirrors it), so rows keep
  * moving after the launch itself stopped. `allowDisconnect`: its account's setting. */
 function stageOf(i: Instance, allowDisconnect: boolean): BulkStage {
+  if (i.launchStalled) return { kind: "failed", message: i.note ?? t("launch.stalled") };
   // As the backend's mirror_item: these notes fail the item whatever the state.
   if (i.signInProblem) return { kind: "failed", message: i.note ?? "" };
   switch (i.state) {
@@ -372,7 +373,11 @@ export function useLaunchActivity(): LaunchActivity | null {
     current: rows.find((r) => UNDER_WAY.has(r.stage.kind)) ?? rows.find((r) => r.stage.kind === "queued") ?? null,
     cancelling: batch ? cancelling === batch.batchId : local!.cancel,
     cancel: () => {
-      if (!batch) return local && patchLocal(local.id, () => ({ cancel: true }));
+      if (!batch) {
+        if (local) patchLocal(local.id, () => ({ cancel: true }));
+        void api.managementCancelPending().catch(toastError);
+        return;
+      }
       const id = batch.batchId;
       set({ cancelling: id });
       api.bulkCancel(id).catch((e) => {

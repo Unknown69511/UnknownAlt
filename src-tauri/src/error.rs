@@ -80,6 +80,8 @@ impl AppError {
 
     /// Logs this error (English, secret-free like every message) at a level fit for its kind.
     pub fn log(&self) {
+        #[cfg(windows)]
+        crate::troubleshooter::record_error(self);
         let level = match self {
             Self::Cancelled | Self::Invalid(_) | Self::Wait(_) | Self::Busy(_) | Self::Locked | Self::WrongPassword | Self::NotFound => log::Level::Debug,
             Self::Internal(_) | Self::Storage(_) | Self::Crypto => log::Level::Error,

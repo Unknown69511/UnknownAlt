@@ -109,6 +109,7 @@ fn masked(id: &str) -> String {
 pub enum Event {
     /// `game`: the game's name when UnknownAlt has it (escaped); else the place is named by its id.
     Crash { name: String, place_id: Option<i64>, game: Option<String> },
+    ClientClosed { name: String },
     Hang { name: String },
     /// `reason`: why, in words (`reason_words`).
     Disconnect { name: String, reason: Option<String> },
@@ -139,7 +140,7 @@ pub enum Event {
 impl Event {
     fn wanted(&self, v: &DiscordEvents) -> bool {
         match self {
-            Self::Crash { .. } => v.crash,
+            Self::Crash { .. } | Self::ClientClosed { .. } => v.crash,
             Self::Hang { .. } => v.hang,
             // Told with the disconnects it leads to.
             Self::Disconnect { .. } | Self::AfkBlocked => v.disconnect,
@@ -160,7 +161,7 @@ impl Event {
     fn severity(&self) -> u8 {
         match self {
             Self::Crash { .. } | Self::Breaker { .. } | Self::GaveUp { .. } | Self::AfkBlocked => 2,
-            Self::Hang { .. } | Self::Disconnect { .. } | Self::SignIn { .. } | Self::PcMemory { .. } | Self::PcGpu { .. } => 1,
+            Self::Hang { .. } | Self::ClientClosed { .. } | Self::Disconnect { .. } | Self::SignIn { .. } | Self::PcMemory { .. } | Self::PcGpu { .. } => 1,
             Self::BatchDone { failed, .. } if *failed > 0 => 1,
             _ => 0,
         }
@@ -168,6 +169,7 @@ impl Event {
 
     fn line(&self) -> String {
         match self {
+            Self::ClientClosed { name } => format!("ℹ️ {}", tr!("**{name}**: the client closed; the cause is not confirmed.", name = name)),
             Self::Crash { name, game: Some(g), .. } => format!("💥 {}", tr!("**{name}**: the client crashed in {game}.", name = name, game = g)),
             Self::Crash { name, place_id: Some(p), .. } => {
                 format!("💥 {}", tr!("**{name}**: the client crashed (place {place}).", name = name, place = p))
@@ -197,7 +199,7 @@ impl Event {
                 format!("🔁 {}", tr!("**{name}**: restarted after it stopped responding.", name = name))
             }
             Self::Restart { name, cause: CrashKind::Crash } => {
-                format!("🔁 {}", tr!("**{name}**: restarted after a crash.", name = name))
+                format!("🔁 {}", tr!("**{name}**: restarted after the client closed.", name = name))
             }
             Self::Breaker { name, count, window_min } => format!(
                 "⛔ {}",
@@ -631,7 +633,7 @@ pub fn transitions(app: &AppHandle, moved: &[Transition]) {
                 None => continue,
                 Some(CrashKind::Disconnect) => Event::Disconnect { name, reason: t.reason.as_deref().map(reason_words) },
                 Some(CrashKind::Hang) => Event::Hang { name },
-                Some(_) => Event::Crash { name, place_id, game: game() },
+                Some(_) => Event::ClientClosed { name },
             },
         );
     }
@@ -641,6 +643,14 @@ pub fn transitions(app: &AppHandle, moved: &[Transition]) {
 pub fn throttled(app: &AppHandle, account_id: i64) {
     if let Some(name) = named(app, account_id) {
         notify(app, Event::Throttled { name });
+    }
+}
+
+/// A crash alert requires evidence, rather than treating every unexplained close as a crash.
+pub fn confirmed_crash(app: &AppHandle, account_id: i64, place_id: Option<i64>) {
+    if let Some(name) = named(app, account_id) {
+        let game = place_id.and_then(|p| crate::commands::cached_game_name(&app.state::<App>(), p)).map(|g| escape(&g));
+        notify(app, Event::Crash { name, place_id, game });
     }
 }
 
@@ -925,6 +935,7 @@ mod tests {
             micro_size: None,
             applied_limits: crate::model::Limits::default(),
             held: false,
+            launch_stalled: false,
         }
     }
 

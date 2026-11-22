@@ -65,8 +65,19 @@ pub fn report(c: &Ended) -> Verdict {
     // Not for a disconnect: it is no crash, and a server shutting down ends many clients at once,
     // each of which would start a wevtutil.exe while UnknownAlt relaunches them.
     let faults = if c.kind == CrashKind::Disconnect { Vec::new() } else { windows_faults(c) };
-    let found = judge(c, c.log.is_some(), !dumps.is_empty(), !faults.is_empty());
-    log::warn!("autopsy {id}: {}", words(found, c));
+    // A dump in this time window may belong to another simultaneous client. Only a handler
+    // naming this client's log AND that dump can associate it with this instance.
+    let handler = logs.as_deref().zip(c.log.as_deref().and_then(Path::file_name).and_then(|n| n.to_str()))
+        .and_then(|(dir, name)| handler_log(dir, name, launched));
+    let handler_text = handler.as_deref().and_then(|p| {
+        use std::io::Read;
+        let mut data = Vec::new();
+        std::fs::File::open(p).ok()?.take(HANDLER_HEAD).read_to_end(&mut data).ok()?;
+        Some(String::from_utf8_lossy(&data).into_owned())
+    });
+    let own_dump = owns_dump(handler_text.as_deref(), &dumps);
+    let found = judge(c, c.log.is_some(), own_dump, !faults.is_empty());
+    log::info!("autopsy {id}: {}", words(found, c));
     let lived = c.died_after_ms.map_or_else(|| "unknown".to_owned(), |ms| format!("{} s", ms / 1000));
     log::info!("autopsy {id}: {:?} of account {}, lived {lived}, seen as ended after {} s; {}", c.kind, c.account_id, c.uptime_ms / 1000, c.clues);
     let others = process::roblox_processes().len();
@@ -155,7 +166,12 @@ fn handler_log(logs: &Path, player_log: &str, since: SystemTime) -> Option<std::
 
 /// Windows' records of this client faulting, from the Application event log (no rights needed).
 fn windows_faults(c: &Ended) -> Vec<String> {
-    faults_of(&fault_events((c.uptime_ms + 60_000).max(60_000)), c.pid)
+    let Some(start)=c.process_start else {return Vec::new()};
+    faults_of(&fault_events((c.uptime_ms + 60_000).max(60_000)), c.pid, Some(start))
+}
+
+fn owns_dump(handler:Option<&str>,dumps:&[String])->bool {
+    handler.is_some_and(|text|dumps.iter().any(|d|d.split_once(", ").is_some_and(|(name,_)|text.contains(name))))
 }
 
 /// The Application log's fault events of the last `ms` milliseconds, as XML; empty on failure.
@@ -180,7 +196,7 @@ fn fault_events(ms: i64) -> String {
 }
 
 /// The events of `xml` about Roblox's client with this pid, as a line each (pure).
-fn faults_of(xml: &str, pid: u32) -> Vec<String> {
+fn faults_of(xml: &str, pid: u32, process_start: Option<u64>) -> Vec<String> {
     let field = |event: &str, name: &str| {
         let open = format!("<Data Name='{name}'>");
         let start = event.find(&open)? + open.len();
@@ -189,6 +205,11 @@ fn faults_of(xml: &str, pid: u32) -> Vec<String> {
     xml.split("<Event ")
         .filter(|ev| field(ev, "AppName").is_some_and(|n| n.eq_ignore_ascii_case(CLIENT_EXE)))
         .filter(|ev| field(ev, "ProcessId").and_then(|p| u32::from_str_radix(p.trim_start_matches("0x"), 16).ok()) == Some(pid))
+        // Windows can reuse a PID. Match its creation identity, not just the number and a
+        // broad time window, before telling the user this instance definitely crashed.
+        .filter(|ev| process_start.is_none_or(|expected|field(ev,"ProcessCreationTime")
+            .and_then(|s|s.strip_prefix("0x").and_then(|v|u64::from_str_radix(v,16).ok()))
+            .and_then(|ticks|ticks.checked_sub(116_444_736_000_000_000)).map(|ticks|ticks/10_000_000)==Some(expected)))
         .map(|ev| {
             let get = |name| field(ev, name).unwrap_or_else(|| "?".to_owned());
             format!(
@@ -209,6 +230,7 @@ mod tests {
 
     fn ended(kind: CrashKind, died_after_ms: Option<i64>) -> Ended {
         Ended {
+            process_start: Some(1),
             instance_id: "i".into(),
             account_id: 1,
             kind,
@@ -245,8 +267,19 @@ mod tests {
             )
         };
         let xml = [event("RobloxPlayerBeta.exe", "0x988"), event("RobloxPlayerBeta.exe", "0x10"), event("other.exe", "0x988")].concat();
-        assert_eq!(faults_of(&xml, 0x988), ["a fault: exception c0000005 in d3d11.dll 10.0 at offset 00ff, client version 0.745"]);
-        assert!(faults_of("", 1).is_empty());
+        assert_eq!(faults_of(&xml, 0x988, None), ["a fault: exception c0000005 in d3d11.dll 10.0 at offset 00ff, client version 0.745"]);
+        assert!(faults_of("", 1, None).is_empty());
+        assert!(faults_of(&xml,0x988,Some(1)).is_empty(),"a reused/unknown creation identity is not proof");
+        let own=xml.replace("</EventData>","<Data Name='ProcessCreationTime'>0x19db1ded5d71680</Data></EventData>");
+        assert_eq!(faults_of(&own,0x988,Some(1)).len(),1);
+        assert!(faults_of(&own,0x988,Some(2)).is_empty());
+    }
+
+    #[test] fn an_unrelated_dump_is_not_proof_of_this_clients_crash() {
+        let dumps=vec!["other-client.dmp, 10 KB".into()];
+        assert!(!owns_dump(None,&dumps));
+        assert!(!owns_dump(Some("this-client.dmp"),&dumps));
+        assert!(owns_dump(Some("wrote other-client.dmp"),&dumps));
     }
 
     /// Against this PC's event log, which needs a recent fault of any program:

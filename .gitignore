@@ -48,6 +48,17 @@ artifacts/
 /data/
 /profiles/
 /backups/
+*.vault
+*.unknownalt
+*.msix
+*.msixbundle
+*.dmg
+*.AppImage
+*.deb
+/dist-msix/
+UnknownAlt-backups/
+UnknownAlt-MSIX-backups/
+.pending-*/
 /local/
 *.cookies
 cookies*.txt

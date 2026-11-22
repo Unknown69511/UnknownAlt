@@ -8,7 +8,7 @@ import { Icon } from "../../ui/Icon";
 import { Collapse, ListPresence } from "../../ui/motion";
 import { toast, toastError } from "../../ui/Toast";
 import { accountName, Avatar } from "../accounts/shared";
-import { CRASH_KINDS, verdictOf } from "../crashes/kinds";
+import { crashTitle, verdictOf } from "../crashes/kinds";
 import { launchBlocked, launchEach, launchOne, launchStep, useLaunchActivity, useLaunchStep } from "../launch/launchQueue";
 import { MultiNotice } from "../launch/MultiNotice";
 import { isLive, isRunning, uptime, useNow } from "../launch/Running";
@@ -21,7 +21,7 @@ function CrashDetails({ crash: c }: { crash: Crash }) {
   return (
     <div className="well flex flex-col gap-2 px-4 py-3 mt-1 mb-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span>{t(CRASH_KINDS[c.kind])}</span>
+        <span>{crashTitle(c)}</span>
         <span className="text-xs text-fg-3 tabular-nums">{c.placeId !== null ? t("launch.crash.afterPlace", { time: uptime(0, c.uptimeMs), place: c.placeId }) : t("launch.crash.after", { time: uptime(0, c.uptimeMs) })}</span>
       </div>
       {c.reason && <p className="mono text-xs text-fg-2 break-words selectable">{c.reason}</p>}

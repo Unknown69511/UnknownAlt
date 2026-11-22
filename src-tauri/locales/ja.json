@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: メモリの使いすぎで再起動しました。",
   "**{name}**: restarted on its timer.": "**{name}**: タイマーで再起動しました。",
   "**{name}**: restarted after it stopped responding.": "**{name}**: 応答しなくなったため再起動しました。",
-  "**{name}**: restarted after a crash.": "**{name}**: クラッシュ後に再起動しました。",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows がロックされているため、Anti-AFK はキーを押せません。ゲーム中のクライアントは 20 分後に放置で切断されます。ゲームに残すには PC のロックを解除してください。",
   "Batch finished: {in_game} of {total} in game": "一括起動の完了: {total} 件中 {in_game} 件がゲーム中",
   ", {done} done": "、{done} 件完了",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "サブ垢 {n} 個・{games} ゲーム"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

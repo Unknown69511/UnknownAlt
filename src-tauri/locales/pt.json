@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: reiniciado, usou memória demais.",
   "**{name}**: restarted on its timer.": "**{name}**: reiniciado pelo temporizador.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: reiniciado depois de parar de responder.",
-  "**{name}**: restarted after a crash.": "**{name}**: reiniciado depois de um crash.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "O Windows está bloqueado, então o Anti-AFK não consegue apertar teclas: clientes em um jogo serão desconectados por inatividade após 20 minutos. Desbloqueie o PC para mantê-los no jogo.",
   "Batch finished: {in_game} of {total} in game": "Lote concluído: {in_game} de {total} no jogo",
   ", {done} done": ", {done} concluídas",
@@ -415,5 +414,9 @@
   "{n} alts · {games} games": {
     "one": "{n} alt · {games} jogos",
     "other": "{n} alts · {games} jogos"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

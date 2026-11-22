@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: 메모리를 너무 많이 써서 재시작했어요.",
   "**{name}**: restarted on its timer.": "**{name}**: 타이머로 재시작했어요.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: 응답이 없어서 재시작했어요.",
-  "**{name}**: restarted after a crash.": "**{name}**: 충돌 후 재시작했어요.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows가 잠겨 있어서 잠수 방지가 키를 누를 수 없어요. 게임 중인 클라이언트는 20분 뒤 잠수로 연결이 끊겨요. 계속 접속해 두려면 PC 잠금을 해제하세요.",
   "Batch finished: {in_game} of {total} in game": "일괄 실행 완료: {total}개 중 {in_game}개 게임 중",
   ", {done} done": ", {done}개 완료",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "부계정 {n}개 · 게임 {games}개"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

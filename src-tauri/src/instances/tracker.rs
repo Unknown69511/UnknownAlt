@@ -57,6 +57,7 @@ const WRITER_AFTER_MS: i64 = 2_000;
 const WRITER_PROOF_MS: i64 = 150_000;
 
 pub struct Tracker {
+    paused: AtomicBool,
     inner: Mutex<Vec<Entry>>,
     /// Accounts being launched (`claim`); locked before `inner`.
     claimed: Mutex<Vec<i64>>,
@@ -143,6 +144,7 @@ fn plan_layout(app: &AppHandle, s: &crate::App, v: &crate::model::Settings, arri
 fn do_places(app: &AppHandle, places: Vec<Place>, keep: usize, round: usize) {
     let s = app.state::<crate::App>();
     for (i, (id, pid, rect, small)) in places.into_iter().enumerate() {
+        if !s.tracker.manages_pid(pid) { continue; }
         if i >= keep && s.tracker.layout_gen.load(Ordering::Relaxed) != round {
             break;
         }
@@ -204,6 +206,7 @@ pub struct Saved {
 /// A client that ended badly (`crash_kind`), for the crash history.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ended {
+    pub process_start: Option<u64>,
     pub instance_id: String,
     pub account_id: i64,
     pub kind: CrashKind,
@@ -379,7 +382,7 @@ impl Entry {
     }
 
     fn hung(&self) -> bool {
-        self.hung_polls >= HANG_POLLS
+        self.hung_polls >= HANG_POLLS && (self.in_game_at.is_some() || self.inst.launch_stalled)
     }
 
     /// Loading (for as long as a first load or a teleport may take: one stuck there is limited
@@ -418,8 +421,20 @@ impl Entry {
 }
 
 impl Tracker {
+    pub fn paused(&self) -> bool { self.paused.load(Ordering::SeqCst) }
+    pub fn set_paused(&self, on: bool) {
+        self.paused.store(on, Ordering::SeqCst);
+        if on {
+            self.layout_gen.fetch_add(1, Ordering::SeqCst);
+            for e in self.entries().iter_mut() { e.mem_strikes = 0; e.inst.throttled = false; }
+        }
+    }
+    pub fn manages_pid(&self, pid: u32) -> bool {
+        !self.paused() && self.entries().iter().any(|e|e.inst.pid==pid && !e.inst.held && !e.closing && e.inst.state!=InstanceState::Exited)
+    }
     pub fn new() -> Tracker {
         Tracker {
+            paused: AtomicBool::new(false),
             inner: Mutex::new(Vec::new()),
             claimed: Mutex::new(Vec::new()),
             crashes: Mutex::new(Vec::new()),
@@ -473,6 +488,7 @@ impl Tracker {
             micro_size: None,
             applied_limits: Limits::default(),
             held: false,
+            launch_stalled: false,
         };
         let mut entries = self.entries();
         // The account has a new client: nothing is waiting to bring back an older one any more.
@@ -581,8 +597,10 @@ impl Tracker {
     /// `mark_closing` for an auto-rejoin or restart of `cause`; a `Mem` one ends as `Mem`, a `Timed`
     /// one as `Timed`.
     pub fn mark_restart(&self, id: &str, cause: Option<CrashKind>) -> Option<(u32, Option<u64>)> {
+        if cause.is_some() && self.paused() { return None; }
         let mut entries = self.entries();
         let e = entries.iter_mut().find(|e| e.inst.id == id && e.inst.state != InstanceState::Exited)?;
+        if cause.is_some() && e.inst.held { return None; }
         e.closing = true;
         e.mem_restart = cause == Some(CrashKind::Mem);
         e.timed_restart = cause == Some(CrashKind::Timed);
@@ -743,6 +761,7 @@ impl Tracker {
     /// Clients anti-AFK may press keys in: in a game, opted in, not being closed, the client itself
     /// known. `since`: its last anti-AFK press, else when it reached the game.
     pub fn afk_clients(&self) -> Vec<super::afk::AfkClient> {
+        if self.paused() { return Vec::new(); }
         self.entries()
             .iter()
             .filter(|e| e.inst.state == InstanceState::InGame && e.inst.anti_afk && !e.inst.held && !e.closing)
@@ -825,6 +844,7 @@ impl Tracker {
     /// launch steps, that hold a layout slot: (instance id, pid, slot, account id). Loading ones get
     /// placed when they arrive.
     pub fn slotted(&self) -> Vec<(String, u32, usize, i64)> {
+        if self.paused() { return Vec::new(); }
         let slots = self.slots().clone();
         self.entries()
             .iter()
@@ -847,10 +867,11 @@ impl Tracker {
     /// and may trouble it. Each returned once per instance, also while "Minimize on launch" is off,
     /// so turning it on later leaves clients already up alone. Windows are looked for outside the lock.
     pub fn first_in_game(&self, has_window: &dyn Fn(u32) -> bool) -> Vec<u32> {
+        if self.paused() { return Vec::new(); }
         let waiting: Vec<(String, u32)> = self
             .entries()
             .iter()
-            .filter(|e| !e.window_seen && e.inst.state == InstanceState::InGame)
+            .filter(|e| !e.window_seen && !e.inst.held && e.inst.state == InstanceState::InGame)
             .filter_map(|e| client_of(e).map(|(pid, _)| (e.inst.id.clone(), pid)))
             .collect();
         let seen: Vec<(String, u32)> = waiting.into_iter().filter(|&(_, pid)| has_window(pid)).collect();
@@ -902,7 +923,7 @@ impl Tracker {
     pub fn free(&self, full_quality: &[i64], now: i64) -> Vec<String> {
         self.entries()
             .iter()
-            .filter(|e| e.inst.state != InstanceState::Exited && (e.runs_free(now) || e.inst.held || full_quality.contains(&e.inst.account_id)))
+            .filter(|e| e.inst.state != InstanceState::Exited && (self.paused() || e.runs_free(now) || e.inst.held || full_quality.contains(&e.inst.account_id)))
             .map(|e| e.inst.id.clone())
             .collect()
     }
@@ -920,7 +941,7 @@ impl Tracker {
         let entries = self.entries();
         let Some(me) = entries.iter().find(|e| e.inst.id == id) else { return false };
         let Some(began) = me.relaunching else { return false };
-        (closed || (!me.closing && me.cause().is_some()))
+        !me.inst.held && (closed || (!me.closing && me.cause().is_some()))
             && !entries.iter().any(|e| e.inst.id != id && e.inst.account_id == me.inst.account_id && e.inst.started_at > began)
     }
 
@@ -974,6 +995,7 @@ impl Tracker {
     /// responds again). Drained whether or not auto-rejoin or auto-restart is on, so turning
     /// one on later doesn't relaunch old troubles.
     pub fn take_rejoins(&self) -> Vec<Rejoin> {
+        if self.paused() { return Vec::new(); }
         let mut out = Vec::new();
         for e in self.entries().iter_mut() {
             let trouble = e.hung() || e.mem_high() || e.timed || matches!(e.inst.state, InstanceState::Disconnected | InstanceState::Exited);
@@ -1027,6 +1049,7 @@ impl Tracker {
     /// only remembered, for the throttle, and the strikes stay. A client over it for `MEM_STRIKES`
     /// samples in a row is handed out by `take_rejoins` as `Mem`.
     pub fn check_memory(&self, limit_mb: &dyn Fn(i64) -> u32, count: bool, private_mb: &dyn Fn(u32, u64) -> Option<u64>) {
+        if self.paused() { return; }
         let read: Vec<(String, u32, u64)> = self
             .clients()
             .into_iter()
@@ -1051,6 +1074,7 @@ impl Tracker {
     /// restart; `take_rejoins` hands them out as `Timed`. Not the `skip` ids (the ones the user
     /// plays or has in front), and none while `hold` (a launch, batch or rejoin runs): those wait.
     pub fn check_uptime(&self, restart_h: u32, now: i64, skip: &[String], hold: bool) {
+        if self.paused() { return; }
         // Held, not reset: a restart under way (which is such a launch itself) stays wanted.
         if hold && restart_h > 0 {
             return;
@@ -1064,6 +1088,7 @@ impl Tracker {
     /// The running clients whose account's run began `close_h` hours ago (0: off): to be closed,
     /// and not launched again. Not the `skip` ids, nor one already closing.
     pub fn close_due(&self, close_h: u32, now: i64, skip: &[String]) -> Vec<String> {
+        if self.paused() { return Vec::new(); }
         let after = i64::from(close_h) * 3_600_000;
         self.entries()
             .iter()
@@ -1083,10 +1108,11 @@ impl Tracker {
 
     /// Brings each running client's `throttled` to its last memory sample against `limit_mb`
     /// (`metrics::mem_throttled`; 0: off). The ids held, and whether any changed.
-    pub fn throttle(&self, limit_mb: u32) -> (Vec<String>, bool) {
+    pub fn throttle(&self, limit_mb: u32, priority: Option<i64>) -> (Vec<String>, bool) {
         let (mut held, mut changed) = (Vec::new(), false);
         for e in self.entries().iter_mut().filter(|e| e.inst.state != InstanceState::Exited) {
-            let t = !e.inst.held && mem_throttled(e.inst.throttled, e.mem_mb, limit_mb);
+            let t = !self.paused() && !e.inst.held && priority != Some(e.inst.account_id)
+                && mem_throttled(e.inst.throttled, e.mem_mb, limit_mb);
             changed |= t != e.inst.throttled;
             e.inst.throttled = t;
             if t {
@@ -1178,7 +1204,8 @@ impl Tracker {
                     let clients = s.tracker.clients();
                     super::resize::set_clients(clients.iter().map(|c| c.1).collect());
                     let was_held: Vec<String> = if v.mem_throttle.mb > 0 { s.tracker.list().into_iter().filter(|i| i.throttled).map(|i| i.id).collect() } else { Vec::new() };
-                    let (held, throttle_moved) = s.tracker.throttle(v.mem_throttle.mb);
+                    let priority = crate::farm::settings(&s.db).ok().and_then(|settings| settings.priority_account);
+                    let (held, throttle_moved) = s.tracker.throttle(v.mem_throttle.mb, priority);
                     for i in held.iter().filter(|id| !was_held.contains(id)).filter_map(|id| s.tracker.get(id)) {
                         crate::discord::throttled(&handle, i.account_id);
                     }
@@ -1215,6 +1242,7 @@ impl Tracker {
                         log::info!("client {pid}: in a game; placing {} window(s), making it tiny: {}, minimizing it: {minimize}, muting it: {mute}", places.len(), tiny.is_some());
                         // Not on this thread: a busy client's ShowWindow would stop every poll.
                         tauri::async_runtime::spawn_blocking(move || {
+                            if !layout_app.state::<crate::App>().tracker.manages_pid(pid) { return; }
                             // This client's own place always runs: its minimize follows.
                             do_places(&layout_app, places, 1, round);
                             if let Some(id) = tiny
@@ -1235,11 +1263,13 @@ impl Tracker {
                     }
                     // Tiny clients stay at their size. One round at a time, off this thread.
                     static SWEEPING: AtomicBool = AtomicBool::new(false);
-                    if !clients.is_empty() && !SWEEPING.swap(true, Ordering::Relaxed) {
+                    if !s.tracker.paused() && !clients.is_empty() && !SWEEPING.swap(true, Ordering::Relaxed) {
                         let size = (v.micro_width, v.micro_height);
                         // Each at the size it was made small at (a layout cell can differ from Settings').
-                        let list: Vec<_> = clients.iter().map(|c| (c.1, s.tracker.get(&c.0).filter(|i| i.micro).map(|i| i.micro_size.unwrap_or(size)))).collect();
+                        let list: Vec<_> = clients.iter().filter(|c|s.tracker.manages_pid(c.1)).map(|c| (c.1, s.tracker.get(&c.0).filter(|i| i.micro).map(|i| i.micro_size.unwrap_or(size)))).collect();
+                        let sweep_app=handle.clone();
                         tauri::async_runtime::spawn_blocking(move || {
+                            let list:Vec<_>=list.into_iter().filter(|c|sweep_app.state::<crate::App>().tracker.manages_pid(c.0)).collect();
                             super::window::sweep(&list);
                             SWEEPING.store(false, Ordering::Relaxed);
                         });
@@ -1324,6 +1354,9 @@ impl Tracker {
                             std::thread::spawn(move || {
                                 // Kept with the recorded end: the crash history words it.
                                 let verdict = super::autopsy::report(&c);
+                                if verdict == super::autopsy::Verdict::Crashed {
+                                    crate::discord::confirmed_crash(&handle, c.account_id, c.place_id);
+                                }
                                 match handle.state::<crate::App>().db.set_crash_verdict(&c.instance_id, verdict.code()) {
                                     // The lists of ends were read before it was known.
                                     Ok(()) => crate::commands::instances_changed(&handle),
@@ -1342,6 +1375,7 @@ impl Tracker {
                 });
                 for t in &moved {
                     let (b, a) = (&t.before, &t.after);
+                    crate::farm::alert_on_transition(&app, b, a);
                     if b.state != a.state || b.note != a.note {
                         // Ordinary progress (and the user's own close) at info; problems at warn.
                         let problem = a.state == InstanceState::Disconnected || a.note.as_ref().is_some_and(|n| *n != closed());
@@ -1394,6 +1428,8 @@ impl Tracker {
             // set_rejoins / set_limits / give_up / set_anti_afk / mark_afk may have run since the
             // copy was taken.
             e.inst.rejoins = old.inst.rejoins;
+            // A Take control click can arrive while process/log I/O runs outside the lock.
+            e.inst.held = old.inst.held;
             (e.inst.limits, e.inst.applied_limits) = (old.inst.limits, old.inst.applied_limits);
             (e.inst.anti_afk, e.inst.afk_at) = (old.inst.anti_afk, old.inst.afk_at);
             (e.inst.throttled, e.inst.micro, e.inst.micro_size, e.window_seen) = (old.inst.throttled, old.inst.micro, old.inst.micro_size, old.window_seen);
@@ -1547,6 +1583,7 @@ fn crash_kind(facts: &LogFacts, hung: bool, note: Option<&str>) -> Option<CrashK
 
 fn ended(e: &Entry, kind: CrashKind, now: i64) -> Ended {
     Ended {
+        process_start: e.start_time.filter(|t|*t>0),
         instance_id: e.inst.id.clone(),
         account_id: e.inst.account_id,
         kind,
@@ -1769,6 +1806,8 @@ fn settle(e: &mut Entry, now: i64) -> Option<CrashKind> {
         e.facts.teleporting = false;
         e.teleport_at = None;
     }
+    e.inst.launch_stalled = e.alive && !e.closing && !e.facts.in_game
+        && now.saturating_sub(e.inst.started_at) >= REBIND_MS;
     let written = !e.closing && e.writer_at.is_some_and(|w| now - w < WRITER_PROOF_MS);
     let ended = !e.alive && !may_appear(e, now) && !written;
     let (state, mut note) = state_of(&e.facts, e.log.is_some(), ended, e.closing, e.expected_user);
@@ -1782,6 +1821,9 @@ fn settle(e: &mut Entry, now: i64) -> Option<CrashKind> {
     e.inst.sign_in_problem = note.as_ref().is_some_and(|n| *n == wrong_account() || *n == challenged() || *n == auth_failed());
     if !ended && e.hung() && note.is_none() {
         note = Some(hung());
+    }
+    if e.inst.launch_stalled && note.is_none() {
+        note = Some(tr!("Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running."));
     }
     if let Some(g) = e.gave_up.as_ref().filter(|_| !e.closing) {
         note = Some(g.clone());
@@ -1821,7 +1863,7 @@ fn state_of(facts: &LogFacts, bound: bool, ended: bool, closing: bool, expected_
         None
     };
     if ended {
-        let note = if closing { closed() } else { problem.unwrap_or_else(unexpected) };
+        let note = if closing || facts.left { closed() } else { problem.unwrap_or_else(unexpected) };
         return (InstanceState::Exited, Some(note));
     }
     let state = if facts.teleporting {
@@ -1858,6 +1900,56 @@ mod tests {
 
     // The notes in English (tests run in English).
     const WRONG_ACCOUNT: &str = "Signed in as another account";
+
+    #[test]
+    fn slow_start_is_not_a_crash_and_eventually_offers_diagnostics() {
+        let t = Tracker::new();
+        let start = now_ms();
+        t.register(&info(900, start, false), target());
+        let mut entries = t.entries();
+        let e = &mut entries[0];
+        e.alive = true;
+        e.hung_polls = HANG_POLLS;
+        assert_eq!(settle(e, start + 30_000), None);
+        assert!(!e.hung() && !e.inst.launch_stalled);
+        assert_eq!(settle(e, start + REBIND_MS), None, "a slow live process is never recorded as a crash");
+        assert!(e.inst.launch_stalled);
+        assert_eq!(e.inst.state, Starting, "its window is left running and tracked");
+        e.facts.in_game = true;
+        e.hung_polls = 0;
+        settle(e, start + REBIND_MS + 1000);
+        assert!(!e.inst.launch_stalled);
+        assert_eq!(e.inst.state, InGame);
+    }
+
+    #[test]
+    fn normal_roblox_leave_is_labelled_closed() {
+        let mut facts = LogFacts::default(); facts.left = true;
+        assert_eq!(state_of(&facts, true, true, false, None), (Exited, Some(closed())));
+        assert_eq!(crash_kind(&facts, false, Some(&unexpected())), None);
+    }
+
+    #[test]
+    fn pause_all_preserves_windows_and_individual_take_control() {
+        let t=Tracker::new(); let start=now_ms();
+        let id=t.register(&info(100,start,false),target()).id;
+        {
+            let mut entries=t.entries();let e=&mut entries[0];
+            e.alive=true;e.adopted=true;e.start_time=Some(123);e.facts.in_game=true;
+            e.inst.anti_afk=true;settle(e,start+1000);
+        }
+        let before=t.get(&id).unwrap();t.set_paused(true);
+        assert!(t.afk_clients().is_empty() && t.slotted().is_empty() && t.take_rejoins().is_empty());
+        assert!(t.close_due(1,start+7_200_000,&[]).is_empty());
+        assert!(t.mark_restart(&id,Some(CrashKind::Mem)).is_none());
+        assert_eq!(t.get(&id).unwrap().pid,before.pid);
+        assert_eq!(t.get(&id).unwrap().state,before.state);
+        assert_eq!(t.free(&[],start+200_000),[id.clone()]);
+        assert!(t.set_held(&id,true));t.set_paused(false);
+        assert!(t.get(&id).unwrap().held,"Resume All preserves an individual Take control choice");
+        assert!(t.afk_clients().is_empty());
+        t.set_held(&id,false);assert!(!t.afk_clients().is_empty());
+    }
 
     #[test]
     fn the_layout_preview_changes_nothing() {
@@ -2878,6 +2970,7 @@ mod tests {
         let start = now_ms();
         let secs = (start / 1000) as u64;
         let id = t.register(&info(100, start, false), target()).id;
+        t.entries()[0].facts.in_game = true;
         let procs = Fake::new(&[(100, secs)]);
         let poll = |n: i64| t.poll(None, &procs, &user_of, start + n * 1_000);
         poll(1);
@@ -2888,7 +2981,7 @@ mod tests {
         assert_eq!(state(&t, &id).1, None, "not yet");
         assert!(t.take_rejoins().is_empty());
         poll(i64::from(HANG_POLLS) + 1);
-        assert_eq!(state(&t, &id), (Starting, note(HUNG), 100));
+        assert_eq!(state(&t, &id), (InGame, note(HUNG), 100));
         assert_eq!(t.take_rejoins().iter().map(|r| r.cause).collect::<Vec<_>>(), [CrashKind::Hang]);
         assert!(t.take_rejoins().is_empty() && t.still_wants_rejoin(&id));
 
@@ -2909,7 +3002,7 @@ mod tests {
         assert_eq!(state(&t, &id).1, note("Gave up after 3 restarts"));
         assert!(!t.still_wants_rejoin(&id));
 
-        // It then ends (never reached a game: after 120 s) as hung.
+        // It then ends as hung after having reached a game.
         procs.set(&[]);
         poll(200);
         assert_eq!(state(&t, &id), (Exited, note("Gave up after 3 restarts"), 100));
@@ -2928,7 +3021,8 @@ mod tests {
             t.check_memory(&|_| 4_096,false, &|_, _| Some(5_000));
         }
         assert!(t.take_rejoins().is_empty(), "restarts wait for the batch");
-        assert_eq!(t.throttle(4_096).0, [id], "the throttle doesn't");
+        assert!(t.throttle(4_096, Some(t.get(&id).unwrap().account_id)).0.is_empty());
+        assert_eq!(t.throttle(4_096, None).0, [id], "the throttle doesn't affect unrelated accounts");
     }
 
     #[test]

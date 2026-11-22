@@ -95,6 +95,15 @@ const ACCOUNT_SELECT: &str = "SELECT a.id, a.user_id, a.username, a.display_name
 const GROUP_SELECT: &str = "SELECT id, name, color, sort_order, defaults FROM groups";
 
 impl Db {
+    /// Read-only validation; never migrates or modifies a retained snapshot.
+    pub fn verify_snapshot(path: &Path) -> Result<()> {
+        let key = cipher::read_key(path)?;
+        let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        cipher::unlock(&conn, &key)?;
+        let integrity: String = conn.query_row("PRAGMA integrity_check", [], |r|r.get(0))?;
+        if integrity != "ok" { return Err(AppError::Storage("The encrypted backup did not pass its integrity check.".into())); }
+        Ok(())
+    }
     /// Opens (creating if needed) and migrates. Encrypted (`cipher`: a new database gets a new
     /// key, a plain one from before is encrypted first), WAL, foreign keys on.
     pub fn open(path: &Path) -> Result<Db> {
@@ -983,6 +992,16 @@ impl Db {
             "INSERT OR REPLACE INTO cache (key, value, fetched_at) VALUES (?1, ?2, ?3)",
             params![key, value, fetched_at],
         )?;
+        Ok(())
+    }
+
+    pub fn cache_rows(&self) -> Result<u64> {
+        let count: i64 = self.conn().query_row("SELECT count(*) FROM cache", [], |row| row.get(0))?;
+        Ok(count.max(0) as u64)
+    }
+
+    pub fn clear_cache(&self) -> Result<()> {
+        self.conn().execute("DELETE FROM cache", [])?;
         Ok(())
     }
 

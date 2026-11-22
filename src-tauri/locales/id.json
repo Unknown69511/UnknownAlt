@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: dimulai ulang, memakai terlalu banyak memori.",
   "**{name}**: restarted on its timer.": "**{name}**: dimulai ulang oleh timernya.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: dimulai ulang setelah berhenti merespons.",
-  "**{name}**: restarted after a crash.": "**{name}**: dimulai ulang setelah crash.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows terkunci, jadi Anti-AFK tidak bisa menekan tombol: klien dalam game akan diputus karena diam setelah 20 menit. Buka kunci PC agar mereka tetap di dalam game.",
   "Batch finished: {in_game} of {total} in game": "Batch selesai: {in_game} dari {total} dalam game",
   ", {done} done": ", {done} selesai",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "{n} alt · {games} game"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

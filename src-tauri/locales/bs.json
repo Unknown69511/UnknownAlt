@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: restartovan, trošio je previše memorije.",
   "**{name}**: restarted on its timer.": "**{name}**: ponovo pokrenut po tajmeru.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: restartovan nakon što je prestao odgovarati.",
-  "**{name}**: restarted after a crash.": "**{name}**: restartovan nakon pada.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows je zaključan, pa Anti-AFK ne može pritiskati tipke: klijenti u igri bit će prekinuti zbog neaktivnosti nakon 20 minuta. Otključajte računar da ostanu u igri.",
   "Batch finished: {in_game} of {total} in game": "Serija završena: {in_game} od {total} u igri",
   ", {done} done": ", {done} gotovo",
@@ -427,5 +426,9 @@
     "one": "{n} alt · igara: {games}",
     "few": "{n} alta · igara: {games}",
     "other": "{n} altova · igara: {games}"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

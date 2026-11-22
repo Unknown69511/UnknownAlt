@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: đã khởi động lại, dùng quá nhiều bộ nhớ.",
   "**{name}**: restarted on its timer.": "**{name}**: khởi động lại theo hẹn giờ.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: đã khởi động lại sau khi ngừng phản hồi.",
-  "**{name}**: restarted after a crash.": "**{name}**: đã khởi động lại sau khi crash.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows đang khóa, nên Anti-AFK không thể nhấn phím: các client trong game sẽ bị ngắt kết nối vì treo máy sau 20 phút. Mở khóa PC để giữ chúng trong game.",
   "Batch finished: {in_game} of {total} in game": "Xong lượt hàng loạt: {in_game}/{total} trong game",
   ", {done} done": ", {done} xong",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "{n} acc phụ · {games} game"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

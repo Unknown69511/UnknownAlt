@@ -1,3 +1,38 @@
+# Unknown alt 1.2.2
+
+- Farm Control Center brings together managed-client problems, recovery actions,
+  CPU and RAM readings, a priority account, session alerts and the audio mixer.
+- Storage Dashboard measures app data, database, logs and encrypted snapshots.
+  Cleanup targets cached results and rotated app logs.
+- Updates shows Unknown alt release notes, Roblox release notes and DevForum
+  announcements with filters and unread status. The pinned updater controls
+  Windows EXE installation and progress.
+- Added Windows MSIX packaging and native archive build targets for macOS and
+  Linux. The GitHub release includes the Windows EXE. Store certification and
+  native macOS/Linux builds are pending. See [platform builds](docs/PLATFORMS.md).
+
+## Reliability improvements included in 1.2.2
+
+- Treat unconfirmed client exits separately from confirmed crashes. Match Windows
+  fault records to both process ID and creation time; require an associated crash
+  handler log before treating a nearby dump as crash evidence.
+- Give slow initial launches two minutes before showing a stalled-launch diagnosis.
+  Keep their windows open and recover the displayed state if they finish loading.
+- Smart Troubleshooter checks local installation/runtime, recent errors, launch
+  state and resource/pause conditions. Safe repairs are explicit; reinstalling Roblox
+  requires confirmation, an encrypted data snapshot and no running Roblox clients.
+- Create verified encrypted local snapshots before built-in application updates,
+  retaining the five newest completed snapshots. Failed backups stop that update.
+  Manual snapshots are available in Settings > Data. No private data is uploaded.
+- Pause All and Resume All suspend/resume management without closing or suspending
+  Roblox processes. Individual Take control choices remain intact.
+- Smart Launch Queue waits for CPU/RAM headroom, uses stable recovery thresholds,
+  and supports cancellation while paused. Configure it in Settings > Launching.
+
+See [local safeguards](docs/LOCAL-SAFEGUARDS.md) for recovery limits and the
+isolated verification procedure. Windows
+Authenticode signing remains separate from the existing owner-signed update feed.
+
 # Unknown alt 1.2.0
 
 Ported from inspectsoftware/RoALT through `59b027b`, retaining the MIT license and

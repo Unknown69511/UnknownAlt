@@ -175,7 +175,7 @@ mod tests {
 
 /// Replace any previous directory ACL with an inheritable, protected current-user-only ACL.
 /// Fail closed before writing credentials, including when a moved data directory already exists.
-fn secure_exports(dir: &Path) -> Result<()> {
+pub(crate) fn secure_exports(dir: &Path) -> Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use windows::core::PCWSTR;
     use windows::Win32::Foundation::{HLOCAL, LocalFree};
@@ -185,7 +185,7 @@ fn secure_exports(dir: &Path) -> Result<()> {
     let sddl: Vec<u16> = format!("D:P(A;OICI;FA;;;{sid})").encode_utf16().chain(Some(0)).collect();
     let path: Vec<u16> = dir.as_os_str().encode_wide().chain(Some(0)).collect();
     let mut descriptor = PSECURITY_DESCRIPTOR::default();
-    let fail = || AppError::Invalid("Windows could not secure the cookie-export folder. Nothing was exported.".into());
+    let fail = || AppError::Invalid("Windows could not secure Unknown alt's private local folder. No private files were written.".into());
     // SAFETY: input strings are terminated and alive; Windows owns descriptor until LocalFree.
     unsafe {
         ConvertStringSecurityDescriptorToSecurityDescriptorW(PCWSTR(sddl.as_ptr()), 1, &mut descriptor, None).map_err(|_| fail())?;

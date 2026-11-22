@@ -32,7 +32,7 @@ export const AREAS: readonly AreaDef[] = [
     label: "settings.section.launching",
     icon: "rocket",
     groups: [
-      { label: "settings.group.starting", ids: ["multi", "protectLogin", "launchDelay", "launchArgs", "protectMain"] },
+      { label: "settings.group.starting", ids: ["multi", "protectLogin", "launchDelay", "launchArgs", "protectMain", "smartQueue"] },
       { label: "settings.group.recovery", ids: ["autoRejoin", "autoRestart", "breaker", "restartEvery", "closeAfter", "antiAfk"] },
       { label: "settings.group.stopping", ids: ["panic", "closeGrace", "shutdown"] },
       { label: "settings.client", ids: ["defaultLauncher", "askBrowserLinks", "client", "autoUpdate"] },
@@ -53,7 +53,7 @@ export const AREAS: readonly AreaDef[] = [
     icon: "shield",
     groups: [{ ids: ["encryption", "masterPassword", "recoveryCode", "autoLock", "lockOnSessionLock", "clipboard", "signInWatch", "lockPurchases", "publicNetworks"] }],
   },
-  { id: "data", label: "settings.section.data", icon: "database", groups: [{ ids: ["dataFolder", "backup", "cache", "cleanLogs", "browserData"] }] },
+  { id: "data", label: "settings.section.data", icon: "database", groups: [{ ids: ["dataFolder", "backup", "automaticBackups", "cache", "cleanLogs", "browserData"] }] },
   { id: "about", label: "settings.section.about", icon: "info", groups: [{ ids: ["privateUpdates", "rolimons", "version", "replayTour", "support"] }] },
   {
     id: "shortcuts",

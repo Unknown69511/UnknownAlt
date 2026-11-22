@@ -24,9 +24,12 @@ import { BreakerRow, ClientCard, LauncherRow, MultiRow, ShutdownRow } from "./ro
 import { EncryptionRow, MasterPasswordRow, PublicNetworkRow, RecoveryCodeRow } from "./rows/security";
 import { ShortcutsTable } from "./rows/shortcuts";
 import { PrivateUpdatesRow } from "../update/PrivateUpdates";
+import { AutomaticBackupsRow, SmartQueueRow } from "../management/Management";
 
 /** Settings' rows that draw their own controls, by entry id. */
 const RENDERERS: RowRenderers = {
+  automaticBackups: AutomaticBackupsRow,
+  smartQueue: SmartQueueRow,
   ...PERFORMANCE_RENDERERS,
   multi: MultiRow,
   breaker: BreakerRow,

@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**：已重启，内存占用过多。",
   "**{name}**: restarted on its timer.": "**{name}**：已按定时器重启。",
   "**{name}**: restarted after it stopped responding.": "**{name}**：停止响应后已重启。",
-  "**{name}**: restarted after a crash.": "**{name}**：崩溃后已重启。",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows 已锁定，防 AFK 无法按键：游戏中的客户端会在 20 分钟后因闲置被断开。解锁电脑才能让它们留在游戏中。",
   "Batch finished: {in_game} of {total} in game": "批量任务完成：{total} 个中 {in_game} 个进入游戏",
   ", {done} done": "，{done} 个完成",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "{n} 个小号 · {games} 个游戏"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

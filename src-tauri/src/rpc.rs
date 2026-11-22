@@ -333,6 +333,7 @@ mod tests {
             micro_size: None,
             applied_limits: Limits::default(),
             held: false,
+            launch_stalled: false,
         }
     }
 

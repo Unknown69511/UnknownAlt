@@ -125,6 +125,10 @@ struct Batch {
 }
 
 impl Bulk {
+    pub fn account_cancelled(&self, account_id: i64) -> bool {
+        self.batch().as_ref().is_some_and(|b| !b.progress.done && b.cancel.load(Ordering::SeqCst)
+            && b.progress.items.iter().any(|i| i.account_id == account_id))
+    }
     pub fn new() -> Bulk {
         Bulk {
             inner: Mutex::new(None),
@@ -373,6 +377,7 @@ pub fn jittered(delay_ms: u32) -> Duration {
 /// (or "Closed").
 pub fn stage_of(instance: &Instance, allow_disconnect: bool) -> BulkStage {
     let failed = |default: fn() -> String| BulkStage::Failed { message: instance.note.clone().unwrap_or_else(default) };
+    if instance.launch_stalled { return failed(|| tr!("Roblox has not finished starting. Open Smart Troubleshooter.")); }
     match instance.state {
         InstanceState::Starting => BulkStage::Starting,
         InstanceState::Joining => BulkStage::Joining,
@@ -1055,6 +1060,7 @@ mod tests {
             micro_size: None,
             applied_limits: Default::default(),
             held: false,
+            launch_stalled: false,
         }
     }
 

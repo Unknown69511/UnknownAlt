@@ -16,7 +16,7 @@ const LISTED: readonly Goal[] = [
   },
   {
     id: "online", icon: "refresh", title: "settings.goal.online", say: "settings.goal.onlineSay",
-    start: ["autoRejoin", "autoRestart", "antiAfk"], tune: ["closeToTray", "breaker", "restartEvery", "closeAfter", "memRestart", "signInWatch"], links: ["acct.bringBack", "client.antiAfk"],
+    start: ["autoRejoin", "autoRestart", "antiAfk"], tune: ["smartQueue", "closeToTray", "breaker", "restartEvery", "closeAfter", "memRestart", "signInWatch"], links: ["acct.bringBack", "client.antiAfk"],
   },
   { id: "stop", icon: "stop", title: "settings.goal.stop", say: "settings.goal.stopSay", start: ["panic"], tune: ["closeGrace", "shutdown"], links: [] },
   {
@@ -39,7 +39,7 @@ const LISTED: readonly Goal[] = [
     id: "protect", icon: "shield", title: "settings.goal.protect", say: "settings.goal.protectSay",
     start: ["encryption", "masterPassword", "recoveryCode", "autoLock", "lockPurchases"], tune: ["lockOnSessionLock", "clipboard", "publicNetworks"], links: [],
   },
-  { id: "data", icon: "database", title: "settings.goal.data", say: "settings.goal.dataSay", start: ["backup"], tune: ["dataFolder", "cache"], links: [] },
+  { id: "data", icon: "database", title: "settings.goal.data", say: "settings.goal.dataSay", start: ["backup"], tune: ["automaticBackups", "dataFolder", "cache"], links: [] },
   {
     id: "alerts", icon: "bell", title: "settings.goal.alerts", say: "settings.goal.alertsSay",
     start: [], tune: [], links: ["presence", "webhook", "ev.crash", "ev.disconnect", "statusSummary", "acct.discordMuted"],

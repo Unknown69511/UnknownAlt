@@ -1,5 +1,5 @@
 
-## 1.2.0 Windows build and release
+## Windows build and release
 
 Use a clean source checkout; never copy an installed app's data/profile directories.
 The installer builder checks the Microsoft signature of its WebView2 prerequisite
@@ -13,15 +13,18 @@ Native tests use synthetic accounts/temporary databases; live service checks mar
 ignored are optional and must not use personal credentials in public logs.
 Then use `scripts/build-installer.ps1` (Inno Setup 6.6+, MSVC, Rust and Strawberry
 Perl). Optional `-OfflineRuntime` bundles the larger standalone WebView2 runtime.
-The canonical updater installer is `UnknownAlt-Setup-1.2.0.exe`.
+The canonical updater installer is `UnknownAlt-Setup-X.Y.Z.exe`, using the matching
+version from package.json, Cargo.toml and tauri.conf.json. See
+[local safeguards](LOCAL-SAFEGUARDS.md) for isolated test and recovery guidance.
 
 Inspect the final executable/installer for private metadata and use
 `Get-AuthenticodeSignature` to report actual Windows signing status. Do not claim
 SignPath signing before provider approval and integration. Sign the final update
 manifest with `node scripts/release-sign.mjs --key-file <private-key-outside-repo>`.
 The pinned public key and owner/repository restrictions must remain unchanged.
-Publish the canonical installer, `UnknownAlt-update.json`, its `.sig`, and
-`SHA256SUMS.txt` together under tag `v1.2.0` in Unknown69511/UnknownAlt. Never replace
+Only after explicit owner approval, publish the canonical installer,
+`UnknownAlt-update.json`, its `.sig`, and `SHA256SUMS.txt` together under the matching
+`vX.Y.Z` tag in Unknown69511/UnknownAlt. Never replace
 existing versioned installer bytes. The offline installer is not an updater asset.
 
 Commit as Unknown69511 with `275345990+Unknown69511@users.noreply.github.com` and UTC

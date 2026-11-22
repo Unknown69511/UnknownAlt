@@ -1,6 +1,6 @@
 [package]
 name = "unknownalt"
-version = "1.2.0"
+version = "1.2.2"
 description = "Local-only Roblox account manager"
 authors = ["Unknown69511"]
 license = "MIT"
@@ -92,6 +92,12 @@ windows = { version = "0.62", features = [
 ] }
 windows-future = "0.3"
 webview2-com = "0.39"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6.3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6.3", features = ["sync-secret-service", "crypto-rust"] }
 
 # Line numbers in backtraces, no variable info in the debugger: keeps target\debug small.
 [profile.dev]

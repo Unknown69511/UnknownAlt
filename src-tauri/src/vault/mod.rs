@@ -15,7 +15,6 @@ mod dpapi;
 mod hello;
 pub mod master;
 
-use std::fmt;
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -27,38 +26,11 @@ use crate::model::VaultMode;
 pub use dpapi::{protect_with, unprotect_with};
 pub use hello::{hello_available, windows_hello};
 
-/// A secret string (cookie, password). Zeroed on drop, never printed.
-#[derive(Clone)]
-pub struct Secret(Zeroizing<String>);
-
-impl Secret {
-    pub fn new(s: impl Into<String>) -> Self {
-        Self(Zeroizing::new(s.into()))
-    }
-
-    pub fn expose(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Debug for Secret {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("Secret(..)")
-    }
-}
+pub use crate::secret_types::{Kdf, Secret};
 
 /// AAD for a stored cookie, so a blob cannot be moved to another account's row.
 pub fn cookie_aad(user_id: i64) -> Vec<u8> {
     format!("roalt.cookie:{user_id}").into_bytes()
-}
-
-/// Argon2id parameters stored next to a master-password vault.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Kdf {
-    pub salt: Vec<u8>,
-    pub m_kib: u32,
-    pub t: u32,
-    pub p: u32,
 }
 
 /// The `vault` table row.

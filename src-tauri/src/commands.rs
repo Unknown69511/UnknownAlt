@@ -1206,6 +1206,7 @@ pub(crate) async fn launch_tracked(
 ) -> Result<(LaunchInfo, Instance)> {
     let kills = s.bulk.kills();
     let killed = || AppError::Invalid(tr!("Launch cancelled by Stop all."));
+    let admission_epoch = s.management.epoch();
     // Claimed until the client is tracked, so a launch from another path (rejoin, tray,
     // batch) can't start the same account meanwhile.
     let Some(_claim) = s.tracker.claim(account_id) else {
@@ -1242,10 +1243,13 @@ pub(crate) async fn launch_tracked(
         s.bulk.release(slot);
         return Err(killed());
     }
+    if let Err(e) = crate::management::wait(s, admission_epoch, || s.bulk.kills()!=kills || s.bulk.account_cancelled(account_id)).await {
+        s.bulk.release(slot); return Err(e);
+    }
     retake_multi(s, &v);
     // Holds the shared files until the client is tracked (the poll releases them when idle).
     let launching = s.multi.launching(v.multi_instance && v.protect_shared_login);
-    let info = match crate::launcher::launch(s, account_id, &target, fps_cap).await {
+    let info = match crate::launcher::launch(s, account_id, &target, fps_cap, admission_epoch, kills).await {
         Ok(info) => info,
         Err(e) => {
             log::warn!("launch failed for account {account_id}: {e}");
@@ -1696,6 +1700,7 @@ pub fn bulk_launch(app: AppHandle, request: BulkRequest) -> Result<String> {
 /// Stops the running batch after its current step.
 #[tauri::command]
 pub fn bulk_cancel(s: State<'_, App>, batch_id: String) -> Result<()> {
+    s.management.cancel_pending();
     s.bulk.cancel(&batch_id)
 }
 
@@ -2313,6 +2318,7 @@ pub async fn instance_move(
         return Err(AppError::Wait(why));
     }
     crate::launcher::launch_check(&s, inst.account_id, &target).await?;
+    crate::management::wait(&s,s.management.epoch(),||s.bulk.kills()!=kills || s.bulk.account_cancelled(inst.account_id)).await?;
     s.tracker.end_relaunch(&id);
     if let Some(pid) = s.tracker.mark_closing(&id) {
         if let Err(e) = close_all(vec![pid], false, grace(&s)).await?.pop().unwrap_or(Ok(())) {
@@ -2451,7 +2457,8 @@ pub async fn instance_set_limits(app: AppHandle, s: State<'_, App>, id: String, 
             log::warn!("could not read settings for the limits of {id}; using defaults: {e}");
             Default::default()
         });
-        let held = s.tracker.throttle(v.mem_throttle.mb).0;
+        let priority = crate::farm::settings(&s.db).ok().and_then(|settings| settings.priority_account);
+        let held = s.tracker.throttle(v.mem_throttle.mb, priority).0;
         let plan = crate::instances::limits::plan_now(&s, &v, &s.tracker.clients(), &held);
         match plan.into_iter().find(|c| c.0 == id) {
             Some((_, pid, t0, l)) => s.limiter.apply(&id, pid, t0, l).map_err(|e| (id, e)),
@@ -2490,7 +2497,8 @@ pub async fn instances_apply_limits(app: AppHandle, s: State<'_, App>, limits: L
     blocking(move || {
         let s = app2.state::<App>();
         let v = s.db.settings().unwrap_or_default();
-        let held = s.tracker.throttle(v.mem_throttle.mb).0;
+        let priority = crate::farm::settings(&s.db).ok().and_then(|settings| settings.priority_account);
+        let held = s.tracker.throttle(v.mem_throttle.mb, priority).0;
         let plan = crate::instances::limits::plan_now(&s, &v, &s.tracker.clients(), &held);
         for (id, pid, t0, l) in plan {
             if let Err(e) = s.limiter.apply(&id, pid, t0, l) {

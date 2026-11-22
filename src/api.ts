@@ -1,5 +1,19 @@
 // Typed wrappers for every Tauri command and event. Types come from src/bindings (ts-rs).
 import { invoke as rawInvoke, type InvokeArgs } from "@tauri-apps/api/core";
+import type { BulletinSource } from "./bindings/BulletinSource";
+import type { Bulletins } from "./bindings/Bulletins";
+import type { FarmStatus } from "./bindings/FarmStatus";
+import type { FarmSettings } from "./bindings/FarmSettings";
+import type { AudioChange } from "./bindings/AudioChange";
+import type { AudioLevel } from "./bindings/AudioLevel";
+import type { DiskUsage } from "./bindings/DiskUsage";
+export type { BulletinSource, AudioChange };
+import type { ManagementConfig } from "./bindings/ManagementConfig";
+import type { ManagementStatus } from "./bindings/ManagementStatus";
+import type { TroubleshootReport } from "./bindings/TroubleshootReport";
+import type { Repair } from "./bindings/Repair";
+import type { AutomaticBackup } from "./bindings/AutomaticBackup";
+export type { ManagementConfig, ManagementStatus, TroubleshootReport, Repair, AutomaticBackup };
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AccountInfo } from "./bindings/AccountInfo";
 import type { AppUpdate } from "./bindings/AppUpdate";
@@ -135,6 +149,15 @@ function invoke<T>(cmd: string, args?: InvokeArgs): Promise<T> {
 type LogRecord = { level: number; message: string };
 
 export const api = {
+  managementStatus: () => invoke<ManagementStatus>("management_status"),
+  managementPause: (paused: boolean) => invoke<ManagementStatus>("management_pause", { paused }),
+  managementConfigure: (config: ManagementConfig) => invoke<ManagementStatus>("management_configure", { config }),
+  managementCancelPending: () => invoke<void>("management_cancel_pending"),
+  troubleshootDiagnose: () => invoke<TroubleshootReport>("troubleshoot_diagnose"),
+  troubleshootFix: (action: Repair, confirmed: boolean) => invoke<TroubleshootReport>("troubleshoot_fix", { action, confirmed }),
+  automaticBackupsList: () => invoke<AutomaticBackup[]>("automatic_backups_list"),
+  automaticBackupNow: () => invoke<AutomaticBackup>("automatic_backup_now"),
+  automaticBackupsOpen: () => invoke<void>("automatic_backups_open"),
   vaultStatus: () => invoke<VaultStatus>("vault_status"),
   vaultUnlock: (password: string) => invoke<void>("vault_unlock", { password }),
   vaultLock: () => invoke<void>("vault_lock"),
@@ -356,6 +379,12 @@ export const api = {
   onlinePing: () => invoke<Online | null>("online_ping"),
   /** UnknownAlt's version and the newer release the last check found (no network). */
   selfUpdateStatus: () => invoke<AppUpdate>("self_update_status"),
+  updateBulletins: () => invoke<Bulletins>("update_bulletins"),
+  farmStatus: () => invoke<FarmStatus>("farm_status"),
+  farmConfigure: (settings: FarmSettings) => invoke<void>("farm_configure", { settings }),
+  farmAudio: (id: string, change: AudioChange | null) => invoke<AudioLevel>("farm_audio", { id, change }),
+  diskUsage: () => invoke<DiskUsage>("disk_usage"),
+  diskCleanup: (cache: boolean, logs: boolean) => invoke<DiskUsage>("disk_cleanup", { cache, logs }),
   selfUpdateCheck: () => invoke<AppUpdate>("self_update_check"),
   /** Native code selects the owned release and verifies its signature before any install. */
   selfUpdateInstall: () => invoke<void>("self_update_install"),

@@ -16,7 +16,7 @@ import { assertMotionTokens, installReactive, installReducedMotion } from "./ui/
 let forwarding = false;
 function report(level: "error" | "warn", message: string) {
   // A failure while forwarding must not forward itself again.
-  if (forwarding) return;
+  if (forwarding || "__UNKNOWNALT_PORTABLE__" in window) return;
   forwarding = true;
   try {
     debugLog(level, message);
@@ -104,6 +104,7 @@ if (!preview) installSounds();
 const gallery = import.meta.env.DEV && new URLSearchParams(location.search).has("gallery") ? await import("./dev/GalleryRoot") : null;
 
 await loadLastLang();
+const portable = "__UNKNOWNALT_PORTABLE__" in window ? await import("./features/portable/PortableApp") : null;
 
 createRoot(document.getElementById("root")!).render(
   preview ? (
@@ -113,7 +114,7 @@ createRoot(document.getElementById("root")!).render(
   ) : (
     <StrictMode>
       <Boundary>
-        <App />
+        {portable ? <portable.PortableApp /> : <App />}
       </Boundary>
     </StrictMode>
   ),

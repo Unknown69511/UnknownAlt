@@ -123,6 +123,7 @@ fn tick(app: &AppHandle) -> Duration {
     // than our last injection.
     let mut ours = last_input();
     for c in clients.iter().filter(|c| ids.contains(&c.id)) {
+        if !s.tracker.manages_pid(c.pid) { continue; }
         if last_input() != ours {
             failed = true;
             break;

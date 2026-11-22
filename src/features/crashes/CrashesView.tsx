@@ -13,7 +13,7 @@ import { accountName, ago, Avatar } from "../accounts/shared";
 import { Problem } from "../browse/Native";
 import { uptime } from "../launch/Running";
 import { exportCsv } from "./exportCsv";
-import { CRASH_KINDS, verdictOf } from "./kinds";
+import { CRASH_KINDS, crashTitle, verdictOf } from "./kinds";
 
 const PAGE = 50;
 
@@ -33,7 +33,7 @@ export function CrashCard({ crash: c, account }: { crash: Crash; account?: Accou
             <span className="truncate">{accountName(account)}</span>
           </span>
         )}
-        <h2 className="font-medium truncate flex-1 min-w-0">{t(CRASH_KINDS[c.kind])}</h2>
+        <h2 className="font-medium truncate flex-1 min-w-0">{crashTitle(c)}</h2>
         <span className="meta" title={fmtDate(c.at, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}>{ago(c.at)}</span>
       </div>
       <p className="text-[13px] text-fg-2">

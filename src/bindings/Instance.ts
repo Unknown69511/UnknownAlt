@@ -62,4 +62,8 @@ appliedLimits: Limits,
  * The user took control of it ("Take control"): until it closes or is given back, UnknownAlt doesn't
  * rejoin, restart, close, press anti-AFK keys in, limit or lay it out.
  */
-held: boolean, };
+held: boolean,
+/**
+ * A running process has not reached a game within the launch deadline. It remains tracked.
+ */
+launchStalled: boolean, };

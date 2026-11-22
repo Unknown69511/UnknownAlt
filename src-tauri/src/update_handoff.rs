@@ -267,6 +267,7 @@ pub fn command_allowed(command: &str) -> bool {
     if !health_pending() {return true;}
     if command.starts_with("plugin:event|") || command.starts_with("plugin:window|") || command.starts_with("plugin:webview|") {return true;}
     matches!(command,
+        "management_status" | "troubleshoot_diagnose" | "automatic_backups_list" | "farm_status" |
         "update_health_ready" | "vault_status" | "settings_get" | "app_activity" | "splash_done" |
         "self_update_status" | "update_auth_status" | "network_status" | "background_get" | "accounts_list" | "groups_list" |
         "instances_list" | "favourites_list" | "bulk_current" | "roblox_client" | "multi_instance_status" |

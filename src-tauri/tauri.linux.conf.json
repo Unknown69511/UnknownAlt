@@ -1,0 +1,13 @@
+{
+  "build": { "devUrl": null },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "publisher": "Unknown69511",
+    "category": "Utility",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "resources": { "../LICENSE": "LICENSE", "../NOTICE.md": "NOTICE.md", "../REBRANDING.md": "REBRANDING.md" },
+    "linux": { "deb": { "depends": ["dbus-user-session", "libdbus-1-3"], "recommends": ["gnome-keyring | kwalletmanager"] } }
+  }
+}

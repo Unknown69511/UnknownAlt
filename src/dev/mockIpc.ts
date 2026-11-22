@@ -16,6 +16,7 @@
 // Anti-AFK (when on) "presses a key" in each opted-in client in a game every 20 s, so the time moves.
 // Discord: any discord.com webhook URL is accepted; one whose token contains "deleted" fails the test.
 import { emit } from "@tauri-apps/api/event";
+let mockFarm: { priorityAccount: number | null; localAlerts: boolean } = { priorityAccount: null, localAlerts: true };
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type {
   AccountInfo, AccountStatus, AccountSummary, AccountValue, BulkProgress, BulkRequest, BulkStage, Crash, Favourite, GameInfo, GameServer, GameStats, Group, Instance, LimitedItem, PlayerStats, RolimonsItem,
@@ -280,7 +281,7 @@ function track(accountId: number, pid: number, target: LaunchTarget, placeId: nu
   const i: Instance = {
     id: crypto.randomUUID(), accountId, pid, state: "starting", target, placeId, jobId: null,
     startedAt: Date.now(), endedAt: null, viaBootstrapper, note: null, rejoins, limits: { cpuCap: null, eco: false, trimEveryMin: null, affinity: null },
-    antiAfk: true, afkAt: null, throttled: false, micro: false, fpsCap, relaunching: false, relaunchProblem: null, signInProblem: false, appliedLimits: { cpuCap: 25, eco: true, affinity: null, trimEveryMin: 15 }, held: false,
+    antiAfk: true, afkAt: null, throttled: false, micro: false, fpsCap, relaunching: false, relaunchProblem: null, signInProblem: false, appliedLimits: { cpuCap: 25, eco: true, affinity: null, trimEveryMin: 15 }, held: false, launchStalled: false,
   };
   instances.push(i);
   if (!lockHeld) eventHolder = i.id;
@@ -536,6 +537,8 @@ const placeOfTarget = (t: LaunchTarget) => ("placeId" in t ? t.placeId : t.kind 
 // ---------- M5: bulk launch, servers ----------
 
 const EXPIRED = "This cookie is not valid or has expired. Sign in again.";
+let management = { paused: false, resourceGuard: true, cpuLimit: 90, memoryLimit: 90 };
+let automaticBackups: { id: string; createdAt: number; version: string; reason: string; bytes: number }[] = [];
 let batch: BulkProgress | null = null;
 let batchCancel = false;
 function bulkChanged() {
@@ -814,6 +817,23 @@ function reauth(password?: string) {
 
 async function handle(cmd: string, args: Args): Promise<unknown> {
   switch (cmd) {
+    case "management_status": return { config: management, waiting: 0, reason: management.paused ? "Management paused. Running Roblox windows stay open." : null };
+    case "management_pause": management = { ...management, paused: !!args.paused }; return handle("management_status", {});
+    case "management_configure": management = { ...args.config, paused: management.paused }; return handle("management_status", {});
+    case "management_cancel_pending": return null;
+    case "troubleshoot_diagnose": return { checks: ["Local preview diagnostics. No information is uploaded."], findings: new URLSearchParams(location.search).get("qa") === "troubleshooter" ? [
+      { id: "stalled-launch", title: "Roblox launch is taking too long", cause: "A fixture process has not reached a game within two minutes. This is not proof of a crash.", solutions: ["Rescan the installation without closing running windows."], severity: "warning", fix: "rescanInstallation", needsConfirmation: false },
+      { id: "roblox-install", title: "Roblox installation issue", cause: "Isolated preview fixture: Roblox is missing.", solutions: ["Review the official reinstall and confirmation flow."], severity: "error", fix: "reinstallRoblox", needsConfirmation: true },
+    ] : [] };
+    case "troubleshoot_fix":
+      if (args.action === "reinstallRoblox" && !args.confirmed) throw { kind: "invalid", message: "Confirmation required. Nothing changed." };
+      return handle("troubleshoot_diagnose", {});
+    case "automatic_backups_list": return automaticBackups;
+    case "automatic_backup_now": {
+      const item = { id: `fixture-${Date.now()}`, createdAt: Date.now(), version: "local-preview", reason: "manual", bytes: 102400 };
+      automaticBackups = [item, ...automaticBackups].slice(0, 5); return item;
+    }
+    case "automatic_backups_open": return null;
     case "vault_status":
       return { mode: vault.mode, locked: vault.locked, accounts: accounts.length, autoLockMinutes: settings.autoLockMinutes, hasRecovery: !!vault.recovery };
     case "vault_unlock":
@@ -1436,6 +1456,12 @@ async function handle(cmd: string, args: Args): Promise<unknown> {
       return null;
     case "online_ping":
       return !DEMO && settings.onlineCount ? { online: 1284, playing: 5120 } : null;
+    case "update_bulletins": return { items: [], unavailable: [] };
+    case "farm_status": return { settings: mockFarm, usage: null };
+    case "farm_configure": mockFarm = args.settings as typeof mockFarm; return;
+    case "farm_audio": return { sessions: 0, volume: 100, muted: false };
+    case "disk_usage":
+    case "disk_cleanup": return { dataBytes: 0, databaseBytes: 0, logBytes: 0, removableLogBytes: 0, backupBytes: 0, cacheRows: 0, partial: false };
     case "self_update_status":
       return { ...appUpdate };
     case "self_update_check":

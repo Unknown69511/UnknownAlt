@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: yeniden başlatıldı, çok fazla bellek kullandı.",
   "**{name}**: restarted on its timer.": "**{name}**: zamanlayıcıyla yeniden başlatıldı.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: yanıt vermeyi durdurduktan sonra yeniden başlatıldı.",
-  "**{name}**: restarted after a crash.": "**{name}**: çöktükten sonra yeniden başlatıldı.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows kilitli, bu yüzden Anti-AFK tuşa basamıyor: oyundaki istemcilerin bağlantısı boşta kaldıkları için 20 dakika sonra kesilecek. Oyunda kalmaları için bilgisayarın kilidini açın.",
   "Batch finished: {in_game} of {total} in game": "Toplu başlatma bitti: {total} hesaptan {in_game} oyunda",
   ", {done} done": ", {done} tamamlandı",
@@ -415,5 +414,9 @@
   "{n} alts · {games} games": {
     "one": "{n} alt · {games} oyun",
     "other": "{n} alt · {games} oyun"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

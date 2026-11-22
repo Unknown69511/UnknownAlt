@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: na-restart, sobra ang gamit nito sa memory.",
   "**{name}**: restarted on its timer.": "**{name}**: ni-restart ng timer nito.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: na-restart matapos hindi tumugon.",
-  "**{name}**: restarted after a crash.": "**{name}**: na-restart pagka-crash.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Naka-lock ang Windows, kaya hindi makakapindot ng key ang Anti-AFK: madi-disconnect ang mga client na nasa laro dahil sa pagka-idle pagkalipas ng 20 minuto. I-unlock ang PC para manatili sila.",
   "Batch finished: {in_game} of {total} in game": "Tapos ang batch: {in_game} sa {total} ang nasa laro",
   ", {done} done": ", {done} tapos",
@@ -415,5 +414,9 @@
   "{n} alts · {games} games": {
     "one": "{n} alt · {games} laro",
     "other": "{n} alts · {games} laro"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

@@ -496,7 +496,12 @@ pub fn played(s: &crate::App) -> Vec<i64> {
 
 /// `plan` for the clients running now, from what the tracker and the limiter know.
 pub fn plan_now(s: &crate::App, v: &Settings, clients: &[(String, u32, u64, Limits)], throttled: &[String]) -> Vec<(String, u32, u64, Limits)> {
-    let full_quality = played(s);
+    if s.tracker.paused() { return clients.iter().map(|(id,pid,t0,_)|(id.clone(),*pid,*t0,Limits::default())).collect(); }
+    let clients: Vec<_> = clients.iter().map(|(id,pid,t0,limits)|
+        (id.clone(),*pid,*t0,if s.tracker.get(id).is_some_and(|i|i.held) {Limits::default()} else {*limits})).collect();
+    let mut full_quality = played(s);
+    let priority = crate::farm::settings(&s.db).ok().and_then(|v| v.priority_account);
+    if let Some(id) = priority { full_quality.push(id); }
     let free = s.tracker.free(&full_quality, crate::commands::now_ms());
     let front = super::process::foreground_pid();
     s.limiter.note_free(&free, front);
@@ -511,7 +516,7 @@ pub fn plan_now(s: &crate::App, v: &Settings, clients: &[(String, u32, u64, Limi
             Some((c.0.clone(), crate::performance::overlay(v, Some(p)).into_owned()))
         })
         .collect();
-    plan(clients, v, front, crate::commands::cores(), throttled, &free, &s.limiter.uncapped(), &own)
+    plan(&clients, v, front, crate::commands::cores(), throttled, &free, &s.limiter.uncapped(), &own)
 }
 
 /// The limits each running client gets (`clients` as `Tracker::clients`, with the limits the

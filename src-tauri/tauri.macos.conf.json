@@ -1,0 +1,13 @@
+{
+  "build": { "devUrl": null },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg"],
+    "publisher": "Unknown69511",
+    "category": "Utilities",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "resources": { "../LICENSE": "LICENSE", "../NOTICE.md": "NOTICE.md", "../REBRANDING.md": "REBRANDING.md" },
+    "macOS": { "minimumSystemVersion": "11.0", "hardenedRuntime": true }
+  }
+}

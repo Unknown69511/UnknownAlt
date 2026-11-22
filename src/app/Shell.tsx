@@ -42,6 +42,8 @@ const DiscordView = lazyView(() => import("../features/discord/DiscordView"), (m
 const LaunchView = lazyView(() => import("../features/launch/LaunchView"), (m) => m.LaunchView);
 const ModsView = lazyView(() => import("../features/mods/ModsView"), (m) => m.ModsView);
 const MonitorView = lazyView(() => import("../features/monitor/MonitorView"), (m) => m.MonitorView);
+const FarmView = lazyView(() => import("../features/management/FarmView"), (m) => m.FarmView);
+const UpdatesPage = lazyView(() => import("../features/update/UpdatesPage"), (m) => m.UpdatesPage);
 const ServersView = lazyView(() => import("../features/servers/ServersView"), (m) => m.ServersView);
 const CrashesView = lazyView(() => import("../features/crashes/CrashesView"), (m) => m.CrashesView);
 const SettingsView = lazyView(() => import("../features/settings/SettingsView"), (m) => m.SettingsView);
@@ -400,6 +402,10 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
               place={serversPlace}
               setPlace={setServersPlace}
             />
+          ) : view === "farm" ? (
+            <FarmView accounts={accounts.data} />
+          ) : view === "updates" ? (
+            <UpdatesPage />
           ) : view === "monitor" ? (
             <MonitorView accounts={accounts.data} />
           ) : view === "discord" ? (

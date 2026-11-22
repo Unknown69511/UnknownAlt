@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: أُعيد تشغيله، فقد استهلك ذاكرة أكثر من اللازم.",
   "**{name}**: restarted on its timer.": "**{name}**: أُعيد تشغيله حسب المؤقت.",
   "**{name}**: restarted after it stopped responding.": "**{name}**: أُعيد تشغيله بعد توقفه عن الاستجابة.",
-  "**{name}**: restarted after a crash.": "**{name}**: أُعيد تشغيله بعد انهيار.",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows مقفل، لذا لا يستطيع Anti-AFK ضغط المفاتيح: سيُقطع اتصال العملاء الموجودين في لعبة بسبب الخمول بعد 20 دقيقة. افتح قفل الجهاز لإبقائهم فيها.",
   "Batch finished: {in_game} of {total} in game": "انتهت الدفعة: {in_game} من {total} في اللعبة",
   ", {done} done": "، {done} انتهى",
@@ -463,5 +462,9 @@
     "few": "{n} حسابات ثانوية · {games} ألعاب",
     "many": "{n} حسابًا ثانويًا · {games} ألعاب",
     "other": "{n} حساب ثانوي · {games} ألعاب"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

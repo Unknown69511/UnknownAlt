@@ -1,10 +1,12 @@
 # Unknown alt
 
-A local Windows account manager and multi-client launcher. The display name is **Unknown alt**; code identifiers, executable names and data filenames use **UnknownAlt**. The charcoal coffee mascot is used in the app, native icons and shortcuts. Brown (`#8b5e3c`) is the factory accent, alongside all existing selectable colors. Donate, News and Upstream navigation are removed. The top Discord button opens https://discord.gg/8EVsaWTH8S. See [the 1.2.0 changes](CHANGELOG.md) for first-run setup, Take control, lighter previews, session locking, Discord controls, group defaults and safer sign-in.
+Unknown alt is a local Windows account manager and launcher for Roblox. Version 1.2.2 adds Farm Control Center, per-client audio, storage cleanup, resource-aware launch scheduling and an Updates page. The app uses the charcoal coffee mascot and Brown as its default accent. The top Discord button opens the [Unknown alt community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
 
 ## Download and signed updates
 
 Source and Windows installers are public at [Unknown69511/UnknownAlt](https://github.com/Unknown69511/UnknownAlt). Download the Windows x64 installer from [Releases](https://github.com/Unknown69511/UnknownAlt/releases/latest). The small installer downloads Microsoft's WebView2 runtime if it is missing; an optional offline installer bundles it. Neither needs developer tools or the publisher PC.
+
+The GitHub release ships the Windows EXE. The Microsoft Store edition uses a separate MSIX package and Store-managed updates. Native macOS and Linux downloads are pending builds and tests on those platforms.
 
 Public builds check for updates without a GitHub account, sign-in, token or publisher credentials. Accounts, sessions, settings and encryption keys stay independent and local to each Windows user. No creator accounts, cookies, passwords, private keys, local databases or personal settings are included in source or release packages.
 
@@ -18,11 +20,15 @@ Public read access does not grant repository write access. The owner invites col
 | --- | --- |
 | Installed app | `%LOCALAPPDATA%\Programs\UnknownAlt\UnknownAlt.exe` |
 | Accounts and settings | `%LOCALAPPDATA%\UnknownAlt\UnknownAlt.db` and its `.key`/WAL/SHM siblings |
+| Encrypted local snapshots | `%LOCALAPPDATA%\UnknownAlt-backups` (five retained; never distribute) |
 | Window state | `%APPDATA%\com.unknownalt.desktop` |
 
 Every Windows user generates independent local keys and data. A chosen custom data location is still supported. Existing database/key/journal filenames migrate together through a resumable, no-overwrite migration. Back up the complete closed data folder before upgrading. Do not rename or delete individual encrypted files, and do not downgrade by replacing the executable alone; recovery uses the complete matching application/data snapshot.
 
 ## Build
+
+See [platform builds and signing](docs/PLATFORMS.md) for Windows MSIX, macOS
+universal DMG and Linux AppImage/DEB build targets and platform feature limits.
 
 Build requirements: Windows x64, Node.js 24, Rust 1.95+, MSVC C++ Build Tools/Windows SDK, native Strawberry Perl and Inno Setup 6.6+. Recipients need no developer tools or publisher PC.
 

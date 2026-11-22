@@ -320,6 +320,12 @@ async fn attempt(app: &AppHandle, s: &App, r: &Rejoin, user_id: Option<i64>, kil
         }
         return None;
     }
+    // Admission waits BEFORE closing a surviving client. A busy PC or Pause All never removes
+    // an existing window just to leave its replacement stuck in the queue.
+    let epoch = s.management.epoch();
+    if let Err(e) = crate::management::wait(s, epoch, || over(*closed)).await {
+        return if matches!(e, crate::error::AppError::Cancelled) { None } else { Some(e.message()) };
+    }
     *closed |= open(s);
     // The client stuck on its disconnect dialog or hung; its exit is ours, not unexpected.
     if let Some((pid, started)) = s.tracker.mark_restart(&r.from, Some(r.cause)) {

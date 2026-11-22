@@ -19,6 +19,7 @@ import { TitleBar } from "./ui/TitleBar";
 import { LoadFailed, toast, toastError, Toaster } from "./ui/Toast";
 import { TooltipHost } from "./ui/Tooltip";
 import { useOwnedUpdate } from "./features/update/OwnedUpdate";
+import { ClientManagementBar } from "./features/management/Management";
 
 // The start shows the splash or the unlock screen first: the shell (every view) loads alongside,
 // asked for now rather than at unlock.
@@ -194,6 +195,7 @@ function Root() {
         }
       />
       {/* Unlocked, the island carries notices; locked, there is no island. */}
+      {unlocked && s && !failed && <ClientManagementBar />}
       {s && !failed && !unlocked && <PublicNetworkBanner settings={s} />}
       {failed ? (
         <LoadFailed title={t("app.startFailed")} error={failed} onRetry={() => qc.invalidateQueries()} />

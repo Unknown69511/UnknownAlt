@@ -99,7 +99,6 @@
   "**{name}**: restarted, it used too much memory.": "**{name}**: รีสตาร์ตแล้ว เพราะใช้หน่วยความจำมากเกินไป",
   "**{name}**: restarted on its timer.": "**{name}**: รีสตาร์ตตามตัวจับเวลา",
   "**{name}**: restarted after it stopped responding.": "**{name}**: รีสตาร์ตแล้วหลังไม่ตอบสนอง",
-  "**{name}**: restarted after a crash.": "**{name}**: รีสตาร์ตแล้วหลังแครช",
   "Windows is locked, so anti-AFK can't press keys: clients in a game will be disconnected for idling after 20 minutes. Unlock the PC to keep them in.": "Windows ล็อกอยู่ กัน AFK จึงกดปุ่มไม่ได้: ไคลเอนต์ที่อยู่ในเกมจะถูกตัดการเชื่อมต่อเพราะไม่ได้ขยับหลังผ่านไป 20 นาที ปลดล็อกพีซีเพื่อให้ไคลเอนต์ยังอยู่ในเกม",
   "Batch finished: {in_game} of {total} in game": "เปิดเป็นชุดเสร็จแล้ว: อยู่ในเกม {in_game} จาก {total}",
   ", {done} done": ", เสร็จ {done}",
@@ -403,5 +402,9 @@
   },
   "{n} alts · {games} games": {
     "other": "บัญชีรอง {n} · {games} เกม"
-  }
+  },
+  "**{name}**: the client closed; the cause is not confirmed.": "**{name}**: the client closed; the cause is not confirmed.",
+  "**{name}**: restarted after the client closed.": "**{name}**: restarted after the client closed.",
+  "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.": "Roblox has not finished starting. Open Smart Troubleshooter for checks. Its window was left running.",
+  "Roblox has not finished starting. Open Smart Troubleshooter.": "Roblox has not finished starting. Open Smart Troubleshooter."
 }

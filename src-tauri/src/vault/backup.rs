@@ -11,11 +11,10 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
-use super::{Kdf, master};
 use crate::error::{AppError, Result};
 
-pub const MAGIC: &[u8; 8] = b"UNALTBK1";
-const LEGACY_MAGIC: &[u8; 8] = b"ROALTBK1";
+pub use crate::backup_codec::MAGIC;
+#[cfg(test)] use crate::backup_codec::LEGACY_MAGIC;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -96,71 +95,19 @@ pub struct BackupGroup {
     pub defaults: Option<crate::model::GroupDefaults>,
 }
 
-const HEADER_LEN: usize = MAGIC.len() + 3 * 4 + 16;
-/// Nonce and tag around the sealed JSON.
-const SEAL_OVERHEAD: usize = 12 + 16;
-/// Caps on the file's own KDF cost, so a crafted file cannot eat the machine.
-const MAX_M_KIB: u32 = 1024 * 1024;
-const MAX_T: u32 = 20;
-const MAX_P: u32 = 16;
-
-/// Writes atomically (temp file in the same folder, then rename).
-/// Uses the stronger 256 MiB KDF cost because backup files leave the PC and can be attacked offline.
 pub fn write(path: &Path, password: &str, payload: &BackupPayload) -> Result<()> {
-    write_with_magic(path,password,payload,MAGIC)
+    write_with_magic(path, password, payload, MAGIC)
 }
 
-fn write_with_magic(path: &Path, password: &str, payload: &BackupPayload, magic: &[u8;8]) -> Result<()> {
-    let kdf = master::new_recovery_kdf();
-    let mut out = magic.to_vec();
-    for v in [kdf.m_kib, kdf.t, kdf.p] {
-        out.extend_from_slice(&v.to_le_bytes());
-    }
-    out.extend_from_slice(&kdf.salt);
-    let json = Zeroizing::new(
-        serde_json::to_vec(payload).map_err(|e| {
-            log::warn!("could not encode the backup ({:?})", e.classify());
-            AppError::Internal(tr!("Could not encode the backup."))
-        })?,
-    );
-    let key = master::derive_key(password, &kdf)?;
-    let sealed = master::seal(&key, &out, &json)?;
-    out.extend_from_slice(&sealed);
-    write_atomic(path, &out)
+fn write_with_magic(path: &Path, password: &str, payload: &BackupPayload, magic: &[u8; 8]) -> Result<()> {
+    let json = Zeroizing::new(serde_json::to_vec(payload).map_err(|_| AppError::Internal(tr!("Could not encode the backup.")))?);
+    write_atomic(path, &crate::backup_codec::seal_payload(password, &json, magic)?)
 }
 
-/// `WrongPassword` when the password (or file) does not authenticate,
-/// `Invalid("This isn't an Unknown alt backup.")` on a bad magic / truncated file.
 pub fn read(path: &Path, password: &str) -> Result<BackupPayload> {
-    let not_backup = || AppError::Invalid(tr!("This isn't an Unknown alt backup."));
-    // About 2 KB per account: far above anyone's vault, and it isn't all read into memory first.
-    if fs::metadata(path)?.len() > 64 << 20 {
-        return Err(not_backup());
-    }
-    let bytes = fs::read(path)?;
-    if bytes.len() < HEADER_LEN + SEAL_OVERHEAD || !(bytes.starts_with(MAGIC) || bytes.starts_with(LEGACY_MAGIC)) {
-        log::debug!("not a backup: bad magic or truncated ({} bytes)", bytes.len());
-        return Err(not_backup());
-    }
-    let (header, sealed) = bytes.split_at(HEADER_LEN);
-    let word = |i: usize| u32::from_le_bytes([header[i], header[i + 1], header[i + 2], header[i + 3]]);
-    let kdf = Kdf { m_kib: word(8), t: word(12), p: word(16), salt: header[20..].to_vec() };
-    if kdf.m_kib > MAX_M_KIB || kdf.t > MAX_T || kdf.p > MAX_P {
-        log::debug!("not a backup: absurd KDF cost (m {} KiB, t {}, p {})", kdf.m_kib, kdf.t, kdf.p);
-        return Err(not_backup());
-    }
-    let key = master::derive_key(password, &kdf).map_err(|e| {
-        log::debug!("not a backup: key derivation failed: {e}");
-        not_backup()
-    })?;
-    let json = master::open(&key, header, sealed).map_err(|_| AppError::WrongPassword)?;
-    // The serde error could quote a cookie: only where it broke is logged.
-    serde_json::from_slice(&json).map_err(|e| {
-        log::warn!("backup payload unreadable ({:?} at {}:{})", e.classify(), e.line(), e.column());
-        not_backup()
-    })
+    let json = crate::backup_codec::open_file(path, password)?;
+    serde_json::from_slice(&json).map_err(|_| AppError::Invalid(tr!("This isn't an Unknown alt backup.")))
 }
-
 pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".tmp");

@@ -1261,6 +1261,9 @@ pub struct Instance {
     /// rejoin, restart, close, press anti-AFK keys in, limit or lay it out.
     #[serde(default)]
     pub held: bool,
+    /// A running process has not reached a game within the launch deadline. It remains tracked.
+    #[serde(default)]
+    pub launch_stalled: bool,
 }
 
 /// What Windows holds one client to (instances::limits). Lasts as long as the client.

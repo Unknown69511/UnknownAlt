@@ -211,6 +211,8 @@ const SETTINGS_ENTRIES: readonly Entry[] = [
   { id: "publicNetworks", place: security, label: "settings.public", hint: "settings.publicShort", more: "settings.publicHint", field: "allowPublicNetworks", control: CUSTOM, aliases: ["wifi", "network", "cafe", "hotel"] },
 
   { id: "dataFolder", place: data, label: "settings.dataFolder", control: ACTION, aliases: ["folder", "path", "appdata", "logs", "move"] },
+  { id: "automaticBackups", place: data, label: "backups.title", hint: "backups.hint", control: CUSTOM, aliases: ["automatic", "encrypted", "update", "backup", "restore"] },
+  { id: "smartQueue", place: launching, label: "management.queueTitle", hint: "management.queueHint", control: CUSTOM, aliases: ["CPU", "RAM", "resource", "pause", "queue"] },
   { id: "backup", place: data, label: "settings.backup", hint: "settings.backupHint", control: ACTION, aliases: ["export", "import", "restore"] },
   { id: "cache", place: data, label: "settings.cache", more: "settings.cacheHint", field: "cacheMinutes", control: { kind: "number", min: 1, max: 1440, unit: "settings.unit.minutes", short: "settings.unit.min" }, aliases: ["info", "refresh"] },
   { id: "cleanLogs", place: data, label: "settings.cleanLogs", more: "settings.cleanLogsHint", field: "cleanLogs", control: CUSTOM, aliases: ["logs", "disk", "space"] },

@@ -115,11 +115,13 @@ pub struct SelfUpdater {
 
 impl SelfUpdater {
     pub fn new() -> Self {
-        let (configured, state, error) = match channel() {
+        let (configured, state, error) = if crate::store_package::active() {
+            (false, "unconfigured", Some(crate::store_package::UPDATE_NOTICE.into()))
+        } else { match channel() {
             Ok(Some(_)) => (true, "idle", None),
             Ok(None) => (false, "unconfigured", None),
             Err(e) => (false, "error", Some(e)),
-        };
+        }};
         Self {
             status: Mutex::new(AppUpdate {
                 configured, current: CURRENT.into(), available: None, state: state.into(),
@@ -434,6 +436,7 @@ impl Drop for Reset<'_> { fn drop(&mut self){self.0.store(false,Ordering::SeqCst
 
 pub async fn check(app: &AppHandle) -> Result<AppUpdate> {
     let s=app.state::<App>();
+    if crate::store_package::active() { return Ok(status(&s)); }
     if s.self_update.installing() || s.self_update.checking.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst).is_err() { return Ok(status(&s)); }
     let _checking=Reset(&s.self_update.checking);
     let c=match channel() {
@@ -462,6 +465,7 @@ pub fn switched(app: &AppHandle,_on: bool) {
 
 /// Every installed copy checks immediately, then hourly, including while hidden in the tray.
 pub fn spawn(app: AppHandle) {
+    if crate::store_package::active() { return; }
     tauri::async_runtime::spawn(async move {
         loop { let _=check(&app).await; tokio::time::sleep(CHECK_EVERY).await; }
     });
@@ -509,6 +513,7 @@ fn verified_file(path: &Path,expected_hash: &str,size: u64) -> Result<File> {
 }
 
 pub async fn install(app: &AppHandle) -> Result<()> {
+    if crate::store_package::active() { return Err(invalid(crate::store_package::UPDATE_NOTICE)); }
     let s=app.state::<App>();
     s.self_update.installing.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst)
         .map_err(|_|invalid("Unknown alt is already preparing an update."))?;
@@ -534,6 +539,10 @@ async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
     let pinned=download(app,&release,&installer).await?;
     idle(s)?;
     publish(app,|u|u.state="installing".into());
+    let backup_app=app.clone();
+    blocking(move || {
+        crate::automatic_backup::create_at(&backup_app.state::<App>().db,&crate::automatic_backup::root()?,"before-update").map(|_|())
+    }).await?;
     let (handle,release_for_helper,installer_for_helper,stage_for_helper)=(app.clone(),release.clone(),installer.clone(),stage.0.clone());
     blocking(move || crate::update_handoff::handoff(&handle,&release_for_helper,&installer_for_helper,&stage_for_helper)).await?;
     // The helper has acknowledged readiness and waits for the graceful exit below. Browse's

@@ -145,7 +145,7 @@ fn args_for(s: &App, account_id: i64) -> Result<Vec<String>> {
 /// once the client has started; a task keeps `client_settings::LOCK` until the client has read
 /// the file and the user's own are back, so the next launch waits for that, not the caller.
 /// `AppError::Locked` when the vault is locked; cookie errors as the API client maps them.
-pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Option<u32>) -> Result<LaunchInfo> {
+pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Option<u32>, admission_epoch: u64, kills: u64) -> Result<LaunchInfo> {
     // First: the previous launch's client may still be reading the settings file, and this
     // launch's exe, ticket and start time should come after that wait, not before it.
     let held = client_settings::LOCK.lock().await;
@@ -164,14 +164,22 @@ pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Op
         (None, Some(m)) => Some(tr!("Modpacks weren't applied: {why}", why = m)),
         (Some(w), Some(m)) => Some(format!("{w} {}", tr!("Modpacks weren't applied: {why}", why = m))),
     };
+    loop {
     // Read again before each call: Roblox can rotate the cookie in any answer, and the old one stops working.
+    crate::management::wait(s, admission_epoch, || s.bulk.kills()!=kills || s.bulk.account_cancelled(account_id)).await?;
     let assertion = s
         .api
         .client_assertion(account_id, &account_cookie(s, account_id)?)
         .await
         .inspect_err(|e| log::warn!("client assertion for account {account_id} failed, ticket fetched without it: {e}"))
         .ok();
-    let ticket = s.api.authentication_ticket(account_id, &account_cookie(s, account_id)?, assertion.as_ref()).await?;
+    let mut ticket = s.api.authentication_ticket(account_id, &account_cookie(s, account_id)?, assertion.as_ref()).await?;
+    let admitted_at=std::time::Instant::now();
+    crate::management::wait(s, admission_epoch, ||s.bulk.kills()!=kills || s.bulk.account_cancelled(account_id)).await?;
+    if admitted_at.elapsed()>std::time::Duration::from_secs(1) {
+        // Never use a ticket that aged while a resource/manual pause held the queue.
+        ticket=s.api.authentication_ticket(account_id,&account_cookie(s,account_id)?,assertion.as_ref()).await?;
+    }
     let (browser_tracker_id, started_at) = (uri::new_browser_tracker_id(), crate::commands::now_ms());
     let place = uri::PlaceLaunch { join: &join, browser_tracker_id, join_attempt_id: Uuid::new_v4() };
     let global = s.db.settings()?;
@@ -208,7 +216,14 @@ pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Op
         }
     };
     let since = std::time::SystemTime::now();
-    let started = client::start(&exe, &uri::player_uri(&ticket, started_at, &place, production), &args);
+    let Some(started) = s.management.start_if_admitted(admission_epoch,
+        s.bulk.kills()!=kills || s.bulk.account_cancelled(account_id),
+        || client::start(&exe, &uri::player_uri(&ticket, started_at, &place, production), &args)) else {
+        // Pause won the final race. Restore temporary Roblox settings while waiting,
+        // retain this launch's place and fetch a fresh ticket after Resume All.
+        put_back(undo);
+        continue;
+    };
     match &started {
         Ok((pid, pid_start)) if waiting => {
             // A bootstrapper's own process exits by design: only the log tells then.
@@ -245,7 +260,7 @@ pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Op
         custom.len(),
         account.full_quality,
     );
-    Ok(LaunchInfo {
+    return Ok(LaunchInfo {
         account_id,
         pid,
         browser_tracker_id,
@@ -255,7 +270,8 @@ pub async fn launch(s: &App, account_id: i64, target: &LaunchTarget, fps_cap: Op
         warning,
         fps_cap,
         pid_start: Some(pid_start),
-    })
+    });
+    }
 }
 
 /// The account's decrypted cookie (`Locked` when the vault is locked).
