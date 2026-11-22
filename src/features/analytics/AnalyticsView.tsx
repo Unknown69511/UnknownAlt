@@ -9,6 +9,9 @@ import { HOUR, historyStats, ranges } from "./history";
 import { record, trackGame, useAnalyticsStore, useWatchlistCollector } from "./store";
 import type { Creator, PublicGame } from "./types";
 import { MyGames } from "./MyGames";
+import { FollowButton, GameUpdateTracker, ObservedUpdates } from "./GameUpdateTracker";
+import { RelatedGames } from "../discover/RelatedGames";
+import { useDiscovery, useGameSearch } from "../discover/catalog";
 
 const integer = new Intl.NumberFormat();
 const date = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -22,37 +25,43 @@ function approval(game: PublicGame) {
   return likes != null && dislikes != null && likes + dislikes > 0 ? `${Math.round(likes / (likes + dislikes) * 100)}%` : "Unavailable";
 }
 
-export function AnalyticsView() {
-  const [view, setView] = useState<"Explore" | "Watchlist" | "My Games">("Explore");
+const tabs = ["Explore", "Watchlist", "Compare", "Game updates", "My Games"] as const;
+type Tab = (typeof tabs)[number];
+export function AnalyticsView({ initialGame }: { initialGame?: number }) {
+  const [view, setView] = useState<Tab>("Explore");
+  const [selected, setSelected] = useState<number | null>(initialGame ?? null);
+  const [compare, setCompare] = useState<number[]>([]);
+  const openGame = (id: number) => { setSelected(id); setView("Explore"); };
+  useEffect(() => {
+    if (initialGame != null) { setSelected(initialGame); setView("Explore"); }
+  }, [initialGame]);
   return <main className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
     <header>
       <h1 className="text-xl font-semibold">Roblox Analytics</h1>
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Analytics views">
-        {(["Explore", "Watchlist", "My Games"] as const).map((name) =>
-          <button key={name} className={view === name ? "btn btn-primary" : "btn"} aria-pressed={view === name} onClick={() => setView(name)}>{name}</button>)}
+        {tabs.map((name) =>
+          <button key={name} className={view === name ? "btn btn-primary" : "btn"} aria-pressed={view === name} onClick={() => { if (name === "Watchlist") setSelected(null); setView(name); }}>{name}</button>)}
       </div>
     </header>
-    {view === "My Games" ? <MyGames /> : <PublicGames watchOnly={view === "Watchlist"} />}
+    {view === "My Games" ? <MyGames /> : view === "Game updates" ? <GameUpdateTracker open={openGame} />
+      : <PublicGames watchOnly={view === "Watchlist"} compareOnly={view === "Compare"} selected={selected}
+          setSelected={setSelected} compare={compare} setCompare={setCompare} />}
   </main>;
 }
 
-function PublicGames({ watchOnly }: { watchOnly: boolean }) {
+function PublicGames({ watchOnly, compareOnly, selected, setSelected, compare, setCompare }: {
+  watchOnly: boolean; compareOnly: boolean; selected: number | null; setSelected: (id: number | null) => void;
+  compare: number[]; setCompare: (ids: number[]) => void;
+}) {
   const { watch, records } = useAnalyticsStore();
   const collector = useWatchlistCollector();
   const [input, setInput] = useState("");
   const [term, setTerm] = useState("");
-  const [selected, setSelected] = useState<number | null>(null);
-  const [compare, setCompare] = useState<number[]>([]);
-  const query = useQuery({
-    queryKey: ["analyticsDiscovery", term], enabled: !watchOnly, retry: false, staleTime: 300_000,
-    queryFn: async () => {
-      const snapshot = await (term ? api.publicAnalyticsSearch(term) : api.publicAnalyticsTrending());
-      record(snapshot, true);
-      return snapshot;
-    },
-  });
+  const catalog = useDiscovery(!watchOnly && !term && !compareOnly);
+  const search = useGameSearch(watchOnly || compareOnly ? "" : term);
+  const query = term ? search : catalog;
   const focused = useQuery({
-    queryKey: ["analyticsLive", selected], enabled: selected !== null, retry: false,
+    queryKey: ["analyticsLive", selected], enabled: selected !== null && !compareOnly, retry: false,
     refetchInterval: 60_000, staleTime: 60_000,
     queryFn: async () => {
       const snapshot = await api.publicAnalyticsSnapshot([selected!], true);
@@ -60,17 +69,28 @@ function PublicGames({ watchOnly }: { watchOnly: boolean }) {
       return snapshot;
     },
   });
-  useEffect(() => {
-    if (selected !== null && watchOnly && !watch.includes(selected)) setSelected(null);
-  }, [watchOnly, watch, selected]);
-  const fallback = !watchOnly && !query.data && query.isError && term === ""
-    ? Object.values(records).sort((a, b) => b.observedAt - a.observedAt).slice(0, 12).map((item) => item.game.universeId) : [];
-  const visible = watchOnly ? watch : (query.data?.games.map((game) => game.universeId) ?? fallback);
-  const details = selected === null ? null : records[selected];
+  const snapshot = term ? search.data : catalog.data?.snapshot;
+  const raw = term ? snapshot?.games : catalog.data?.trending.flatMap((id) => {
+    const game = catalog.data?.snapshot.games.find((item) => item.universeId === id);
+    return game ? [game] : [];
+  });
+  const fallback = !raw && query.isError ? Object.values(records).filter((row) => !term || row.game.name.toLowerCase().includes(term.toLowerCase()))
+    .sort((a, b) => b.observedAt - a.observedAt).slice(0, 20).map((row) => row.game) : [];
+  const shown = raw ?? fallback;
+  const visible = watchOnly ? watch : shown.map((game) => game.universeId);
+  const current = selected === null ? undefined : focused.data?.games.find((game) => game.universeId === selected);
+  const selectedGame = selected === null ? undefined : current ?? shown.find((game) => game.universeId === selected);
+  const details = selected === null ? undefined : records[selected] ?? (selectedGame && {
+    game: selectedGame, observedAt: focused.data?.observedAt ?? snapshot?.observedAt ?? 0,
+    samples: [], updates: selectedGame.updated ? [selectedGame.updated] : [],
+  });
   const picked = compare.flatMap((id) => records[id] ? [records[id].game] : []);
-  const toggleWatch = (id: number) => {
+  const toggleWatch = (id: number, game: PublicGame, observedAt: number) => {
     if (!trackGame(id)) toast("The watchlist holds up to 20 games.");
+    else if (!records[id] && observedAt) record({ games: [game], observedAt }, true);
   };
+  if (compareOnly) return picked.length ? <Comparison games={picked} remove={(id) => setCompare(compare.filter((value) => id !== value))} />
+    : <p className="panel p-4 text-sm text-fg-2">Open games in Explore and add up to three to compare.</p>;
   return <div className="space-y-4">
     {!watchOnly && <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => {
       e.preventDefault();
@@ -95,8 +115,9 @@ function PublicGames({ watchOnly }: { watchOnly: boolean }) {
       {!visible.length && (watchOnly || query.isSuccess) && <p className="text-sm text-fg-2">{watchOnly ? "Star a game in Explore to start a watchlist." : term ? "No accessible games matched that search." : "Roblox did not return a trending list."}</p>}
       <div className="grid gap-2 xl:grid-cols-2">
         {visible.map((id) => {
-          const entry = records[id];
-          if (!entry) return null;
+          const fallbackGame = shown.find((game) => game.universeId === id);
+          const entry = records[id] ?? (fallbackGame && { game: fallbackGame, observedAt: snapshot?.observedAt ?? 0 });
+          if (!entry) return <button key={id} className="btn text-left justify-start" onClick={() => setSelected(id)}>Game {id} · Waiting for Roblox data</button>;
           const { game, observedAt } = entry;
           return <div className="flex items-center gap-3 border border-line rounded-lg p-2 min-w-0" key={id}>
             {game.icon && <img src={game.icon} alt="" width={44} height={44} loading="lazy" className="rounded-md shrink-0" />}
@@ -105,25 +126,29 @@ function PublicGames({ watchOnly }: { watchOnly: boolean }) {
               <span className="block text-xs text-fg-2" title={time(observedAt)}>{game.creator.name ?? "Creator unavailable"} · {number(game.playing)}{game.playing != null ? " playing" : ""}</span>
             </button>
             <button className="btn btn-sm" aria-label={watch.includes(id) ? `Remove ${game.name} from watchlist` : `Watch ${game.name}`}
-              aria-pressed={watch.includes(id)} onClick={() => toggleWatch(id)}><Icon name="star" fill={watch.includes(id)} /></button>
+              aria-pressed={watch.includes(id)} onClick={() => toggleWatch(id, game, observedAt)}><Icon name="star" fill={watch.includes(id)} /></button>
           </div>;
         })}
       </div>
     </section>
-    {details && <GameDetails key={details.game.universeId} {...details} stale={!!focused.error || (focused.isSuccess && !focused.data.games.length)}
+    {selected !== null && !details && <p role="status">{focused.isFetching ? "Loading selected game…" : "Roblox stats for this game are unavailable."}</p>}
+    {details && <GameDetails key={details.game.universeId} {...details} openRelated={(id) => setSelected(id)} stale={!!focused.error || (focused.isSuccess && !focused.data.games.length)}
       comparing={compare.includes(details.game.universeId)} onCompare={() => {
         const id = details.game.universeId;
         if (compare.includes(id)) setCompare(compare.filter((value) => value !== id));
-        else if (compare.length < 3) setCompare([...compare, id]);
+        else if (compare.length < 3) {
+          if (!records[id]) record({ games: [details.game], observedAt: details.observedAt }, true);
+          setCompare([...compare, id]);
+        }
         else toast("Compare up to three games at a time.");
       }} />}
-    {picked.length > 0 && <Comparison games={picked} remove={(id) => setCompare((list) => list.filter((value) => id !== value))} />}
+    {picked.length > 0 && <Comparison games={picked} remove={(id) => setCompare(compare.filter((value) => id !== value))} />}
   </div>;
 }
 
-function GameDetails({ game, observedAt, samples, updates, stale, comparing, onCompare }: ReturnType<typeof useAnalyticsStore>["records"][number] &
-  { stale: boolean; comparing: boolean; onCompare: () => void }) {
-  const [range, setRange] = useState(1);
+function GameDetails({ game, observedAt, samples, updates, stale, comparing, onCompare, openRelated }: ReturnType<typeof useAnalyticsStore>["records"][number] &
+  { stale: boolean; comparing: boolean; onCompare: () => void; openRelated: (id: number) => void }) {
+  const [range, setRange] = useState(2);
   const to = Math.max(observedAt, Date.now());
   const from = to - ranges[range][1];
   const recent = samples.filter((point) => point.at >= from);
@@ -149,24 +174,26 @@ function GameDetails({ game, observedAt, samples, updates, stale, comparing, onC
     <HistoryChart points={points} from={from} to={to} format={(value) => `${number(value)} players`} gap={ranges[range][1] > 30 * 24 * HOUR ? 72 * HOUR : range > 1 ? 3 * HOUR : 20 * 60_000} />
     <p className="text-sm text-fg-2">Observed peak {number(peak)} · Growth {growth == null ? "Unavailable" : `${growth > 0 ? "+" : ""}${growth.toFixed(1)}%`} · {recent.length} local samples</p>
     <p className="text-xs text-fg-2">Growth compares the first and last observation in this range. Older buckets show observed peaks. Gaps remain when samples were unavailable.</p>
-    <details>
+    <details className="space-y-2">
       <summary className="font-medium cursor-pointer">Observed game updates</summary>
-      {!updates.length && <p className="text-sm text-fg-2">Roblox has no public update timestamp for this game.</p>}
-      <ul className="mt-2 space-y-1 text-sm">{[...updates].reverse().map((update) => {
-        const at = Date.parse(update);
-        const before = samples.slice().reverse().find((point) => point.at < at && point.at >= at - 24 * HOUR);
-        const after = samples.find((point) => point.at >= at && point.at <= at + 24 * HOUR);
-        return <li key={update}>{time(update)} · {before && after ? `${number(before.players)} → ${number(after.players)} concurrent players around the update` : "No comparable before and after samples"}</li>;
-      })}</ul>
+      <ObservedUpdates game={game} observedAt={observedAt} samples={samples} updates={updates} />
     </details>
     <div className="flex flex-wrap gap-2">
       <button className="btn btn-sm" aria-pressed={comparing} onClick={onCompare}>{comparing ? "Remove from comparison" : "Add to comparison"}</button>
+      <FollowButton id={game.universeId} />
       <button className="btn btn-sm" onClick={() => void openUrl(`https://www.roblox.com/games/${game.rootPlaceId}`).catch(toastError)}>Open on Roblox <Icon name="external" /></button>
     </div>
+    <RelatedGames game={game} select={(item) => openRelated(item.universeId)} />
   </section>;
 }
 
 function Comparison({ games, remove }: { games: PublicGame[]; remove: (id: number) => void }) {
+  const { records } = useAnalyticsStore();
+  const [range, setRange] = useState(2);
+  const to = Date.now();
+  const from = to - ranges[range][1];
+  const series = games.map((game) => ({ label: game.name, points: (records[game.universeId]?.samples ?? [])
+    .filter((sample) => sample.at >= from && sample.at <= to).map((sample) => ({ at: sample.at, value: sample.players })) }));
   const creators = games.flatMap((game, i) => {
     const { creator } = game;
     return creator.id != null && creator.kind && games.findIndex((other) => other.creator.id === creator.id && other.creator.kind === creator.kind) === i ? [creator] : [];
@@ -180,6 +207,9 @@ function Comparison({ games, remove }: { games: PublicGame[]; remove: (id: numbe
         <td><button className="btn btn-sm" onClick={() => remove(game.universeId)}>Remove</button></td>
       </tr>)}</tbody>
     </table></div>
+    <div className="flex gap-1 flex-wrap" role="group" aria-label="Comparison date range">{ranges.map(([label], i) =>
+      <button key={label} className={range === i ? "btn btn-sm btn-primary" : "btn btn-sm"} aria-pressed={range === i} onClick={() => setRange(i)}>{label}</button>)}</div>
+    <HistoryChart points={[]} series={series} from={from} to={to} format={number} gap={range === 5 ? 72 * HOUR : 3 * HOUR} />
     <details><summary className="font-medium cursor-pointer">Studio comparison</summary>
       <p className="text-sm text-fg-2 mt-2">Compare up to 25 public games per creator. Totals cover only the returned games.</p>
       <StudioList key={creators.map((creator) => `${creator.kind}:${creator.id}`).join(",")} creators={creators} />

@@ -92,6 +92,8 @@
   "performance.applied": "Profilen tillämpad",
   "app.nav.servers": "Servrar",
   "app.nav.monitor": "Övervakning",
+  "app.nav.discover": "Upptäck",
+  "app.nav.status": "Roblox-status",
   "app.nav.settings": "Inställningar",
   "app.nav.debug": "Felsökning",
   "app.crashed": "Något gick fel när den här vyn visades. Det har loggats.",

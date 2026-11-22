@@ -94,6 +94,8 @@
   "performance.applied": "Zastosowano profil",
   "app.nav.servers": "Serwery",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Odkrywaj",
+  "app.nav.status": "Stan Roblox",
   "app.nav.settings": "Ustawienia",
   "app.nav.debug": "Debugowanie",
   "app.crashed": "Coś poszło nie tak podczas wyświetlania tego ekranu. Zostało to zapisane w logu.",

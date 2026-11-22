@@ -92,6 +92,8 @@
   "performance.applied": "Profil übernommen",
   "app.nav.servers": "Server",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Entdecken",
+  "app.nav.status": "Roblox-Status",
   "app.nav.settings": "Einstellungen",
   "app.nav.debug": "Debug",
   "app.crashed": "Beim Anzeigen dieser Ansicht ist etwas schiefgelaufen. Es wurde protokolliert.",

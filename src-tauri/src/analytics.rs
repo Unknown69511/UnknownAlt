@@ -8,7 +8,7 @@ use crate::{error::{AppError, Result}, secret_types::Secret};
 const API: &str = "https://apis.roblox.com";
 const GAMES: &str = "https://games.roblox.com";
 const THUMBS: &str = "https://thumbnails.roblox.com";
-const PUBLIC_BATCH: usize = 30;
+const PUBLIC_BATCH: usize = 50;
 static CLIENT: std::sync::LazyLock<Option<reqwest::Client>> =
     std::sync::LazyLock::new(|| crate::http::client("analytics"));
 static CREATOR_KEY: Mutex<Option<Secret>> = Mutex::new(None);
@@ -23,7 +23,7 @@ async fn json<T: DeserializeOwned>(request: reqwest::RequestBuilder) -> Result<T
     let sent = request.send().await.map_err(|_| AppError::Network("Could not reach Roblox Analytics.".into()))?;
     let status = sent.status().as_u16();
     if matches!(status, 401 | 403) {
-        return Err(invalid("Roblox denied access. Check the selected experience and its read-only Analytics permission."));
+        return Err(AppError::Roblox(format!("HTTP {status}")));
     }
     if status == 429 { return Err(AppError::RateLimited(60)); }
     if !sent.status().is_success() { return Err(AppError::Roblox(format!("HTTP {status}"))); }
@@ -41,12 +41,19 @@ pub struct PublicGame {
     universe_id: u64,
     root_place_id: u64,
     name: String,
+    #[serde(default, deserialize_with = "nullable_creator")]
     creator: Creator,
     playing: Option<u64>,
     visits: Option<u64>,
     #[serde(rename(deserialize = "favoritedCount"))]
     favorites: Option<u64>,
     updated: Option<String>,
+    created: Option<String>,
+    #[serde(rename(deserialize = "genre_l1"))]
+    genre: Option<String>,
+    #[serde(rename(deserialize = "genre_l2"))]
+    subgenre: Option<String>,
+    description: Option<String>,
     #[serde(skip_deserializing)]
     icon: Option<String>,
     #[serde(skip_deserializing)]
@@ -57,12 +64,15 @@ pub struct PublicGame {
     dislikes: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 struct Creator {
     id: Option<u64>,
     name: Option<String>,
     #[serde(rename(deserialize = "type"))]
     kind: Option<String>,
+}
+fn nullable_creator<'de, D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Creator, D::Error> {
+    Ok(Option::<Creator>::deserialize(deserializer)?.unwrap_or_default())
 }
 
 #[derive(Serialize)]
@@ -102,27 +112,41 @@ pub async fn public_analytics_snapshot(universes: Vec<u64>, details: bool) -> Re
     if universe_ids.is_empty() { return Ok(result); }
     let requested = universe_ids.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
     let client = client()?;
-    let games = json::<Rows<PublicGame>>(client.get(format!("{GAMES}/v1/games?universeIds={requested}")));
+    let games = json::<Rows<serde_json::Value>>(client.get(format!("{GAMES}/v1/games?universeIds={requested}")));
     let media = async {
         let votes = json::<Rows<Vote>>(client.get(format!("{GAMES}/v1/games/votes?universeIds={requested}")));
         let icons = json::<Rows<Image>>(client.get(format!("{THUMBS}/v1/games/icons?universeIds={requested}&size=150x150&format=Png")));
         let thumbnails = async {
-            let selected = universe_ids.iter().take(4).map(u64::to_string).collect::<Vec<_>>().join(",");
-            json::<Rows<Thumbnail>>(client.get(format!("{THUMBS}/v1/games/multiget/thumbnails?universeIds={selected}&countPerUniverse=1&size=768x432&format=Png"))).await
+            let mut images = Vec::new();
+            for chunk in universe_ids.chunks(20) {
+                let selected = chunk.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
+                if let Ok(rows) = json::<Rows<Thumbnail>>(client.get(format!("{THUMBS}/v1/games/multiget/thumbnails?universeIds={selected}&countPerUniverse=1&size=768x432&format=Png"))).await {
+                    images.extend(rows.data);
+                }
+            }
+            Ok::<_,AppError>(Rows { data: images })
         };
         tokio::join!(votes, icons, thumbnails)
     };
-    let (mut games, (votes, icons, thumbnails)) = if details {
+    let (rows, (votes, icons, thumbnails)) = if details {
         let (games, media) = tokio::join!(games, media);
         (games?.data, media)
     } else {
         (games.await?.data, (Err(AppError::Cancelled), Err(AppError::Cancelled), Err(AppError::Cancelled)))
     };
+    let had_results = !rows.is_empty();
+    let mut games: Vec<PublicGame> = rows.into_iter().filter_map(|row| serde_json::from_value(row).ok()).collect();
+    if had_results && games.is_empty() { return Err(AppError::Roblox("game details are unavailable".into())); }
     let mut votes: HashMap<_, _> = votes.ok().into_iter().flat_map(|v| v.data).map(|v| (v.id, v)).collect();
     let mut icons: HashMap<_, _> = icons.ok().into_iter().flat_map(|v| v.data).filter_map(|img| Some((img.target_id, image_url(img)?))).collect();
     let mut thumbnails: HashMap<_, _> = thumbnails.ok().into_iter().flat_map(|v| v.data)
         .filter_map(|row| Some((row.universe_id, row.thumbnails.into_iter().find_map(image_url)?))).collect();
     for game in &mut games {
+        if let Some(text) = &mut game.description {
+            if let Some((end, _)) = text.char_indices().nth(700) {
+                text.truncate(end);
+            }
+        }
         game.icon = icons.remove(&game.universe_id);
         game.thumbnail = thumbnails.remove(&game.universe_id);
         if let Some(vote) = votes.remove(&game.universe_id) {
@@ -133,6 +157,7 @@ pub async fn public_analytics_snapshot(universes: Vec<u64>, details: bool) -> Re
     games.retain(|game| universe_ids.contains(&game.universe_id) && game.root_place_id > 0);
     games.sort_by_key(|game| universe_ids.iter().position(|id| *id == game.universe_id));
     result.games = games;
+    result.observed_at = DateTime::<Utc>::from(SystemTime::now()).timestamp_millis();
     Ok(result)
 }
 
@@ -142,8 +167,10 @@ fn place_id(query: &str) -> Result<Option<u64>> {
     if let Ok(value) = query.parse::<u64>() {
         return if valid(value) { Ok(Some(value)) } else { Err(invalid("Enter a valid Roblox place ID.")) };
     }
-    if !query.contains("://") { return Ok(None); }
-    let parsed = Url::parse(query).ok().filter(|url| url.scheme() == "https" &&
+    let normalized = if query.starts_with("www.roblox.com/") || query.starts_with("roblox.com/") {
+        format!("https://{query}")
+    } else if query.contains("://") { query.to_owned() } else { return Ok(None); };
+    let parsed = Url::parse(&normalized).ok().filter(|url| url.scheme() == "https" &&
         matches!(url.host_str(), Some("www.roblox.com" | "roblox.com")) &&
         url.port().is_none() && url.username().is_empty() && url.password().is_none());
     let value = parsed.and_then(|url| {
@@ -162,12 +189,12 @@ struct Candidate { universe_id: Option<u64>, #[serde(default)] is_sponsored: boo
 struct Search { search_results: Vec<SearchGroup> }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct SearchGroup { content_group_type: String, #[serde(default)] contents: Vec<Candidate> }
+struct SearchGroup { #[serde(default)] content_group_type: String, #[serde(default)] contents: Vec<Candidate> }
 #[derive(Deserialize)]
 struct Explore { sorts: Vec<Sort> }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Sort { sort_display_name: Option<String>, #[serde(default)] games: Vec<Candidate> }
+struct Sort { sort_id: Option<String>, #[serde(default)] games: Vec<Candidate> }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Universe { universe_id: Option<u64> }
@@ -193,11 +220,45 @@ pub async fn public_analytics_search(query: String) -> Result<PublicSnapshot> {
 
 #[tauri::command]
 pub async fn public_analytics_trending() -> Result<PublicSnapshot> {
-    let explore: Explore = json(client()?.get(format!("{API}/explore-api/v1/get-sorts?sessionId={}", uuid::Uuid::new_v4()))).await?;
+    let explore = explore().await?;
     let trending = explore.sorts.into_iter()
-        .filter(|sort| sort.sort_display_name.as_deref().is_some_and(|name| name.to_lowercase().contains("trend")))
+        .filter(|sort| sort.sort_id.as_deref() == Some("top-trending"))
         .flat_map(|sort| sort.games).filter(|game| !game.is_sponsored).filter_map(|game| game.universe_id);
     public_analytics_snapshot(ids(trending, 16), true).await
+}
+
+async fn explore() -> Result<Explore> {
+    json(client()?.get(format!("{API}/explore-api/v1/get-sorts?sessionId={}", uuid::Uuid::new_v4()))).await
+}
+
+#[derive(Serialize)]
+pub struct Discovery {
+    snapshot: PublicSnapshot,
+    trending: Vec<u64>,
+    popular: Vec<u64>,
+    rising: Vec<u64>,
+}
+
+#[tauri::command]
+pub async fn public_discovery() -> Result<Discovery> {
+    let explore = explore().await?;
+    let chart = |key: &str| ids(explore.sorts.iter().filter(|sort| sort.sort_id.as_deref() == Some(key))
+        .flat_map(|sort| &sort.games).filter(|game| !game.is_sponsored).filter_map(|game| game.universe_id), 16);
+    let (trending, popular, rising) = (chart("top-trending"), chart("top-playing-now"), chart("up-and-coming"));
+    let candidates = ids(trending.iter().chain(&popular).chain(&rising).copied(), PUBLIC_BATCH);
+    if candidates.is_empty() { return Err(AppError::Roblox("public charts are unavailable".into())); }
+    let snapshot = public_analytics_snapshot(candidates, true).await?;
+    Ok(Discovery { snapshot, trending, popular, rising })
+}
+
+#[tauri::command]
+pub async fn public_similar_games(universe: u64) -> Result<PublicSnapshot> {
+    if ids([universe], 1).is_empty() { return Err(invalid("Invalid experience universe ID.")); }
+    #[derive(Deserialize)]
+    struct Recommendation { games: Vec<Candidate> }
+    let related: Recommendation = json(client()?.get(format!("{GAMES}/v1/games/recommendations/game/{universe}"))).await?;
+    public_analytics_snapshot(ids(related.games.into_iter().filter(|g| !g.is_sponsored)
+        .filter_map(|g| g.universe_id).filter(|id| *id != universe), 10), true).await
 }
 
 #[tauri::command]
@@ -299,12 +360,12 @@ pub async fn creator_analytics_metrics(universe: u64, metric: Metric, start: Str
         "startTime": format!("{start}T00:00:00Z"), "endTime": format!("{end}T00:00:00Z")
     });
     if !breakdown.is_empty() { request["breakdown"] = serde_json::json!(breakdown); }
-    let mut operation: Operation = json(client.post(format!("{url}/metrics")).header("x-api-key", key.clone()).json(&request)).await?;
+    let mut operation: Operation = json(client.post(format!("{url}/metrics")).header("x-api-key", key.clone()).json(&request)).await.map_err(creator_permission)?;
     for _ in 0..5 {
         if operation.done { break; }
         let id = operation_id(operation.path.as_deref().unwrap_or_default(), universe)?;
         tokio::time::sleep(Duration::from_secs(2)).await;
-        operation = json(client.get(format!("{url}/operations/metrics/{id}")).header("x-api-key", key.clone()).timeout(Duration::from_secs(5))).await?;
+        operation = json(client.get(format!("{url}/operations/metrics/{id}")).header("x-api-key", key.clone()).timeout(Duration::from_secs(5))).await.map_err(creator_permission)?;
     }
     if !operation.done { return Err(AppError::Wait("Roblox is still processing this request. Try a shorter date range.".into())); }
     let mut values = operation.response.ok_or_else(|| AppError::Roblox("analytics results unavailable for this request".into()))?.values;
@@ -317,6 +378,14 @@ pub async fn creator_analytics_metrics(universe: u64, metric: Metric, start: Str
         series.data_points.sort_by(|a, b| a.time.cmp(&b.time));
     }
     Ok(values)
+}
+
+fn creator_permission(error: AppError) -> AppError {
+    match error {
+        AppError::Roblox(ref status) if matches!(status.as_str(), "HTTP 401" | "HTTP 403") =>
+            invalid("Roblox denied access. Check the selected experience and its read-only Analytics permission."),
+        other => other,
+    }
 }
 
 #[tauri::command]
@@ -363,6 +432,11 @@ mod tests {
             r.icon.is_some() && r.thumbnail.is_some()));
         assert!(!public_analytics_search("Brookhaven".into()).await.unwrap().games.is_empty());
         assert!(!public_analytics_trending().await.unwrap().games.is_empty());
+        let discovery = public_discovery().await.unwrap();
+        assert!(!discovery.trending.is_empty() && !discovery.popular.is_empty() && !discovery.rising.is_empty());
+        assert!(discovery.snapshot.games.iter().any(|game| game.playing.is_some() && game.created.is_some()));
+        let similar = public_similar_games(game.games[0].universe_id).await.unwrap();
+        assert!(similar.games.iter().all(|candidate| candidate.universe_id != game.games[0].universe_id));
         let creator = &game.games[0].creator;
         assert!(!public_analytics_studio(creator.id.unwrap(), creator.kind.as_deref() == Some("Group")).await.unwrap().games.is_empty());
 

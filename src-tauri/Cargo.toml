@@ -1,6 +1,6 @@
 [package]
 name = "unknownalt"
-version = "1.2.4"
+version = "1.2.5"
 description = "Local-only Roblox account manager"
 authors = ["Unknown69511"]
 license = "MIT"

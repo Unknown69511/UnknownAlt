@@ -100,6 +100,8 @@
   "performance.applied": "تم تطبيق ملف الأداء",
   "app.nav.servers": "الخوادم",
   "app.nav.monitor": "المراقبة",
+  "app.nav.discover": "استكشاف",
+  "app.nav.status": "حالة Roblox",
   "app.nav.settings": "الإعدادات",
   "app.nav.debug": "التصحيح",
   "app.crashed": "حدث خطأ أثناء رسم هذه الشاشة. تم تسجيله.",

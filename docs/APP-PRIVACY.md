@@ -17,6 +17,12 @@ These requests do not include saved Roblox accounts or sessions. The Microsoft
 Store edition uses the Store for package updates. The app does not send usage
 telemetry to the UnknownALT maintainer.
 
+Discover and public Analytics request Roblox's public game data without saved
+accounts or sessions. Your watchlist, followed games and observations are
+stored locally. Roblox Status uses the official Roblox status site and its
+public Status.io feed. Game update and Roblox Status alerts appear in the
+app when enabled.
+
 Optional Discord notifications send the configured event details to the Discord
 webhook you supply. Optional Rich Presence shares the game or managed-client
 status you choose through your local Discord client. Review these settings

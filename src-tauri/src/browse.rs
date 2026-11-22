@@ -403,6 +403,12 @@ fn create(app: &AppHandle, data_dir: &Path, account_id: i64, user_id: i64, cooki
             }
         });
     let wv = window.add_child(builder, LogicalPosition::new(rect.x, rect.y), LogicalSize::new(rect.width.max(1.0), rect.height.max(1.0)))?;
+    let fullscreen_app = app.clone();
+    wv.with_webview(move |view| {
+        if let Err(error) = crate::fullscreen::attach(fullscreen_app, view) {
+            log::warn!("Could not register Browse's fullscreen shortcut: {error}");
+        }
+    })?;
     let set_up = || -> Result<u32> {
         // Hidden until the UI shows it: Browse may be gone, or a dialog up, by the time this returns.
         PANE_SHOWN.store(false, Ordering::Relaxed);

@@ -90,6 +90,8 @@
   "performance.applied": "Profil diterapkan",
   "app.nav.servers": "Server",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Jelajahi",
+  "app.nav.status": "Status Roblox",
   "app.nav.settings": "Pengaturan",
   "app.nav.debug": "Debug",
   "app.crashed": "Terjadi kesalahan saat menampilkan layar ini. Sudah dicatat.",

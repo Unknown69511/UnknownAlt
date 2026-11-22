@@ -1,6 +1,6 @@
 # UnknownALT
 
-UnknownALT is a local Windows account manager and launcher for Roblox. Version 1.2.2 adds Farm Control Center, per-client audio, storage cleanup, resource-aware launch scheduling and an Updates page. The app uses the charcoal coffee mascot and Brown as its default accent. The top Discord button opens the [UnknownALT community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
+UnknownALT is a local Windows account manager and launcher for Roblox. It includes Farm Control Center, per-client audio, resource-aware launch scheduling, game discovery and analytics, and the Roblox service status monitor. Brown is the default accent. The top Discord button opens the [UnknownALT community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
 
 ## Download and signed updates
 
@@ -49,10 +49,21 @@ This creates `UnknownALT-Setup-X.Y.Z-Windows-x64.exe`. It includes the full WebV
 
 ## Roblox Analytics
 
-Explore uses Roblox's public endpoints for search, player counts and game
-metadata. Watchlist entries are sampled every five minutes while the app runs.
-Charts show observations recorded on this device. Older buckets keep the
-highest observed value for that interval. Gaps represent missing samples.
+**Tools → Discover** searches Roblox and shows official trending and popular
+lists. Growth and underrated rankings cover the displayed catalog. Newly
+released uses Roblox's public experience creation dates. Similar games come
+from Roblox recommendations or genre and description matches in loaded games.
+
+**Tools → Analytics** shows public counts, watchlists, history and comparisons
+on a shared timeline. Watched games are sampled every five minutes while the
+app runs. Follow a game to receive in-app alerts when Roblox reports a new
+update date and compare local readings from the 24 hours before and after.
+Older history buckets keep the highest observed value. Gaps represent missing
+samples and remain visible in comparisons.
+
+**Tools → Roblox Status** shows service health, current incidents and resolved
+incident history. In-app alerts can be enabled on that page. Press **F11**
+to toggle fullscreen or **Escape** to return to the prior window state.
 
 My Games connects with a Roblox Open Cloud API key scoped to selected experiences
 and Analytics read access. The key and reports stay in memory while the page

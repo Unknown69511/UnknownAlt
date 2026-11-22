@@ -268,6 +268,12 @@ fn main_window(app: &AppHandle, data_dir: &Path, skip_splash: bool, hidden: bool
         Err(e) => failed(e),
     };
     webview::log_process_failures(&w);
+    let fullscreen_app = app.clone();
+    w.with_webview(move |view| {
+        if let Err(error) = fullscreen::attach(fullscreen_app, view) {
+            log::warn!("Could not register the fullscreen shortcut: {error}");
+        }
+    }).map_err(|error| error.to_string())?;
     if let Err(e) = splash::start(app, &w, skip_splash, hidden) {
         failed(e);
     }
@@ -1000,6 +1006,9 @@ fn main() {
             analytics::public_analytics_snapshot,
             analytics::public_analytics_trending,
             analytics::public_analytics_studio,
+            analytics::public_discovery,
+            analytics::public_similar_games,
+            roblox_status::roblox_service_status,
             analytics::creator_analytics_connect,
             analytics::creator_analytics_disconnect,
             analytics::creator_analytics_metrics,

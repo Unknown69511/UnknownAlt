@@ -90,6 +90,8 @@
   "performance.applied": "ใช้โปรไฟล์แล้ว",
   "app.nav.servers": "เซิร์ฟเวอร์",
   "app.nav.monitor": "มอนิเตอร์",
+  "app.nav.discover": "ค้นพบ",
+  "app.nav.status": "สถานะ Roblox",
   "app.nav.settings": "การตั้งค่า",
   "app.nav.debug": "ดีบัก",
   "app.crashed": "เกิดข้อผิดพลาดขณะแสดงหน้าจอนี้ บันทึกลงล็อกแล้ว",

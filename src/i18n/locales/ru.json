@@ -94,6 +94,8 @@
   "performance.applied": "Профиль применён",
   "app.nav.servers": "Серверы",
   "app.nav.monitor": "Монитор",
+  "app.nav.discover": "Обзор игр",
+  "app.nav.status": "Статус Roblox",
   "app.nav.settings": "Настройки",
   "app.nav.debug": "Отладка",
   "app.crashed": "При отображении этого экрана что-то пошло не так. Это записано в журнал.",

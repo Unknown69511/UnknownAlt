@@ -92,6 +92,8 @@
   "performance.applied": "Nailapat ang profile",
   "app.nav.servers": "Mga Server",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Tumuklas",
+  "app.nav.status": "Katayuan ng Roblox",
   "app.nav.settings": "Mga Setting",
   "app.nav.debug": "Debug",
   "app.crashed": "May nangyaring mali sa pag-display ng screen na ito. Na-log na ito.",

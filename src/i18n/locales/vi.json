@@ -90,6 +90,8 @@
   "performance.applied": "Đã áp dụng hồ sơ",
   "app.nav.servers": "Server",
   "app.nav.monitor": "Giám sát",
+  "app.nav.discover": "Khám phá",
+  "app.nav.status": "Trạng thái Roblox",
   "app.nav.settings": "Cài đặt",
   "app.nav.debug": "Gỡ lỗi",
   "app.crashed": "Đã xảy ra lỗi khi hiển thị màn hình này. Lỗi đã được ghi lại.",

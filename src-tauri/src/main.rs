@@ -4,6 +4,9 @@
 mod i18n;
 mod bulletins;
 mod analytics;
+mod roblox_status;
+#[cfg(windows)]
+mod fullscreen;
 mod disk_usage;
 mod error;
 mod http;

@@ -92,6 +92,8 @@
   "performance.applied": "Perfil aplicado",
   "app.nav.servers": "Servidores",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Descobrir",
+  "app.nav.status": "Estado do Roblox",
   "app.nav.settings": "Configurações",
   "app.nav.debug": "Depuração",
   "app.crashed": "Algo deu errado ao desenhar esta tela. O erro foi registrado.",

@@ -94,6 +94,8 @@
   "performance.applied": "Profil primijenjen",
   "app.nav.servers": "Serveri",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Otkrij",
+  "app.nav.status": "Status Robloxa",
   "app.nav.settings": "Postavke",
   "app.nav.debug": "Otklanjanje grešaka",
   "app.crashed": "Nešto nije u redu pri prikazu ovog ekrana. Zabilježeno je.",

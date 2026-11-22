@@ -1,3 +1,15 @@
+# UnknownALT 1.2.5
+
+- Added Discover with Roblox's trending and popular charts, local growth and
+  underrated rankings, recent experience creation dates, category filters,
+  watchlist actions and similar games.
+- Added official Roblox Status with current service health, incident history,
+  a saved offline view and optional in-app alerts.
+- Fixed Analytics search results disappearing, added comparison timelines,
+  and added game follow alerts and player activity around Roblox update dates.
+- F11 toggles real fullscreen, including inside Browse on Windows. Escape
+  restores the previous window placement.
+
 # UnknownALT 1.2.4
 
 - Rebranded the UI, shortcuts, installers and application filenames as UnknownALT.

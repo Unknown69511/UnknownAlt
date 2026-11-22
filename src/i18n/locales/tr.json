@@ -92,6 +92,8 @@
   "performance.applied": "Profil uygulandı",
   "app.nav.servers": "Sunucular",
   "app.nav.monitor": "İzleme",
+  "app.nav.discover": "Keşfet",
+  "app.nav.status": "Roblox durumu",
   "app.nav.settings": "Ayarlar",
   "app.nav.debug": "Hata ayıklama",
   "app.crashed": "Bu ekran çizilirken bir sorun oluştu. Günlüğe kaydedildi.",

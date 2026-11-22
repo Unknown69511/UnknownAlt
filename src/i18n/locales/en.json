@@ -92,6 +92,8 @@
   "performance.applied": "Profile applied",
   "app.nav.servers": "Servers",
   "app.nav.monitor": "Monitor",
+  "app.nav.discover": "Discover",
+  "app.nav.status": "Roblox Status",
   "app.nav.settings": "Settings",
   "app.nav.debug": "Debug",
   "app.crashed": "Something went wrong drawing this screen. It has been logged.",

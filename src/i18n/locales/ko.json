@@ -90,6 +90,8 @@
   "performance.applied": "프로필을 적용했어요",
   "app.nav.servers": "서버",
   "app.nav.monitor": "모니터",
+  "app.nav.discover": "탐색",
+  "app.nav.status": "Roblox 상태",
   "app.nav.settings": "설정",
   "app.nav.debug": "디버그",
   "app.crashed": "이 화면을 그리는 중 문제가 발생했어요. 로그에 기록했어요.",

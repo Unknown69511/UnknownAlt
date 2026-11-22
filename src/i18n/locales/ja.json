@@ -90,6 +90,8 @@
   "performance.applied": "プロファイルを適用しました",
   "app.nav.servers": "サーバー",
   "app.nav.monitor": "モニター",
+  "app.nav.discover": "発見",
+  "app.nav.status": "Roblox の稼働状況",
   "app.nav.settings": "設定",
   "app.nav.debug": "デバッグ",
   "app.crashed": "この画面の描画中に問題が発生しました。ログに記録しました。",

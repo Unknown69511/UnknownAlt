@@ -10,6 +10,9 @@ import { toast, toastError, Toaster } from "../../ui/Toast";
 import { UpdatesPage } from "../update/UpdatesPage";
 import { AnalyticsView } from "../analytics/AnalyticsView";
 import { useWatchlistCollector } from "../analytics/store";
+import { DiscoverView } from "../discover/DiscoverView";
+import { StatusView } from "../discover/StatusView";
+import { useRobloxStatus } from "../discover/useRobloxStatus";
 
 type Account = { userId: number; username: string; displayName: string; alias: string };
 type PortableStatus = {
@@ -28,7 +31,9 @@ export function PortableApp() {
 function PortableShell() {
   useWatchlistCollector();
   const query = useQuery({ queryKey: ["portableStatus"], queryFn: () => invoke<PortableStatus>("portable_status"), retry: false });
-  const [view, setView] = useState<"archive" | "updates" | "analytics" | "support">("archive");
+  useRobloxStatus();
+  const [view, setView] = useState<"archive" | "updates" | "analytics" | "discover" | "status" | "support">("archive");
+  const [analyticsGame, setAnalyticsGame] = useState<number>();
   const [action, setAction] = useState<{ type: "import" | "export"; path: string } | null>(null);
   const [password, setPassword] = useState("");
   const [replace, setReplace] = useState(false);
@@ -76,12 +81,16 @@ function PortableShell() {
   return <div className="app">
     <header className="flex flex-wrap items-center gap-3 p-3 border-b border-line">
       <h1 className="font-semibold">UnknownALT</h1>
-      {(["archive", "updates", "analytics", "support"] as const).map((item) => (
-        <button key={item} className="btn btn-sm" aria-pressed={view === item} onClick={() => setView(item)}>{item === "archive" ? "Account archive" : item === "updates" ? "Updates" : item === "analytics" ? "Analytics" : "Platform support"}</button>
+      {([["archive", "Account archive"], ["discover", "Discover"], ["analytics", "Analytics"], ["status", "Roblox Status"], ["updates", "Updates"], ["support", "Platform support"]] as const).map(([item, label]) => (
+        <button key={item} className="btn btn-sm" aria-pressed={view === item} onClick={() => setView(item)}>{label}</button>
       ))}
       <button className="btn btn-sm ml-auto" onClick={() => openUrl("https://discord.gg/8EVsaWTH8S").catch(toastError)}>Discord</button>
     </header>
-    {view === "updates" ? <UpdatesPage packageVersion={data?.version ?? "—"} /> : view === "analytics" ? <AnalyticsView /> : view === "support" ? <main className="flex-1 overflow-auto p-4 space-y-3">
+    {view === "updates" ? <UpdatesPage packageVersion={data?.version ?? "—"} />
+      : view === "analytics" ? <AnalyticsView initialGame={analyticsGame} />
+      : view === "discover" ? <DiscoverView analyze={(id) => { setAnalyticsGame(id); setView("analytics"); }} />
+      : view === "status" ? <StatusView />
+      : view === "support" ? <main className="flex-1 overflow-auto p-4 space-y-3">
       <h2 className="text-xl font-semibold">Platform support</h2>
       <p>This build supports encrypted account archives, local snapshots, account profile links, Updates and Roblox Analytics.</p>
       <p>Roblox sign-in and Browse, managed launches, Farm Control Center, client previews and limits, Audio Mixer, anti-AFK, session alerts and automatic app installation require the Windows EXE build.</p>

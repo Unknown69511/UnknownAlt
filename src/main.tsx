@@ -11,6 +11,26 @@ import { readStored } from "./ui/stored";
 import { loadLastLang, t } from "./i18n";
 import { LayoutPreview, type PreviewData } from "./features/launch/LayoutPreview";
 import { assertMotionTokens, installReactive, installReducedMotion } from "./ui/motion";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { isTauri } from "@tauri-apps/api/core";
+
+// WebView2 also handles native shortcuts, including inside the isolated Browse view.
+if (isTauri()) {
+  let changingFullscreen = false;
+  window.addEventListener("keydown", (event) => {
+    if (event.repeat || event.ctrlKey || event.altKey || event.shiftKey || event.metaKey ||
+        (event.key !== "F11" && event.key !== "Escape")) return;
+    if (event.key === "F11") event.preventDefault();
+    if (changingFullscreen) return;
+    changingFullscreen = true;
+    const current = getCurrentWindow();
+    void current.isFullscreen().then((active) => {
+      if (active || event.key === "F11") return current.setFullscreen(!active);
+    }).catch((error) => report("warn", `Fullscreen shortcut: ${String(error)}`)).finally(() => {
+      changingFullscreen = false;
+    });
+  }, true);
+}
 
 // Everything that goes wrong in the UI reaches UnknownAlt.log (the Debug tab).
 let forwarding = false;

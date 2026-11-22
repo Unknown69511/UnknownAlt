@@ -28,6 +28,7 @@ import { Divider, usePanelWidth } from "../ui/Resizer";
 import { readStored, writeStored } from "../ui/stored";
 import { LiveActivities } from "./LiveActivities";
 import { useWatchlistCollector } from "../features/analytics/store";
+import { useRobloxStatus } from "../features/discover/useRobloxStatus";
 import { MAIN_SECTIONS, requestNavigation, SECTION_ICON, SECTION_VIEW, SHORTCUT_VIEW, shortcutFor, TOOL_SECTIONS, useNavigationRequests, VIEW_NAME, type BrowseRequest, type Request, type Section, type View } from "./navigation";
 
 // Home is the start; every other view is its own chunk, fetched once Home has painted.
@@ -46,6 +47,8 @@ const MonitorView = lazyView(() => import("../features/monitor/MonitorView"), (m
 const FarmView = lazyView(() => import("../features/management/FarmView"), (m) => m.FarmView);
 const UpdatesPage = lazyView(() => import("../features/update/UpdatesPage"), (m) => m.UpdatesPage);
 const AnalyticsView = lazyView(() => import("../features/analytics/AnalyticsView"), (m) => m.AnalyticsView);
+const DiscoverView = lazyView(() => import("../features/discover/DiscoverView"), (m) => m.DiscoverView);
+const StatusView = lazyView(() => import("../features/discover/StatusView"), (m) => m.StatusView);
 const ServersView = lazyView(() => import("../features/servers/ServersView"), (m) => m.ServersView);
 const CrashesView = lazyView(() => import("../features/crashes/CrashesView"), (m) => m.CrashesView);
 const SettingsView = lazyView(() => import("../features/settings/SettingsView"), (m) => m.SettingsView);
@@ -77,12 +80,14 @@ function readSameServer(): SameServer {
  * draft target, Home's tabs, a launch in flight. */
 export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; settings: Settings; islandSlot: HTMLElement | null }) {
   useWatchlistCollector();
+  useRobloxStatus();
   const nav = usePanelWidth("nav", 228, 180, 320);
   const qc = useQueryClient();
   const accounts = useAccounts();
   const groups = useGroups();
   const instances = useInstances().data ?? [];
   const [view, setView] = useState<View>("dashboard");
+  const [analyticsGame, setAnalyticsGame] = useState<number>();
   // The Settings area a link asked for on the way there (the app menu's shortcuts, a notice). None
   // once Settings is left: it then opens where it was.
   const [area, setArea] = useState<SettingsArea | null>(null);
@@ -410,7 +415,11 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
           ) : view === "updates" ? (
             <UpdatesPage />
           ) : view === "analytics" ? (
-            <AnalyticsView />
+            <AnalyticsView initialGame={analyticsGame} />
+          ) : view === "discover" ? (
+            <DiscoverView analyze={(id) => { setAnalyticsGame(id); go("analytics"); }} />
+          ) : view === "status" ? (
+            <StatusView />
           ) : view === "monitor" ? (
             <MonitorView accounts={accounts.data} />
           ) : view === "discord" ? (

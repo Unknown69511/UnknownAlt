@@ -90,6 +90,8 @@
   "performance.applied": "配置已应用",
   "app.nav.servers": "服务器",
   "app.nav.monitor": "监控",
+  "app.nav.discover": "发现",
+  "app.nav.status": "Roblox 状态",
   "app.nav.settings": "设置",
   "app.nav.debug": "调试",
   "app.crashed": "绘制此页面时出错，已记录到日志。",

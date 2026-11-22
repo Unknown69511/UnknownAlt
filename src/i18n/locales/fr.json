@@ -92,6 +92,8 @@
   "performance.applied": "Profil appliqué",
   "app.nav.servers": "Serveurs",
   "app.nav.monitor": "Moniteur",
+  "app.nav.discover": "Découvrir",
+  "app.nav.status": "État de Roblox",
   "app.nav.settings": "Paramètres",
   "app.nav.debug": "Debug",
   "app.crashed": "Une erreur est survenue lors de l'affichage de cet écran. Elle a été enregistrée dans les logs.",

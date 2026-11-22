@@ -8,11 +8,16 @@ export type PublicGame = {
   visits: number | null;
   favorites: number | null;
   updated: string | null;
+  created?: string | null;
+  genre?: string | null;
+  subgenre?: string | null;
+  description?: string | null;
   icon: string | null;
   thumbnail: string | null;
   likes: number | null;
   dislikes: number | null;
 };
 export type PublicSnapshot = { observedAt: number; games: PublicGame[] };
+export type Discovery = { snapshot: PublicSnapshot; trending: number[]; popular: number[]; rising: number[] };
 export type CreatorMetric = "active" | "newPlayers" | "session" | "dayOne" | "daySeven" | "revenue" | "traffic" | "payers" | "engagement";
 export type MetricSeries = { breakdowns: { dimension: string; value: string }[]; dataPoints: { time: string; value: number | null }[] };
