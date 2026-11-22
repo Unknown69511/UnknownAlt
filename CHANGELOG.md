@@ -1,10 +1,16 @@
 # UnknownALT 1.2.9
 
-- Retained chart history through refreshes and outages. History is reconciled
-  by game, metric, and time bucket, with gaps and genuine zeroes shown separately.
-- Added CCUCheck's public history as an independent recorded source, added daily
-  tables and CSV export, and improved performance averages and update comparisons.
-- Added local game art history, exact chart hover values, and grouped update markers.
+- Historical charts keep loaded data, the selected metric, the date range,
+  and zoom during refreshes. Late responses cannot replace newer readings.
+- Merge recorded history by game, metric, and time bucket. Preserve recorded
+  zeroes, show missing dates as gaps, and use each game's creation date for ranges.
+- Cross-check recorded daily data from RoWatcher and CCUCheck. Show daily,
+  weekly, and monthly averages, peaks, growth, and update comparisons.
+- Add daily history tables with CSV export, exact hover values, grouped update
+  markers, and locally observed icon and thumbnail history.
+- Also includes the 1.2.7 and 1.2.8 analytics, studios, number format, and
+  Farm Control Center changes. The in-app updater preserves existing accounts,
+  encrypted vaults, settings, and watchlists.
 
 # UnknownALT 1.2.8
 

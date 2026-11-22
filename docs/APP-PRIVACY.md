@@ -18,9 +18,10 @@ Store edition uses the Store for package updates. The app does not send usage
 telemetry to the UnknownALT maintainer.
 
 Discover and public Analytics request Roblox's public game data without saved
-accounts or sessions. RoWatcher and RobloxGameStats receive anonymous requests
-for public game IDs, charts and history, with a bounded cache on your device.
-Your watchlist, followed games and observations are stored locally. Roblox Status uses the official Roblox status site and its
+accounts or sessions. RoWatcher, RobloxGameStats, and CCUCheck receive requests
+for public game IDs, charts, and history without account credentials. Public
+history, watchlists, followed games, and observations are stored locally in
+bounded caches. Roblox Status uses the official Roblox status site and its
 public Status.io feed. Notification preferences and history are local. If you
 enable friend request alerts, UnknownALT checks pending counts with the
 existing Roblox sessions for valid stored accounts. Native Windows alerts
