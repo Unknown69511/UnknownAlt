@@ -43,7 +43,7 @@ export const AREAS: readonly AreaDef[] = [
     label: "settings.section.appearance",
     icon: "palette",
     groups: [
-      { label: "settings.group.look", ids: ["theme", "themes", "look", "lookShare", "accent", "corners", "background", "density", "tabLayout", "language", "sounds", "motion"] },
+      { label: "settings.group.look", ids: ["theme", "themes", "look", "lookShare", "accent", "corners", "background", "density", "tabLayout", "language", "numberFormat", "sounds", "motion"] },
       { label: "settings.group.window", ids: ["closeToTray", "skipSplash"] },
     ],
   },
