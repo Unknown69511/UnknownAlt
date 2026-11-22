@@ -9,7 +9,7 @@ import { SPRING, TWEEN, useReducedMotionFlag } from "./motion";
 import { signal } from "./signal";
 
 type Tone = "ok" | "error";
-type Item = { id: number; text: string; tone: Tone };
+type Item = { id: number; text: string; tone: Tone; open?: () => void };
 
 let items: Item[] = [];
 let nextId = 0;
@@ -27,10 +27,10 @@ function dismiss(id: number) {
 
 /** Shows a short message at the bottom end. Callable from anywhere, including outside React. A
  *  sticky one stays until dismissed. */
-export function toast(text: string, tone: Tone = "ok", sticky = false, sound?: Sound) {
+export function toast(text: string, tone: Tone = "ok", sticky = false, sound?: Sound, open?: () => void) {
   playSound(sound ?? (tone === "error" ? "error" : "success"));
   const id = ++nextId;
-  publish([...items.slice(-3), { id, text, tone }]);
+  publish([...items.slice(-3), { id, text, tone, open }]);
   if (!sticky) later(id, tone === "error" ? 7000 : 4000);
 }
 
@@ -152,7 +152,8 @@ export function Toaster() {
           onBlur={() => resume(item.id)}
         >
           <span aria-hidden="true" className="toast-mark" />
-          <span className="flex-1 min-w-0 break-words">{item.text}</span>
+          {item.open ? <button className="flex-1 min-w-0 break-words text-start" onClick={() => { dismiss(item.id); item.open?.(); }}>{item.text}</button>
+            : <span className="flex-1 min-w-0 break-words">{item.text}</span>}
           <IconButton icon="x" size="sm" label={t("common.dismiss")} onClick={() => dismiss(item.id)} />
         </motion.div>
       ))}

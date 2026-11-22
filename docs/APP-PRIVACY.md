@@ -20,8 +20,11 @@ telemetry to the UnknownALT maintainer.
 Discover and public Analytics request Roblox's public game data without saved
 accounts or sessions. Your watchlist, followed games and observations are
 stored locally. Roblox Status uses the official Roblox status site and its
-public Status.io feed. Game update and Roblox Status alerts appear in the
-app when enabled.
+public Status.io feed. Notification preferences and history are local. If you
+enable friend request alerts, UnknownALT checks pending counts with the
+existing Roblox sessions for valid stored accounts. Native Windows alerts
+can appear in Windows notification history. Public analytics requests do not
+attach Roblox account sessions.
 
 Optional Discord notifications send the configured event details to the Discord
 webhook you supply. Optional Rich Presence shares the game or managed-client

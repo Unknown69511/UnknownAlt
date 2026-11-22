@@ -58,7 +58,7 @@ export const SECTION_ICON: Record<Section, IconName> = {
   mods: "palette",
   crashes: "alert",
   debug: "terminal",
-  farm: "monitor",
+  farm: "home",
   updates: "download",
   analytics: "chart",
   discover: "search",
@@ -87,10 +87,13 @@ export type BrowseRequest = { accountId: number; path?: string; pick?: boolean }
 
 // Navigation asked for from outside the shell (the app menu, a notice): the shell listens.
 // `play`: a target Play opens filled in with.
-export type Request = { view: View; area?: SettingsArea; browse?: BrowseRequest; play?: LaunchTarget };
+export type Request = { view: View; area?: SettingsArea; browse?: BrowseRequest; play?: LaunchTarget; game?: number; bulletin?: string };
 const subs = new Set<(r: Request) => void>();
 export function requestNavigation(view: View, area?: SettingsArea, browse?: BrowseRequest, play?: LaunchTarget) {
   subs.forEach((f) => f({ view, area, browse, play }));
+}
+export function openNotificationTarget(target: Pick<Request, "view" | "game" | "bulletin">) {
+  subs.forEach((f) => f(target));
 }
 /** Opens Play with `target` filled in: the accounts are picked there. */
 export const playTarget = (target: LaunchTarget) => requestNavigation("launch", undefined, undefined, target);

@@ -22,6 +22,7 @@ function problem(client: Instance): string | null {
 }
 
 export function FarmView({ accounts = [] }: { accounts?: AccountSummary[] }) {
+  const [tab, setTab] = useState<"overview" | "clients" | "performance" | "storage">("overview");
   const query = useQuery({ queryKey: ["farmStatus"], queryFn: api.farmStatus, refetchInterval: 4000 });
   const diagnosis = useDiagnosis();
   const clients = useInstances();
@@ -49,7 +50,12 @@ export function FarmView({ accounts = [] }: { accounts?: AccountSummary[] }) {
   const usage = query.data?.usage;
   const ram = usage && usage.memTotalMb > 0 ? Math.min(100, 100 * usage.memUsedMb / usage.memTotalMb) : null;
   return <main className="flex flex-col flex-1 min-h-0 overflow-auto gap-4 p-4">
-    <header><h1 className="text-xl font-semibold">Farm Control Center</h1><p className="text-fg-2 text-sm">See which clients are running and what needs your attention.</p></header>
+    <header><h1 className="text-xl font-semibold flex items-center gap-2"><Icon name="home" />Farm Control Center</h1></header>
+    <div className="flex gap-2 flex-wrap" role="group" aria-label="Farm sections">
+      {([["overview", "Overview", "grid"], ["clients", "Client audio", "sliders"], ["performance", "Performance", "gauge"], ["storage", "Storage", "database"]] as const).map(([id, label, icon]) =>
+        <button key={id} className={tab === id ? "btn btn-primary" : "btn"} aria-pressed={tab === id} onClick={() => setTab(id)}><Icon name={icon} />{label}</button>)}
+    </div>
+    {tab === "overview" && <>
     <Panel icon="grid" title="Overview">
       <div className="grid grid-cols-3 gap-3">
         {[[instances.filter((client) => client.pid > 0).length, "Running clients", ""], [healthy, "Healthy sessions", "text-ok"], [warnings.length, "Need attention", warnings.length ? "text-[var(--warn)]" : ""]].map(([count, label, color]) =>
@@ -59,20 +65,30 @@ export function FarmView({ accounts = [] }: { accounts?: AccountSummary[] }) {
       {clients.error && <p role="alert">Could not read running clients.</p>}
     </Panel>
     <div className="grid gap-3 xl:grid-cols-2">
-    <Panel icon="alert" title="Problem Detection">
+    <Panel icon="alert" title="Needs attention">
       {clients.data && !warnings.length && <p className="text-sm text-fg-2">{instances.length ? "No client warnings." : "No clients are running."}</p>}
       {warnings.map(({ client, issue }) => <div key={client.id} className="border-s-2 border-[var(--warn)] ps-3">
         <strong className="text-sm">{accountName(client.accountId)}</strong><p className="text-sm text-fg-2">{issue}</p>
       </div>)}
     </Panel>
-    <Panel icon="check" title="Recovery Panel">
+    <Panel icon="check" title="Recommended actions">
       {diagnosis.data?.findings.length ? (
         <div><h3 className="text-sm font-medium">{diagnosis.data.findings[0].title}</h3>
           <p className="text-sm text-fg-2">{diagnosis.data.findings[0].solutions[0] ?? diagnosis.data.findings[0].cause}</p></div>
       ) : <p className="text-sm text-fg-2">{diagnosis.isPending ? "Checking for recommended repairs…" : diagnosis.error ? "Run the troubleshooter to check again." : "No repairs recommended."}</p>}
       <button className="btn btn-sm self-start" onClick={() => openTroubleshoot(true)}>{diagnosis.data?.findings.length ? "Review repairs" : "Run troubleshooter"}</button>
     </Panel>
-    <Panel icon="gauge" title="Smart Performance">
+    <Panel icon="bell" title="Session alerts">
+      <div className="flex flex-wrap items-center gap-3">
+        <label><input type="checkbox" checked={settings?.localAlerts ?? false} disabled={saving || !settings} onChange={(e) => void configure({ localAlerts: e.target.checked })} /> Launch, sign-in and unresponsive-client alerts</label>
+        <button className="btn btn-sm" onClick={() => requestNavigation("settings", "notifications")}>Crash and disconnect alerts</button>
+        <button className="btn btn-sm" onClick={() => requestNavigation("discord")}>Discord alerts</button>
+      </div>
+    </Panel>
+    </div>
+    </>}
+    {tab === "performance" && <div className="grid gap-3 xl:grid-cols-2">
+    <Panel icon="gauge" title="PC usage and launch limits">
       <div className="grid grid-cols-2 gap-3">
         {[["CPU", usage?.cpuPct ?? null], ["RAM", ram]].map(([label, value]) => <div key={label} className="text-sm flex flex-col gap-1">
           <p className="flex justify-between"><span>{label}</span><span>{typeof value === "number" ? `${Math.round(value)}%` : "—"}</span></p>
@@ -95,19 +111,12 @@ export function FarmView({ accounts = [] }: { accounts?: AccountSummary[] }) {
         </select>
       </label>
     </Panel>
-    <Panel icon="bell" title="Farm Alerts">
-      <p className="text-sm text-fg-2">Get a notification when a session needs attention.</p>
-      <div className="flex flex-wrap items-center gap-3">
-        <label><input type="checkbox" checked={settings?.localAlerts ?? false} disabled={saving || !settings} onChange={(e) => void configure({ localAlerts: e.target.checked })} /> Local alerts</label>
-        <button className="btn btn-sm" onClick={() => requestNavigation("discord")}>Configure Discord alerts</button>
-      </div>
-    </Panel>
-    <Panel icon="sliders" title="Audio Mixer">
+    </div>}
+    {tab === "clients" && <Panel icon="sliders" title="Audio Mixer">
       {instances.length === 0 && <p className="text-sm text-fg-2">Volume controls appear when a Roblox client starts.</p>}
       {instances.map((i) => <Mixer key={i.id} instance={i} name={accountName(i.accountId)} />)}
-    </Panel>
-    <StorageDashboard />
-    </div>
+    </Panel>}
+    {tab === "storage" && <StorageDashboard />}
     <TroubleshooterDialog open={troubleshoot} onClose={() => openTroubleshoot(false)} />
   </main>;
 }

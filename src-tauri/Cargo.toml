@@ -1,6 +1,6 @@
 [package]
 name = "unknownalt"
-version = "1.2.5"
+version = "1.2.6"
 description = "Local-only Roblox account manager"
 authors = ["Unknown69511"]
 license = "MIT"
@@ -87,6 +87,8 @@ windows = { version = "0.62", features = [
   "Win32_UI_WindowsAndMessaging",
   "Security_Credentials_UI",
   "Foundation",
+  "Data_Xml_Dom",
+  "UI_Notifications",
   "Graphics",
   "Graphics_Capture",
   "Graphics_DirectX",

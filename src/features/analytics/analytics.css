@@ -1,0 +1,8 @@
+@keyframes history-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.analytics-hero {
+  background: color-mix(in srgb, var(--user-accent) 10%, transparent);
+}

@@ -1,7 +1,7 @@
 use crate::{
     App,
     error::{AppError, Result},
-    model::{InstanceState, SystemUsage},
+    model::SystemUsage,
     storage::Db,
 };
 use serde::{Deserialize, Serialize};
@@ -88,8 +88,6 @@ pub fn alert_on_transition(
         && previous.note != current.note
     {
         "A managed Roblox client stopped responding. Open Farm Control Center for details."
-    } else if current.state == InstanceState::Disconnected && previous.state != current.state {
-        "A managed Roblox client lost its connection. Open Farm Control Center for details."
     } else if current.sign_in_problem && !previous.sign_in_problem {
         "A managed Roblox client needs sign-in attention. Open Farm Control Center for details."
     } else {

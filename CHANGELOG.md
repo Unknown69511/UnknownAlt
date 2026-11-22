@@ -1,3 +1,15 @@
+# UnknownALT 1.2.6
+
+- Rebuilt Roblox Analytics around individual game pages, public chart and genre
+  views, player comparisons, CSV exports and a customizable creator dashboard.
+- Discover adds observed player records, game previews and interactive player
+  history. Game pages show public passes, badges, thumbnails and update dates.
+- Added notification preferences and clickable history. On Windows, alerts can
+  use native notifications while the app is in the background.
+- Simplified Farm Control Center navigation and fixed official announcement
+  image loading. The updater uses the UnknownALT mascot in the taskbar and
+  reports verified backup progress with faster file validation.
+
 # UnknownALT 1.2.5
 
 - Added Discover with Roblox's trending and popular charts, local growth and

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { save } from "@tauri-apps/plugin-dialog";
 import { api } from "../../api";
 import { Icon } from "../../ui/Icon";
-import { toast, toastError } from "../../ui/Toast";
+import { toastError } from "../../ui/Toast";
+import { useStored } from "../../ui/stored";
+import { saveAnalyticsCsv } from "./csv";
 import { HistoryChart } from "./HistoryChart";
 import { HOUR } from "./history";
 import type { CreatorMetric, MetricSeries } from "./types";
@@ -17,11 +18,7 @@ const format = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 });
 const label = (series: MetricSeries) => series.breakdowns.map((part) => part.value).join(" · ") || "All players";
 const today = () => new Date().toISOString().slice(0, 10);
 const lastWeek = () => new Date(Date.now() - 7 * 24 * HOUR).toISOString().slice(0, 10);
-
-function csvCell(value: string) {
-  const safe = /^[\s]*[=+\-@]|^[\t\r\n]/.test(value) ? "'" + value : value;
-  return '"' + safe.replaceAll('"', '""') + '"';
-}
+const measured = (point: MetricSeries["dataPoints"][number]) => point.value != null && (point.status == null || point.status === "Valid");
 
 export function MyGames() {
   const input = useRef<HTMLInputElement>(null);
@@ -30,6 +27,13 @@ export function MyGames() {
   const [gameChoices, setGameChoices] = useState<{ id: number; name: string }[]>([]);
   const [lookup, setLookup] = useState("");
   const [metric, setMetric] = useState<CreatorMetric>("active");
+  const [pinned, setPinned] = useStored<CreatorMetric[]>("UnknownAlt.creator.pinned", (raw) => {
+    try {
+      const rows: unknown = JSON.parse(raw ?? "null");
+      if (Array.isArray(rows)) return rows.filter((id): id is CreatorMetric => typeof id === "string" && Object.hasOwn(metrics, id)).slice(0, 9);
+    } catch { /* defaults are available */ }
+    return ["active", "revenue", "dayOne", "engagement"];
+  }, JSON.stringify);
   const [start, setStart] = useState(lastWeek);
   const [end, setEnd] = useState(today);
   const [busy, setBusy] = useState(false);
@@ -37,6 +41,7 @@ export function MyGames() {
   const [seriesIndex, setSeriesIndex] = useState(0);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ universe: number; metric: CreatorMetric; from: string; to: string; rows: MetricSeries[] } | null>(null);
+  const [dashboard, setDashboard] = useState<Partial<Record<CreatorMetric, typeof result>>>({});
   const requestVersion = useRef(0);
   useEffect(() => () => {
     requestVersion.current++;
@@ -62,6 +67,7 @@ export function MyGames() {
     setConnected(false);
     setBusy(false);
     setResult(null);
+    setDashboard({});
     setError("");
     void api.creatorAnalyticsDisconnect().catch(toastError);
   }
@@ -78,7 +84,7 @@ export function MyGames() {
     finally { setFinding(false); }
   }
 
-  async function run() {
+  async function run(selected = metric) {
     const id = Number(universe);
     if (!/^\d+$/.test(universe.trim()) || !Number.isSafeInteger(id) || id < 1) {
       setError("Select a game or enter its universe ID.");
@@ -87,10 +93,12 @@ export function MyGames() {
     const version = ++requestVersion.current;
     setBusy(true); setError(""); setResult(null);
     try {
-      const rows = await api.creatorAnalyticsMetrics(id, metric, start, end);
+      const rows = await api.creatorAnalyticsMetrics(id, selected, start, end);
       if (requestVersion.current !== version) return;
       setSeriesIndex(0);
-      setResult({ universe: id, metric, from: start, to: end, rows });
+      const loaded = { universe: id, metric: selected, from: start, to: end, rows };
+      setResult(loaded);
+      setDashboard((old) => ({ ...old, [selected]: loaded }));
     } catch (e) {
       if (requestVersion.current === version) setError(
         typeof e === "object" && e && "message" in e && typeof e.message === "string" ? e.message :
@@ -102,19 +110,17 @@ export function MyGames() {
   async function exportCsv() {
     if (!result) return;
     try {
-      const path = await save({ defaultPath: `UnknownALT-${result.universe}-${result.metric}.csv`, filters: [{ name: "CSV", extensions: ["csv"] }] });
-      if (!path) return;
       const rows = result.rows.flatMap((series) => series.dataPoints.map((point) =>
-        [String(result.universe), csvCell(metrics[result.metric]), csvCell(label(series)), csvCell(point.time), point.value ?? ""].join(",")));
-      await api.creatorAnalyticsExport(path, ["universe,metric,series,time_utc,value", ...rows, ""].join("\r\n"));
-      toast("Analytics CSV saved.");
+        [result.universe, metrics[result.metric], label(series), point.time, point.value ?? "", point.status ?? ""]));
+      await saveAnalyticsCsv(`UnknownALT-${result.universe}-${result.metric}.csv`, ["universe", "metric", "series", "time_utc", "value", "status"], rows);
     } catch (e) { toastError(e); }
   }
 
   const series = result?.rows[seriesIndex];
-  const points = series?.dataPoints.flatMap((point) => point.value == null ? [] : [{ at: Date.parse(point.time), value: point.value }]) ?? [];
+  const points = series?.dataPoints.flatMap((point) => measured(point) && Number.isFinite(Date.parse(point.time))
+    ? [{ at: Date.parse(point.time), value: point.value! }] : []) ?? [];
   return <section className="panel p-4 space-y-4">
-    <h2 className="font-semibold">Creator analytics</h2>
+    <h2 className="font-semibold">Private creator dashboard</h2>
     {!connected ? <>
       <p className="text-sm text-fg-2">Use a Roblox Open Cloud API key with only Analytics read permission for the games you choose.</p>
       <form className="flex gap-2 flex-wrap" onSubmit={(e) => { e.preventDefault(); void connect(); }}>
@@ -129,6 +135,12 @@ export function MyGames() {
         <p className="text-sm text-fg-2">Connected for this session</p>
         <button className="btn btn-sm" onClick={disconnect}>Forget key</button>
       </div>
+      <details>
+        <summary className="cursor-pointer font-medium">Customize dashboard</summary>
+        <div className="grid gap-2 sm:grid-cols-2 mt-2">{(Object.entries(metrics) as [CreatorMetric, string][]).map(([id, name]) =>
+          <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={pinned.includes(id)}
+            onChange={(event) => setPinned(event.target.checked ? [...pinned, id] : pinned.filter((item) => item !== id))} />{name}</label>)}</div>
+      </details>
       <details>
         <summary className="cursor-pointer font-medium">Find an experience by name or URL</summary>
         <form className="flex gap-2 flex-wrap mt-2" onSubmit={(e) => { e.preventDefault(); void findGame(); }}>
@@ -149,6 +161,18 @@ export function MyGames() {
         <label className="text-sm flex flex-col gap-1">Through (UTC)<input className="field" type="date" value={end} required min={start} max={today()} onChange={(e) => setEnd(e.target.value)} /></label>
         <button className="btn btn-primary" disabled={busy} type="submit">Load analytics</button>
       </form>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {pinned.map((id) => {
+          const saved = dashboard[id];
+          const loaded = saved?.universe === Number(universe) && saved.from === start && saved.to === end ? saved : null;
+          const total = loaded?.rows.find((row) => !row.breakdowns.length)?.dataPoints.filter(measured).at(-1);
+          return <button key={id} className="panel p-3 text-start" disabled={busy || !universe.trim()} onClick={() => { setMetric(id); void run(id); }}>
+            <span className="block text-sm font-medium">{metrics[id]}</span>
+            <span className="text-xs text-fg-2">{total?.value != null ? `${format.format(total.value)} · ${total.time.slice(0, 10)}`
+              : loaded ? loaded.rows.length ? "Show breakdowns" : "Unavailable for this range" : "Load metric"}</span>
+          </button>;
+        })}
+      </div>
       {busy && <p role="status" className="text-sm text-fg-2">Waiting for Roblox Analytics…</p>}
     </>}
     {error && <p role="alert" className="text-sm text-[var(--warn)]">{error}</p>}
@@ -158,6 +182,7 @@ export function MyGames() {
         <button className="btn btn-sm" disabled={!result.rows.some((row) => row.dataPoints.length)} onClick={() => void exportCsv()}><Icon name="download" />Export CSV</button>
       </header>
       {!result.rows.length && <p className="text-sm text-fg-2">Roblox returned no data for this metric or date range.</p>}
+      {series?.dataPoints.some((point) => point.status && point.status !== "Valid") && <p className="text-sm text-fg-2">Projected and statistically insufficient readings are identified in the CSV. The chart shows measured results.</p>}
       {result.rows.length > 1 && <label className="flex gap-2 items-center text-sm">Series <select className="field" value={seriesIndex} onChange={(e) => setSeriesIndex(Number(e.target.value))}>
         {result.rows.map((row, i) => <option key={i} value={i}>{label(row)}</option>)}
       </select></label>}

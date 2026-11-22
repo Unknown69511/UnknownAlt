@@ -331,6 +331,14 @@ impl Client {
         self.request(Method::POST, route, &url, Some(&body), account_id, Some(cookie)).await.map(|_| ())
     }
 
+    pub async fn pending_friend_count(&self, account_id: i64, cookie: &Secret) -> Result<u64> {
+        #[derive(serde::Deserialize)]
+        struct Pending { count: u64 }
+        let endpoint = "https://friends.roblox.com/v1/user/friend-requests/count";
+        let result: Pending = self.get(endpoint, endpoint, account_id, Some(cookie)).await?;
+        Ok(result.count)
+    }
+
     /// `POST friends.roblox.com/v1/users/{requester}/accept-friend-request` (cookie + CSRF).
     pub async fn accept_friend(&self, account_id: i64, cookie: &Secret, requester: i64) -> Result<()> {
         // `{}` rather than no body: a bodyless POST may go out without Content-Length (411).

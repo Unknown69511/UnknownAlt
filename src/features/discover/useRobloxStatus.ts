@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api";
-import { toast } from "../../ui/Toast";
+import { notify, setNotification, useNotifications } from "../notifications/store";
 import { incidentHistory, type CurrentStatus, type PastIncident } from "./status-data";
 
 const interval = 15 * 60_000;
@@ -24,18 +24,20 @@ function save(next: Cache) {
 }
 function noteChanges(previous: CurrentStatus, next: CurrentStatus) {
   const incident = next.incidents.find((item) => !previous.incidents.some((old) => old.id === item.id));
-  if (incident) toast(`Roblox Status: ${incident.name}`, "error", false, "notification");
+  if (incident) notify("outages", incident.id, `Roblox Status: ${incident.name}`, { view: "status" });
   else if (previous.status_overall.status_code !== next.status_overall.status_code) {
-    toast(`Roblox Status: ${next.status_overall.status}`, next.status_overall.status_code === 100 ? "ok" : "error", false, "notification");
+    notify("outages", `status:${next.status_overall.updated}:${next.status_overall.status_code}`, `Roblox Status: ${next.status_overall.status}`, { view: "status" });
   } else if (previous.incidents.some((item) => !next.incidents.some((current) => current.id === item.id))) {
-    toast("Roblox Status cleared a previously active incident. See incident history.", "ok", false, "notification");
+    notify("outages", `cleared:${previous.incidents.map((item) => item.id).sort().join(",")}`, "Roblox Status cleared a previously active incident.", { view: "status" });
   }
 }
 export function setStatusAlerts(alerts: boolean) {
-  save({ ...cache, alerts });
+  setNotification("outages", alerts);
 }
 export function useRobloxStatus(visible = false) {
-  const stored = useSyncExternalStore(subscribe, () => cache);
+  const saved = useSyncExternalStore(subscribe, () => cache);
+  const alerts = useNotifications().options.outages;
+  const stored = { ...saved, alerts };
   const query = useQuery({
     queryKey: ["robloxServiceStatus"], enabled: visible || stored.alerts === true, retry: false,
     refetchInterval: interval, refetchIntervalInBackground: stored.alerts === true, staleTime: interval,
@@ -43,7 +45,7 @@ export function useRobloxStatus(visible = false) {
       const response = await api.robloxServiceStatus();
       const next = { ...cache };
       if (response.current) {
-        if (cache.alerts && cache.current) noteChanges(cache.current, response.current);
+        if (cache.current) noteChanges(cache.current, response.current);
         next.current = response.current;
         next.currentAt = response.checkedAt;
       }

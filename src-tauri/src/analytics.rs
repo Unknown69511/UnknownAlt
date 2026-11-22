@@ -84,6 +84,43 @@ pub struct PublicSnapshot {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct PassRows { game_passes: Vec<PublicPass> }
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PublicPass {
+    id: u64,
+    name: String,
+    display_name: Option<String>,
+    price: Option<u64>,
+    is_for_sale: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct PublicBadge { id: u64, name: String, description: Option<String> }
+
+#[derive(Serialize)]
+pub struct GameExtras { passes: Option<Vec<PublicPass>>, badges: Option<Vec<PublicBadge>>, thumbnails: Vec<String> }
+
+#[tauri::command]
+pub async fn public_game_extras(universe: u64) -> Result<GameExtras> {
+    if ids([universe], 1).is_empty() { return Err(invalid("Invalid Roblox universe.")); }
+    let client = client()?;
+    let passes = json::<PassRows>(client.get(format!("{API}/game-passes/v1/universes/{universe}/game-passes?pageSize=10")));
+    let badges = json::<Rows<PublicBadge>>(client.get(format!("https://badges.roblox.com/v1/universes/{universe}/badges?limit=10&sortOrder=Asc")));
+    let thumbs = json::<Rows<Thumbnail>>(client.get(format!("{THUMBS}/v1/games/multiget/thumbnails?universeIds={universe}&countPerUniverse=5&size=768x432&format=Png")));
+    let (passes, badges, thumbs) = tokio::join!(passes, badges, thumbs);
+    Ok(GameExtras {
+        passes: passes.ok().map(|rows| rows.game_passes.into_iter().take(10).collect()),
+        badges: badges.ok().map(|rows| rows.data.into_iter().take(10).collect()),
+        thumbnails: thumbs.ok().into_iter().flat_map(|rows| rows.data)
+            .filter(|row| row.universe_id == universe).flat_map(|row| row.thumbnails)
+            .filter_map(image_url).take(5).collect(),
+    })
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Vote { id: u64, up_votes: u64, down_votes: u64 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -310,7 +347,7 @@ impl Metric {
 struct Breakdown { dimension: String, value: String }
 
 #[derive(Serialize, Deserialize)]
-struct Point { time: String, value: Option<f64> }
+struct Point { time: String, value: Option<f64>, status: Option<String> }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -437,6 +474,9 @@ mod tests {
         assert!(discovery.snapshot.games.iter().any(|game| game.playing.is_some() && game.created.is_some()));
         let similar = public_similar_games(game.games[0].universe_id).await.unwrap();
         assert!(similar.games.iter().all(|candidate| candidate.universe_id != game.games[0].universe_id));
+        let extras = public_game_extras(game.games[0].universe_id).await.unwrap();
+        assert!(extras.passes.is_some_and(|rows| !rows.is_empty()));
+        assert!(extras.badges.is_some() && !extras.thumbnails.is_empty());
         let creator = &game.games[0].creator;
         assert!(!public_analytics_studio(creator.id.unwrap(), creator.kind.as_deref() == Some("Group")).await.unwrap().games.is_empty());
 

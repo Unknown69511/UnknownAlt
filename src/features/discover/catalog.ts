@@ -4,7 +4,7 @@ import { dayChange } from "../analytics/history";
 import { record, type GameRecord } from "../analytics/store";
 import type { Discovery, PublicGame } from "../analytics/types";
 
-export const lists = ["Trending", "Most popular", "Fastest-growing", "Newly released", "Underrated"] as const;
+export const lists = ["Trending", "Most popular", "Fastest-growing", "Newly released", "Record-breaking", "Underrated"] as const;
 export type List = (typeof lists)[number];
 const catalogKey = "UnknownAlt.discovery.v1";
 function savedCatalog(): Discovery | undefined {
@@ -39,6 +39,10 @@ export function gamesInList(catalog: Discovery, list: List, records: Record<numb
   }
   if (list === "Newly released") return games.filter((game) => Number.isFinite(Date.parse(game.created ?? "")))
     .sort((a, b) => Date.parse(b.created!) - Date.parse(a.created!));
+  if (list === "Record-breaking") return games.filter((game) => {
+    const past = records[game.universeId]?.samples.filter((point) => point.at < observedAt) ?? [];
+    return past.length >= 3 && observedAt - past[0].at >= 3_600_000 && game.playing != null && game.playing > Math.max(...past.map((point) => point.players));
+  }).sort((a, b) => b.playing! - a.playing!);
   const ranked = games.flatMap((game) => {
     const rating = approval(game);
     return game.playing != null && rating != null && rating >= .8 && (game.likes ?? 0) + (game.dislikes ?? 0) >= 100

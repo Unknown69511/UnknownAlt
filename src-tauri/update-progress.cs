@@ -1,17 +1,15 @@
-# This script is embedded in UnknownALT and staged in the current user's private update folder.
-# It has no authority to download, install, terminate the app, or approve a transaction.
-param([Parameter(Mandatory=$true)][string]$StageDir)
-$ErrorActionPreference = 'Stop'
-
-Add-Type -AssemblyName System.Windows.Forms, System.Drawing, System.Web.Extensions
-Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing, System.Web.Extensions -TypeDefinition @'
 using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
+
+[assembly: AssemblyTitle("UnknownALT Update")]
+[assembly: AssemblyProduct("UnknownALT")]
+[assembly: AssemblyCompany("Unknown69511")]
 
 public sealed class UnknownAltUpdateWindow : Form
 {
@@ -60,7 +58,7 @@ public sealed class UnknownAltUpdateWindow : Form
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = true;
-        Icon = new Icon(Path.Combine(stage, "update-progress.ico"));
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         MaximizeBox = false;
         MinimizeBox = false;
         ControlBox = false;
@@ -70,7 +68,8 @@ public sealed class UnknownAltUpdateWindow : Form
         Font = new Font("Segoe UI", 10F);
         DoubleBuffered = true;
         logo = new PictureBox { Location = new Point(164, 30), Size = new Size(92, 92), SizeMode = PictureBoxSizeMode.Zoom, AccessibleName = "UnknownALT mascot" };
-        using (var image = Image.FromFile(Path.Combine(stage, "update-progress.png")))
+        using (var mascot = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnknownALT.Mascot"))
+        using (var image = Image.FromStream(mascot))
             logo.Image = new Bitmap(image);
         heading = new Label {
             Text = "Updating UnknownALT", Location = new Point(24, 140), Size = new Size(372, 34),
@@ -89,12 +88,23 @@ public sealed class UnknownAltUpdateWindow : Form
         FormClosed += delegate { timer.Dispose(); logo.Image.Dispose(); Icon.Dispose(); heading.Font.Dispose(); Font.Dispose(); };
     }
 
-    public static void Run(string stage)
+    [STAThread]
+    public static int Main(string[] args)
     {
+        if (args.Length != 1) return 1;
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        using (var window = new UnknownAltUpdateWindow(stage))
-            Application.Run(window);
+        try {
+            using (var window = new UnknownAltUpdateWindow(args[0]))
+                Application.Run(window);
+            return 0;
+        } catch (ArgumentException error) {
+            Console.Error.WriteLine(error.Message);
+            return 1;
+        } catch (InvalidOperationException error) {
+            Console.Error.WriteLine(error.Message);
+            return 1;
+        }
     }
 
     ProgressState ReadState()
@@ -178,7 +188,9 @@ public sealed class UnknownAltUpdateWindow : Form
         switch (phase) {
             case "downloading": label = "Downloading update"; current = last.current; total = last.total; break;
             case "verifying": label = "Verifying the download"; current = last.current; total = last.total; break;
-            case "backing-up": label = "Backing up your data..."; break;
+            case "backing-up":
+                label = last.current > 0 ? String.Format("Backing up your data · {0:N0} files saved", last.current) : "Backing up your data...";
+                break;
             case "closing": label = "Closing UnknownALT safely..."; break;
             case "installing": label = "Installing update"; current = installCurrent; total = installTotal; break;
             case "restarting": label = "Reopening UnknownALT..."; break;
@@ -251,6 +263,3 @@ public sealed class UnknownAltUpdateWindow : Form
         }
     }
 }
-'@
-[UnknownAltUpdateWindow]::Run($StageDir)
-

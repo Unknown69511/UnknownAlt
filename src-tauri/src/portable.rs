@@ -335,6 +335,7 @@ mod native {
                 crate::analytics::public_analytics_studio,
                 crate::analytics::public_discovery,
                 crate::analytics::public_similar_games,
+                crate::analytics::public_game_extras,
                 crate::roblox_status::roblox_service_status,
                 crate::analytics::creator_analytics_connect,
                 crate::analytics::creator_analytics_disconnect,

@@ -15,11 +15,9 @@ use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::core::PCWSTR;
 
 use crate::error::{AppError, Result};
-use crate::update_handoff::{parent_start_time, system32};
+use crate::update_handoff::parent_start_time;
 
-const SCRIPT: &str = include_str!("../update-progress.ps1");
-const LOGO: &[u8] = include_bytes!("../icons/128x128.png");
-const ICON: &[u8] = include_bytes!("../icons/icon.ico");
+const WINDOW_EXE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/UnknownALT-Update.exe"));
 const TITLE: &str = "UnknownALT Update - ";
 const NO_CONSOLE: u32 = 0x0800_0000;
 static ACTIVE: Mutex<Option<PathBuf>> = Mutex::new(None);
@@ -96,10 +94,8 @@ pub fn clear(stage: &Path) {
 
 impl Progress {
     pub fn start(stage: &Path) -> Result<Self> {
-        let script = stage.join("update-progress.ps1");
-        write_new(&script, SCRIPT.as_bytes())?;
-        write_new(&stage.join("update-progress.png"), LOGO)?;
-        write_new(&stage.join("update-progress.ico"), ICON)?;
+        let executable = stage.join("UnknownALT-Update.exe");
+        write_new(&executable, WINDOW_EXE)?;
         let mut progress = Self {
             stage: stage.to_owned(),
             child: None,
@@ -109,19 +105,9 @@ impl Progress {
         progress.write("preparing", 0, 0)?;
         *ACTIVE.lock().unwrap_or_else(|e| e.into_inner()) = Some(stage.to_owned());
 
-        // This is a private copy of our embedded script. The WinForms process continues to
+        // This private copy of the branded executable continues to
         // display the transaction while the original executable closes and is replaced.
-        let child = Command::new(system32()?.join(r"WindowsPowerShell\v1.0\powershell.exe"))
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "-STA",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-            ])
-            .arg(&script)
-            .arg("-StageDir")
+        let child = Command::new(executable)
             .arg(stage)
             .stdin(Stdio::null())
             .stdout(Stdio::null())

@@ -20,10 +20,9 @@ function Get-UpdatePath([string]$Path) {
     if ($full.Length -lt 4) { throw 'An update path cannot be a drive root.' }
     $cursor = $full
     while ($cursor.Length -gt 3) {
-        if (Test-Path -LiteralPath $cursor) {
-            $item = Get-Item -LiteralPath $cursor -Force
-            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Update paths cannot contain links or junctions.' }
-        }
+        try {
+            if (([IO.File]::GetAttributes($cursor) -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Update paths cannot contain links or junctions.' }
+        } catch [IO.FileNotFoundException] { } catch [IO.DirectoryNotFoundException] { }
         $cursor = [IO.Path]::GetDirectoryName($cursor)
         if ([string]::IsNullOrEmpty($cursor)) { break }
     }
@@ -219,39 +218,61 @@ function Open-UpdateLock([string]$Path, [string]$Root, $Metadata) {
     return $stream
 }
 
-function Copy-UpdateFile([string]$Source, [string]$Destination, [string]$SourceRoot, [string]$DestinationRoot) {
+function Get-UpdateFileDigest([string]$Path) {
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $hash = [Security.Cryptography.SHA256]::Create()
+        try {
+            $digest = [BitConverter]::ToString($hash.ComputeHash($stream)).Replace('-', '').ToLowerInvariant()
+            return [pscustomobject]@{ size = $stream.Length; sha256 = $digest }
+        } finally { $hash.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+function Copy-UpdateFile([string]$Source, [string]$Destination, [string]$SourceRoot, [string]$DestinationRoot, [switch]$Record) {
     $src = Assert-UpdateChild $Source $SourceRoot; $dst = Assert-UpdateChild $Destination $DestinationRoot
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($dst))
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
         try {
             [IO.File]::Copy($src, $dst, $true)
-            if ((Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash -or (Get-Item -LiteralPath $src).Length -ne (Get-Item -LiteralPath $dst).Length) { throw 'A backup copy did not verify.' }
+            $original = Get-UpdateFileDigest $src
+            $copy = Get-UpdateFileDigest $dst
+            if ($original.sha256 -cne $copy.sha256 -or $original.size -ne $copy.size) { throw 'A backup copy did not verify.' }
+            if ($Record) { return $copy }
             return
         } catch { if ($attempt -eq 3) { throw }; Start-Sleep -Milliseconds 500 }
     }
 }
 
-function Copy-UpdateTree([string]$Source, [string]$Destination, [string]$DestinationRoot) {
+function Copy-UpdateTree([string]$Source, [string]$Destination, [string]$DestinationRoot, $ProgressRequest, [long]$PreviousFiles = 0) {
     $src = Get-UpdatePath $Source; $dst = Assert-UpdateChild $Destination $DestinationRoot
     $record = [ordered]@{ existed = (Test-Path -LiteralPath $src); files = @(); directories = @() }
     if (-not $record.existed) { return [pscustomobject]$record }
+    $files = [Collections.Generic.List[object]]::new()
+    $directories = [Collections.Generic.List[string]]::new()
     if (-not (Get-Item -LiteralPath $src -Force).PSIsContainer) { throw 'A backup source is not a folder.' }
     [void][IO.Directory]::CreateDirectory($dst)
     $pending = New-Object 'System.Collections.Generic.Queue[string]'; $pending.Enqueue($src)
     while ($pending.Count -gt 0) {
         $directory = $pending.Dequeue(); [void](Assert-UpdateChild $directory $src -AllowRoot)
-        foreach ($entry in @(Get-ChildItem -LiteralPath $directory -Force)) {
+        foreach ($entry in [IO.DirectoryInfo]::new($directory).EnumerateFileSystemInfos()) {
             $path = Assert-UpdateChild $entry.FullName $src
             $relative = $path.Substring($src.Length + 1)
             $target = Assert-UpdateChild (Join-Path $dst $relative) $dst
-            if ($entry.PSIsContainer) { [void][IO.Directory]::CreateDirectory($target); $record.directories += $relative; $pending.Enqueue($path) }
+            if ($entry -is [IO.DirectoryInfo]) { [void][IO.Directory]::CreateDirectory($target); $directories.Add($relative); $pending.Enqueue($path) }
             else {
                 # Even caches are copied and verified; inability to preserve any data aborts safely.
-                Copy-UpdateFile $path $target $src $dst
-                $record.files += [pscustomobject]@{ path = $relative; size = (Get-Item -LiteralPath $target).Length; sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() }
+                $copy = Copy-UpdateFile $path $target $src $dst -Record
+                $files.Add([pscustomobject]@{ path = $relative; size = $copy.size; sha256 = $copy.sha256 })
+                if ($null -ne $ProgressRequest -and $files.Count % 128 -eq 0) {
+                    Publish-UpdateProgress $ProgressRequest 'backing-up' ($PreviousFiles + $files.Count)
+                }
             }
         }
     }
+    if ($null -ne $ProgressRequest) { Publish-UpdateProgress $ProgressRequest 'backing-up' ($PreviousFiles + $files.Count) }
+    $record.files = $files.ToArray()
+    $record.directories = $directories.ToArray()
     return [pscustomobject]$record
 }
 
@@ -260,7 +281,9 @@ function Assert-UpdateTree([string]$Snapshot, $Record, [string]$Stage) {
     if (-not $Record.existed) { return }
     foreach ($entry in @($Record.files)) {
         $file = Assert-UpdateChild (Join-Path $base $entry.path) $base
-        if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -ne $entry.size -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $entry.sha256) { throw 'A recovery snapshot failed verification. It has been retained.' }
+        if (-not [IO.File]::Exists($file)) { throw 'A recovery snapshot is missing a file. It has been retained.' }
+        $digest = Get-UpdateFileDigest $file
+        if ($digest.size -ne $entry.size -or $digest.sha256 -cne $entry.sha256) { throw 'A recovery snapshot failed verification. It has been retained.' }
     }
 }
 
@@ -305,7 +328,10 @@ function Backup-UpdateManaged([string]$InstallDir, [string]$BackupDir, [string]$
         $source = Assert-UpdateChild (Join-Path $InstallDir $name) $InstallDir
         $exists = Test-Path -LiteralPath $source -PathType Leaf
         $item = [ordered]@{ name = $name; existed = $exists; size = 0; sha256 = '' }
-        if ($exists) { $target = Join-Path $backup $name; Copy-UpdateFile $source $target $InstallDir $backup; $item.size = (Get-Item -LiteralPath $target).Length; $item.sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() }
+        if ($exists) {
+            $copy = Copy-UpdateFile $source (Join-Path $backup $name) $InstallDir $backup -Record
+            $item.size = $copy.size; $item.sha256 = $copy.sha256
+        }
         $record += [pscustomobject]$item
     }
     return $record
@@ -377,13 +403,13 @@ function Write-UpdateOutcome($Request, [string]$Status, [string]$Message) {
     Write-UpdateJson $Request.outcomeFile ([ordered]@{ status=$Status; message=$Message; fromVersion=$Request.currentVersion; toVersion=$Request.expectedVersion; at=[DateTime]::UtcNow.ToString('o') }) $Request.defaultDataDir
 }
 
-function Publish-UpdateProgress($Request, [string]$Phase) {
+function Publish-UpdateProgress($Request, [string]$Phase, [long]$Current = 0) {
     try {
         $path = Join-Path $Request.stageDir 'update-progress.json'
         if (-not [IO.File]::Exists($path)) { return }
         $process = [Diagnostics.Process]::GetCurrentProcess()
         try { $ownerStart = $process.StartTime.ToFileTimeUtc().ToString() } finally { $process.Dispose() }
-        Write-UpdateJson $path ([ordered]@{ phase=$Phase; current=0; total=0; ownerPid=$PID; ownerStart=$ownerStart }) $Request.stageDir 4096
+        Write-UpdateJson $path ([ordered]@{ phase=$Phase; current=$Current; total=0; ownerPid=$PID; ownerStart=$ownerStart }) $Request.stageDir 4096
     } catch { }
 }
 
@@ -520,10 +546,13 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
             $journal = [pscustomobject][ordered]@{ schema=1; nonce=$request.healthNonce; phase='backing_up'; roamingDir=(Join-Path $context.appData 'com.unknownalt.desktop'); managed=@(); registry=@(); data=$null; roaming=$null; defaultData=$null; installerIdentity=$null; probeStarted=$false; probeIdentity=$null; dataPreserved=$false; failedDataDir=''; recoveryCommand='' }
             $journal.managed = @(Backup-UpdateManaged $request.installDir (Join-Path $backup 'app') $request.stageDir)
             $journal.registry = @(Backup-UpdateRegistry)
-            $journal.data = Copy-UpdateTree $request.dataDir (Join-Path $backup 'data') $request.stageDir
+            $journal.data = Copy-UpdateTree $request.dataDir (Join-Path $backup 'data') $request.stageDir $request
             if (-not $journal.data.existed) { throw 'The active account data folder disappeared before backup.' }
-            $journal.roaming = Copy-UpdateTree $journal.roamingDir (Join-Path $backup 'roaming') $request.stageDir
-            if (-not (Test-UpdatePathEqual $request.dataDir $request.defaultDataDir)) { $journal.defaultData = Copy-UpdateTree $request.defaultDataDir (Join-Path $backup 'default-data') $request.stageDir }
+            $journal.roaming = Copy-UpdateTree $journal.roamingDir (Join-Path $backup 'roaming') $request.stageDir $request $journal.data.files.Count
+            if (-not (Test-UpdatePathEqual $request.dataDir $request.defaultDataDir)) {
+                $previous = $journal.data.files.Count + $journal.roaming.files.Count
+                $journal.defaultData = Copy-UpdateTree $request.defaultDataDir (Join-Path $backup 'default-data') $request.stageDir $request $previous
+            }
             $journal.phase = 'backed_up'; Save-UpdateJournal $request $journal
             $recoveryCommand = Get-UpdateRecoveryCommand $request $PSCommandPath; $journal.recoveryCommand = $recoveryCommand
             $journal.phase = 'installing'; Save-UpdateJournal $request $journal

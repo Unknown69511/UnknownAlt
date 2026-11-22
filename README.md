@@ -55,15 +55,19 @@ released uses Roblox's public experience creation dates. Similar games come
 from Roblox recommendations or genre and description matches in loaded games.
 
 **Tools → Analytics** shows public counts, watchlists, history and comparisons
-on a shared timeline. Watched games are sampled every five minutes while the
-app runs. Follow a game to receive in-app alerts when Roblox reports a new
-update date and compare local readings from the 24 hours before and after.
-Older history buckets keep the highest observed value. Gaps represent missing
-samples and remain visible in comparisons.
+on a shared timeline. Open a game to view badges, passes, screenshots, update
+markers, previous-week results and CSV exports. Watched games are sampled
+every five minutes while the app runs. Records and growth refer to locally
+observed samples. Older history buckets keep the highest observed player
+count. Gaps represent missing samples and remain visible in comparisons.
 
 **Tools → Roblox Status** shows service health, current incidents and resolved
 incident history. In-app alerts can be enabled on that page. Press **F11**
 to toggle fullscreen or **Escape** to return to the prior window state.
+
+Use **Settings → Notifications** to choose which alerts you receive and open
+their history. The Windows installer registers native notifications for use
+while UnknownALT is in the background. Friend request checks are opt-in.
 
 My Games connects with a Roblox Open Cloud API key scoped to selected experiences
 and Analytics read access. The key and reports stay in memory while the page

@@ -75,8 +75,8 @@ Source: "..\REBRANDING.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#WebView2Installer}"; DestDir: "{tmp}"; DestName: "UnknownALT-WebView2-Prerequisite.exe"; Flags: dontcopy nocompression
 
 [Icons]
-Name: "{autoprograms}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"
-Name: "{autodesktop}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"; Tasks: desktopicon
+Name: "{autoprograms}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"; AppUserModelID: "com.unknownalt.desktop"
+Name: "{autodesktop}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"; AppUserModelID: "com.unknownalt.desktop"; Tasks: desktopicon
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: ""; ValueData: "URL:UnknownALT"; Flags: uninsdeletekey

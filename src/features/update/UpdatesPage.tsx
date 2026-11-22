@@ -6,6 +6,7 @@ import { readStored, writeStored } from "../../ui/stored";
 import { toastError } from "../../ui/Toast";
 import { useOwnedUpdate } from "./OwnedUpdate";
 import { Announcement } from "./Announcement";
+import { notify } from "../notifications/store";
 
 const sources: Record<BulletinSource, string> = {
   unknownAlt: "UnknownALT", roblox: "Roblox", devForum: "DevForum",
@@ -28,11 +29,18 @@ function cachedFeed(): Bulletins | undefined {
 
 async function refreshFeed(): Promise<Bulletins> {
   const incoming = await api.updateBulletins();
-  const items = new Map(incoming.items.map((item) => [item.id, item]));
-  for (const item of cachedFeed()?.items ?? []) {
-    if (incoming.unavailable.includes(item.source) && !items.has(item.id)) items.set(item.id, item);
+  const previous = cachedFeed()?.items ?? [];
+  const items = new Map(incoming.items.map((item) => [item.url, item]));
+  for (const item of previous) {
+    if (incoming.unavailable.includes(item.source) && !items.has(item.url)) items.set(item.url, item);
   }
-  return { items: [...items.values()].sort((a, b) => b.published.localeCompare(a.published)), unavailable: incoming.unavailable };
+  const published = previous.filter((item) => item.source !== "unknownAlt").reduce((latest, item) => item.published > latest ? item.published : latest, "");
+  const next = [...items.values()].sort((a, b) => b.published.localeCompare(a.published));
+  if (published) for (const item of next.filter((row) => row.source !== "unknownAlt" && row.published > published && !previous.some((old) => old.id === row.id)).slice(0, 3)) {
+    notify("announcements", item.id, item.title, { view: "updates", bulletin: item.id });
+  }
+  writeStored(cacheKey, JSON.stringify(next));
+  return { items: next, unavailable: incoming.unavailable };
 }
 
 function initialRead(): string[] {
@@ -42,17 +50,26 @@ function initialRead(): string[] {
   } catch { return []; }
 }
 
-export function UpdatesPage({ packageVersion }: { packageVersion?: string }) {
-  const feed = useQuery({ queryKey: ["updateBulletins"], queryFn: refreshFeed, placeholderData: cachedFeed,
-    staleTime: refreshEvery, refetchInterval: refreshEvery, retry: false });
+export function useAnnouncementFeed(enabled = true) {
+  return useQuery({ queryKey: ["updateBulletins"], enabled, queryFn: refreshFeed, placeholderData: cachedFeed,
+    staleTime: refreshEvery, refetchInterval: refreshEvery, refetchIntervalInBackground: true, retry: false });
+}
+
+export function UpdatesPage({ packageVersion, openedBulletin }: { packageVersion?: string; openedBulletin?: string }) {
+  const feed = useAnnouncementFeed();
   const [source, filter] = useState<BulletinSource | "all">("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [read, setRead] = useState(initialRead);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [term, setTerm] = useState("");
   useEffect(() => {
-    if (feed.data && !feed.isPlaceholderData) writeStored(cacheKey, JSON.stringify(feed.data.items));
-  }, [feed.data, feed.isPlaceholderData]);
+    if (openedBulletin) {
+      filter("all");
+      setUnreadOnly(false);
+      setTerm("");
+      setExpanded(openedBulletin);
+    }
+  }, [openedBulletin]);
   const list = (feed.data?.items ?? []).filter((item) => source === "all" || item.source === source);
   const shown = list.filter((item) => (!unreadOnly || !read.includes(item.id) || expanded === item.id) &&
     item.title.toLocaleLowerCase().includes(term.trim().toLocaleLowerCase()));
@@ -83,7 +100,8 @@ export function UpdatesPage({ packageVersion }: { packageVersion?: string }) {
     {feed.error && <p role="alert">Could not load updates.</p>}
     {!feed.isFetching && feed.data?.unavailable.length ? <p className="text-fg-2" role="status">Could not refresh {feed.data.unavailable.map((id) => sources[id]).join(", ")}. Showing saved announcements where available.</p> : null}
     {shown.map((item) => (
-      <article className="panel p-4 space-y-3" key={item.id}>
+      <article className="panel p-4 space-y-3" key={item.id} ref={openedBulletin === item.id && expanded === item.id ?
+        (node) => { if (node) requestAnimationFrame(() => node.scrollIntoView({ block: "nearest" })); } : undefined}>
         <p className="text-xs text-fg-2">{sources[item.source]} · <time dateTime={item.published}>{item.published.slice(0, 10)}</time>{read.includes(item.id) ? "" : " · Unread"}</p>
         <h2 className="font-semibold">
           <button className="text-left w-full" aria-expanded={expanded === item.id} onClick={() => {

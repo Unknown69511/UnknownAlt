@@ -2,11 +2,11 @@ import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api";
 import { readStored, writeStored } from "../../ui/stored";
-import { toast } from "../../ui/Toast";
-import { compactSamples, type Observation } from "./history";
+import { notify } from "../notifications/store";
+import { compactSamples, compactTotals, HOUR, type Observation, type Total } from "./history";
 import type { PublicGame, PublicSnapshot } from "./types";
 
-export type GameRecord = { game: PublicGame; observedAt: number; samples: Observation[]; updates: string[] };
+export type GameRecord = { game: PublicGame; observedAt: number; samples: Observation[]; updates: string[]; totals?: Total[] };
 export type GameUpdate = { id: number; updated: string; name: string };
 type Data = { watch: number[]; follows: number[]; records: { [id: number]: GameRecord }; notices: GameUpdate[] };
 const key = "UnknownAlt.analytics.public.v1";
@@ -68,6 +68,13 @@ export function record(snapshot: PublicSnapshot, hasMedia: boolean) {
     const old = records[game.universeId];
     if (old && old.observedAt > snapshot.observedAt) continue;
     const previous = old?.game;
+    const total: Total = { at: snapshot.observedAt };
+    for (const metric of ["visits", "favorites", "likes"] as const) {
+      if (game[metric] != null) total[metric] = game[metric];
+    }
+    if (game.likes != null && game.dislikes != null && game.likes + game.dislikes > 0) {
+      total.approval = game.likes / (game.likes + game.dislikes) * 100;
+    }
     const updates = [...(old?.updates ?? [])];
     if (game.updated && Number.isFinite(Date.parse(game.updated)) && !updates.includes(game.updated)) {
       const latest = updates.reduce((max, at) => Math.max(max, Date.parse(at) || 0), 0);
@@ -85,14 +92,29 @@ export function record(snapshot: PublicSnapshot, hasMedia: boolean) {
       updates: updates.slice(-24),
       samples: compactSamples(old?.samples ?? [], game.playing == null ? null :
         { at: snapshot.observedAt, players: game.playing }, snapshot.observedAt),
+      totals: compactTotals(old?.totals ?? [], total),
     };
+    const peak = old?.samples?.reduce((highest, row) => Math.max(highest, row.players), 0) ?? 0;
+    if (state.watch.includes(game.universeId) && old && old.samples.length >= 3 &&
+        snapshot.observedAt - old.samples[0].at >= HOUR && peak > 0 && game.playing != null && game.playing > peak) {
+      notify("watch", `peak:${game.universeId}:${new Date(snapshot.observedAt).toISOString().slice(0, 10)}`,
+        `${game.name} reached a new observed player peak.`, { view: "analytics", game: game.universeId });
+    }
   }
   const unwatched = Object.values(records).filter((row) => !state.watch.includes(row.game.universeId))
     .sort((a, b) => b.observedAt - a.observedAt);
   for (const row of unwatched.slice(64)) delete records[row.game.universeId];
+  // Make room for watched histories and other WebView storage. Trim only the
+  // oldest temporary, unwatched catalogue entries if the store grows large.
+  let estimated = Object.values(records).reduce((sum, row) =>
+    sum + row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + 2500, 0);
+  for (const row of unwatched.slice(0, 64).reverse()) {
+    if (estimated < 3_600_000) break;
+    delete records[row.game.universeId];
+    estimated -= row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + 2500;
+  }
   save({ ...state, records, notices: [...notices, ...state.notices].slice(0, 50) });
-  if (notices.length === 1) toast(`${notices[0].name} was updated on Roblox.`, "ok", false, "notification");
-  else if (notices.length > 1) toast(`${notices.length} followed Roblox games were updated.`, "ok", false, "notification");
+  for (const item of notices) notify("game", `${item.id}:${item.updated}`, `${item.name} was updated on Roblox.`, { view: "analytics", game: item.id });
 }
 
 /** A single batched refresh every five minutes while the app is open. */

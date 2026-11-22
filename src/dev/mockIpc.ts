@@ -1463,6 +1463,9 @@ async function handle(cmd: string, args: Args): Promise<unknown> {
     case "public_analytics_studio":
     case "public_analytics_trending": return { observedAt: Date.now(), games: [] };
     case "public_discovery": return { snapshot: { observedAt: Date.now(), games: [] }, trending: [], popular: [], rising: [] };
+    case "public_game_extras": return { passes: [], badges: [], thumbnails: [] };
+    case "native_notification": return;
+    case "friend_request_counts": return [];
     case "roblox_service_status": return { current: null, historyHtml: null, checkedAt: Date.now() };
     case "creator_analytics_connect":
     case "creator_analytics_disconnect":

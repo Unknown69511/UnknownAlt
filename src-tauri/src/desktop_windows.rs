@@ -2,6 +2,7 @@ mod browse;
 mod farm;
 mod store_package;
 mod automatic_backup;
+mod notifications;
 mod commands;
 mod cookie_export;
 mod diagnostics;
@@ -796,6 +797,10 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
 }
 
 fn main() {
+    if !crate::store_package::active() {
+        // Match the Start menu shortcut created by the Windows installer.
+        let _ = unsafe { windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(windows::core::w!("com.unknownalt.desktop")) };
+    }
     update_handoff::capture_health_probe();
     watchdog::wait_for_previous();
     webview::clear_webview2_env();
@@ -1008,6 +1013,9 @@ fn main() {
             analytics::public_analytics_studio,
             analytics::public_discovery,
             analytics::public_similar_games,
+            analytics::public_game_extras,
+            notifications::native_notification,
+            notifications::friend_request_counts,
             roblox_status::roblox_service_status,
             analytics::creator_analytics_connect,
             analytics::creator_analytics_disconnect,

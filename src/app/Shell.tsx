@@ -29,6 +29,7 @@ import { readStored, writeStored } from "../ui/stored";
 import { LiveActivities } from "./LiveActivities";
 import { useWatchlistCollector } from "../features/analytics/store";
 import { useRobloxStatus } from "../features/discover/useRobloxStatus";
+import { useNotificationSources } from "../features/notifications/useNotificationSources";
 import { MAIN_SECTIONS, requestNavigation, SECTION_ICON, SECTION_VIEW, SHORTCUT_VIEW, shortcutFor, TOOL_SECTIONS, useNavigationRequests, VIEW_NAME, type BrowseRequest, type Request, type Section, type View } from "./navigation";
 
 // Home is the start; every other view is its own chunk, fetched once Home has painted.
@@ -84,10 +85,12 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
   const nav = usePanelWidth("nav", 228, 180, 320);
   const qc = useQueryClient();
   const accounts = useAccounts();
+  useNotificationSources(accounts.data);
   const groups = useGroups();
   const instances = useInstances().data ?? [];
   const [view, setView] = useState<View>("dashboard");
   const [analyticsGame, setAnalyticsGame] = useState<number>();
+  const [openedBulletin, setOpenedBulletin] = useState<string>();
   // The Settings area a link asked for on the way there (the app menu's shortcuts, a notice). None
   // once Settings is left: it then opens where it was.
   const [area, setArea] = useState<SettingsArea | null>(null);
@@ -216,6 +219,8 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
         const browse = r.browse;
         if (browse) setBrowseAsk({ ...browse, n: ++browseSeq });
         if (r.play) setDraft(draftFor(r.play));
+        if (r.view === "analytics") setAnalyticsGame(r.game);
+        if (r.view === "updates") setOpenedBulletin(r.bulletin);
         handlers.current.go(r.view);
       }
     }, []),
@@ -413,7 +418,7 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
           ) : view === "farm" ? (
             <FarmView accounts={accounts.data} />
           ) : view === "updates" ? (
-            <UpdatesPage />
+            <UpdatesPage openedBulletin={openedBulletin} />
           ) : view === "analytics" ? (
             <AnalyticsView initialGame={analyticsGame} />
           ) : view === "discover" ? (

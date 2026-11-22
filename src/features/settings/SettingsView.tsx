@@ -11,6 +11,7 @@ import { Collapse, ListPresence, prefersReducedMotion, RISE, SPRING, TWEEN } fro
 import { useStored } from "../../ui/stored";
 import { BenchPanel, PERFORMANCE_RENDERERS, PresetsPanel, ReviewProvider, SharePanel } from "../performance/panels";
 import { AREAS, type Panel, type SettingsArea } from "./areas";
+import { NotificationsPanel } from "../notifications/NotificationsPanel";
 import { GOALS } from "./goals";
 import { jumpTo, requestJump } from "./jump";
 import { EntryRow, Renderers, SearchHits, useCtx, type RowRenderers } from "./kit/SettingRow";
@@ -86,7 +87,7 @@ function KeysPanel({ block }: { block?: string }) {
   );
 }
 /** The groups that aren't rows (areas.ts), each drawn whole; `block`: its name on the page. */
-const PANELS: Record<Panel, ComponentType<{ block?: string }>> = { presets: PresetsPanel, bench: BenchPanel, share: SharePanel, keys: KeysPanel };
+const PANELS: Record<Panel, ComponentType<{ block?: string }>> = { presets: PresetsPanel, bench: BenchPanel, share: SharePanel, keys: KeysPanel, notifications: NotificationsPanel };
 const panel = (name: Panel, block?: string) => {
   const Draw = PANELS[name];
   return <Draw key={name} block={block} />;
@@ -94,7 +95,7 @@ const panel = (name: Panel, block?: string) => {
 
 /** Where an area starts in either grouping: among goals, the one that holds its first row. */
 function blockOf(area: SettingsArea, by: By) {
-  if (by === "areas") return `${area}/0`;
+  if (by === "areas" || area === "notifications") return `${area}/0`;
   const row = AREAS.find((a) => a.id === area)!.groups.find((g) => !g.panel)?.ids[0];
   const goal = GOALS.find((g) => row && (g.start.includes(row) || g.tune.includes(row)));
   return goal ? `goal/${goal.id}` : FIRST.goals;
@@ -338,6 +339,9 @@ function Side({ main, gliding, look, by, onBy, searching, onGo, children }: {
               );
             })}
       </ul>
+      {by === "goals" && <button type="button" className="set-nav-item" onClick={() => pick("notifications/0")}>
+        <Icon name="bell" size={16} />{t("settings.section.notifications")}
+      </button>}
     </nav>
   );
 }
@@ -346,7 +350,7 @@ function Side({ main, gliding, look, by, onBy, searching, onGo, children }: {
  * values, and the list at the side keeps its own place. */
 const Page = memo(function Page({ by }: { by: By }) {
   if (by === "goals")
-    return GOALS.map((g) => (
+    return <>{GOALS.map((g) => (
       <section key={g.id} className="set-area" aria-labelledby={`set-goal-${g.id}`}>
         <header className="set-goal-head" data-block={`goal/${g.id}`}>
           <h2 id={`set-goal-${g.id}`} className="page-title">{t(g.title)}</h2>
@@ -367,7 +371,7 @@ const Page = memo(function Page({ by }: { by: By }) {
           </SettingSection>
         )}
       </section>
-    ));
+    ))}<NotificationsPanel block="notifications/0" /></>;
   return AREAS.map((a) => (
     <section key={a.id} className="set-area" aria-labelledby={`set-area-${a.id}`}>
       <h2 id={`set-area-${a.id}`} className="page-title set-area-title" data-block={`${a.id}/0`}>{t(a.label)}</h2>

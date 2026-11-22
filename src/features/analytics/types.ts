@@ -19,5 +19,7 @@ export type PublicGame = {
 };
 export type PublicSnapshot = { observedAt: number; games: PublicGame[] };
 export type Discovery = { snapshot: PublicSnapshot; trending: number[]; popular: number[]; rising: number[] };
+export type GameExtras = { passes: { id: number; name: string; displayName: string | null; price: number | null; isForSale: boolean | null }[] | null;
+  badges: { id: number; name: string; description: string | null }[] | null; thumbnails: string[] };
 export type CreatorMetric = "active" | "newPlayers" | "session" | "dayOne" | "daySeven" | "revenue" | "traffic" | "payers" | "engagement";
-export type MetricSeries = { breakdowns: { dimension: string; value: string }[]; dataPoints: { time: string; value: number | null }[] };
+export type MetricSeries = { breakdowns: { dimension: string; value: string }[]; dataPoints: { time: string; value: number | null; status?: string | null }[] };

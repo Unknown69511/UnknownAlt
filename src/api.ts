@@ -387,6 +387,9 @@ export const api = {
   publicAnalyticsStudio: (creator: number, group: boolean) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_studio", { creator, group }),
   publicDiscovery: () => invoke<import("./features/analytics/types").Discovery>("public_discovery"),
   publicSimilarGames: (universe: number) => invoke<import("./features/analytics/types").PublicSnapshot>("public_similar_games", { universe }),
+  publicGameExtras: (universe: number) => invoke<import("./features/analytics/types").GameExtras>("public_game_extras", { universe }),
+  nativeNotification: (id: string, title: string, body: string) => invoke<void>("native_notification", { id, title, body }),
+  friendRequestCounts: (ids: number[]) => invoke<[number, number][]>("friend_request_counts", { ids }),
   robloxServiceStatus: () => invoke<import("./features/discover/status-data").StatusResponse>("roblox_service_status"),
   creatorAnalyticsConnect: (key: string) => invoke<void>("creator_analytics_connect", { key }),
   creatorAnalyticsDisconnect: () => invoke<void>("creator_analytics_disconnect"),
@@ -437,6 +440,7 @@ export const api = {
 };
 
 export const events = {
+  onNotificationOpen: (f: (id: string) => void): Promise<UnlistenFn> => listen<string>("notification://open", ({ payload }) => f(payload)),
   onAccountsChanged: (f: () => void): Promise<UnlistenFn> => listen("accounts://changed", f),
   onVaultLocked: (f: () => void): Promise<UnlistenFn> => listen("vault://locked", f),
   onInstancesChanged: (f: () => void): Promise<UnlistenFn> => listen("instances://changed", f),

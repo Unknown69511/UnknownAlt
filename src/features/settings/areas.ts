@@ -3,10 +3,10 @@ import type { IconName } from "../../ui/Icon";
 import { SHORTCUTS } from "./shortcuts";
 
 /** Settings' areas: the parts of its one page, listed at its side. */
-export type SettingsArea = "performance" | "launching" | "appearance" | "security" | "data" | "about" | "shortcuts";
+export type SettingsArea = "performance" | "launching" | "appearance" | "security" | "data" | "about" | "shortcuts" | "notifications";
 
 /** A group that isn't rows: Settings draws that panel under its name (SettingsView's PANELS). */
-export type Panel = "presets" | "bench" | "share" | "keys";
+export type Panel = "presets" | "bench" | "share" | "keys" | "notifications";
 
 /** An area's rows by group, in page order. A group has no label only when it is the area's one group.
  * A `panel` group's ids are the entries it stands for (search names their place by it), not rows. */
@@ -54,6 +54,7 @@ export const AREAS: readonly AreaDef[] = [
     groups: [{ ids: ["encryption", "masterPassword", "recoveryCode", "autoLock", "lockOnSessionLock", "clipboard", "signInWatch", "lockPurchases", "publicNetworks"] }],
   },
   { id: "data", label: "settings.section.data", icon: "database", groups: [{ ids: ["dataFolder", "backup", "automaticBackups", "cache", "cleanLogs", "browserData"] }] },
+  { id: "notifications", label: "settings.section.notifications", icon: "bell", groups: [{ ids: [], panel: "notifications" }] },
   { id: "about", label: "settings.section.about", icon: "info", groups: [{ ids: ["privateUpdates", "rolimons", "version", "replayTour", "support"] }] },
   {
     id: "shortcuts",

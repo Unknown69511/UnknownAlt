@@ -47,6 +47,23 @@ try {
     Assert-True ((Read-UpdateJson $jsonFile).test -ceq 'second') 'Durable atomic JSON create/replace works on PS5.1.'
     Assert-Throws { Write-UpdateJson (Join-Path $testRoot 'oversized.json') @{test='too-long'} $testRoot 5 } 'Oversized recovery metadata is rejected before it can be persisted.'
 
+    $tree = Join-Path $testRoot 'profile'
+    $snapshot = Join-Path $testRoot 'snapshot'
+    $progressFile = Join-Path $testRoot 'update-progress.json'
+    Write-Fixture (Join-Path $tree 'webview\Local Storage\saved') 'profile'
+    Write-Fixture (Join-Path $tree 'UnknownAlt.db') 'accounts'
+    [void][IO.Directory]::CreateDirectory((Join-Path $tree 'empty'))
+    [IO.File]::SetAttributes((Join-Path $tree 'UnknownAlt.db'), [IO.FileAttributes]::Hidden)
+    Write-Fixture $progressFile '{}'
+    $record = Copy-UpdateTree $tree $snapshot $testRoot ([pscustomobject]@{stageDir=$testRoot}) 3
+    Assert-True ($record.files.Count -eq 2 -and 'empty' -in $record.directories) 'Snapshots include hidden files and empty directories.'
+    Assert-True ((Read-UpdateJson $progressFile).current -eq 5) 'The progress counts only verified copies across snapshot roots.'
+    Assert-UpdateTree $snapshot $record $testRoot
+    Write-Fixture (Join-Path $snapshot 'webview\Local Storage\saved') 'altered'
+    Assert-Throws { Assert-UpdateTree $snapshot $record $testRoot } 'Recovery rejects same-size tampering of a profile file.'
+    $missing = Copy-UpdateTree (Join-Path $testRoot 'missing') (Join-Path $testRoot 'unused') $testRoot
+    Assert-True (-not $missing.existed -and $missing.files.Count -eq 0) 'A missing optional profile keeps the existing journal shape.'
+
     # Exercise real recovery-marker code under StrictMode with in-memory registry-provider stubs.
     $script:mockRunOnce = $null
     function New-Item { param($Path,[switch]$Force) }
