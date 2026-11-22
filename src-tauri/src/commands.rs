@@ -3024,7 +3024,9 @@ pub fn window_to_tray(window: tauri::Window) {
 /// The close question's "Quit": as the tray's Quit.
 #[tauri::command]
 pub fn app_quit(app: AppHandle) {
-    app.exit(0);
+    if !crate::update_progress::focus_active() {
+        app.exit(0);
+    }
 }
 
 #[tauri::command]

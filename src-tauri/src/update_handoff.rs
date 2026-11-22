@@ -94,7 +94,7 @@ pub fn staging_root() -> Result<PathBuf> {
     Ok(local.join("UnknownAlt-update-staging"))
 }
 
-fn system32() -> Result<PathBuf> {
+pub(crate) fn system32() -> Result<PathBuf> {
     let mut buffer = [0u16; 32768];
     // SAFETY: the API writes only to the supplied writable buffer.
     let size = unsafe { GetSystemDirectoryW(Some(&mut buffer)) } as usize;
@@ -257,7 +257,10 @@ pub fn guard_startup() -> Result<()> {
     } else {None};
     match startup_decision(live,matching_probe,journal.as_ref(),&held.nonce)? {
         StartupDecision::Continue=>Ok(()),
-        StartupDecision::Wait=>Err(invalid("Unknown alt is finishing an update. Wait for it to restart before opening it again.")),
+        StartupDecision::Wait=>{
+            if crate::update_progress::focus(&stage) { std::process::exit(0); }
+            Err(invalid("Unknown alt is finishing an update. Wait for it to restart before opening it again."))
+        }
         StartupDecision::Recover=>begin_recovery(&stage,&held.nonce,install),
     }
 }
@@ -328,7 +331,7 @@ fn write_pinned(path: &Path, bytes: &[u8]) -> Result<File> {
     Ok(OpenOptions::new().read(true).share_mode(SHARE_READ).open(path)?)
 }
 
-fn parent_start_time() -> Result<u64> {
+pub(crate) fn parent_start_time() -> Result<u64> {
     let(mut creation,mut exit,mut kernel,mut user)=(FILETIME::default(),FILETIME::default(),FILETIME::default(),FILETIME::default());
     // SAFETY: pseudo-handle is valid for this process and all out pointers are writable.
     unsafe{GetProcessTimes(GetCurrentProcess(),&mut creation,&mut exit,&mut kernel,&mut user)}

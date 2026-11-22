@@ -21,6 +21,7 @@ mod online;
 mod rolimons;
 mod self_update;
 mod update_handoff;
+mod update_progress;
 mod splash;
 mod storage;
 mod tray;
@@ -731,6 +732,9 @@ pub(crate) fn hide_main(window: &tauri::Window) {
 }
 
 fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
+    if matches!(event, WindowEvent::Focused(true)) && window.label() == "main" {
+        update_progress::focus_active();
+    }
     // Minimizing and restoring send a resize. Its size can't tell: Tauri reports the page's, not 0 × 0.
     if let WindowEvent::Resized(_) = event
         && window.label() == "main"
@@ -750,6 +754,10 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         if update_handoff::health_pending() {
             api.prevent_close();
             window.app_handle().exit(0);
+            return;
+        }
+        if update_progress::focus_active() {
+            api.prevent_close();
             return;
         }
         let (to_tray, watching) = window.try_state::<App>().map_or((false, false), |s| {
@@ -814,6 +822,7 @@ fn main() {
     tauri::Builder::default()
         // Must be first: a second launch shows the running window instead.
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            if update_progress::focus_active() { return; }
             // A Play click on roblox.com starts its client without bringing UnknownAlt up.
             if commands::open_link(app, args) {
                 tray::show_main(app);

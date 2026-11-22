@@ -1,3 +1,9 @@
+# Unknown alt 1.2.3
+
+- In-app Windows EXE updates open a separate, centered progress window. It reports
+  download and installer progress and stays open while Unknown alt restarts.
+- Opening Unknown alt again during an update brings the progress window forward.
+
 # Unknown alt 1.2.2
 
 - Farm Control Center brings together managed-client problems, recovery actions,

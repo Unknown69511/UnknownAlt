@@ -100,6 +100,51 @@ const
 var
   LegacyUninstaller: String;
   LegacyBackup: String;
+  ProgressCaption: String;
+  ProgressInitialized: Boolean;
+  LastProgressPercent: Integer;
+
+function PostUpdateProgress(Window: HWND; Msg, WParam, LParam: LongWord): Boolean;
+  external 'PostMessageW@user32.dll stdcall';
+
+function ValidProgressToken(Token: String): Boolean;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := False;
+  if Length(Token) <> 36 then exit;
+  for I := 1 to 36 do begin
+    C := Token[I];
+    if (I = 9) or (I = 14) or (I = 19) or (I = 24) then begin
+      if C <> '-' then exit;
+    end else if not (((C >= '0') and (C <= '9')) or ((C >= 'a') and (C <= 'f'))) then exit;
+  end;
+  Result := True;
+end;
+
+{ Send the installer engine's measured progress to the staged update window. }
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+var
+  Token: String;
+  Window: HWND;
+  Percent: Integer;
+begin
+  if not ProgressInitialized then begin
+    ProgressInitialized := True;
+    LastProgressPercent := -1;
+    Token := ExpandConstant('{param:UNKNOWNALTPROGRESS|}');
+    if WizardSilent and ValidProgressToken(Token) then
+      ProgressCaption := 'Unknown alt Update - ' + Token;
+  end;
+  if (ProgressCaption = '') or (MaxProgress <= 0) or (CurProgress < 0) or (CurProgress > MaxProgress) then exit;
+  Percent := (Int64(CurProgress) * 100) div MaxProgress;
+  if Percent = LastProgressPercent then exit;
+  Window := FindWindowByWindowName(ProgressCaption);
+  if Window <> 0 then
+    if PostUpdateProgress(Window, $8144, CurProgress, MaxProgress) then
+      LastProgressPercent := Percent;
+end;
 
 function WebView2Installed: Boolean; forward;
 

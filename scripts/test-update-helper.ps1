@@ -131,6 +131,8 @@ try {
         Assert-Throws { Assert-UpdateInstaller $caseInstaller $manifest } 'Changed installer size/hash is rejected.'
         Copy-Item -LiteralPath (Join-Path $fixtureSource 'installer.bin') -Destination $caseInstaller -Force
         Write-UpdateJson (Join-Path $caseStage 'request.json') $request $caseStage
+        $progressFile = Join-Path $caseStage 'update-progress.json'
+        Write-UpdateJson $progressFile ([ordered]@{ phase='backing-up' }) $caseStage
         $script:testContext = $context; $script:testRequest = $request; $script:testScenario = $scenario
         $script:recoveryRegistered = $false; $script:registryRestored = $false; $script:launches = @(); $script:probeStops = 0; $script:commitObserved = $false
         $script:recoveryDialogs = 0
@@ -151,6 +153,9 @@ try {
             param($FilePath,$ArgumentList,$WindowStyle,[switch]$PassThru,[switch]$Wait)
             Assert-True ($WindowStyle -ceq 'Hidden') 'Installer is hidden.'
             Assert-True (($ArgumentList -contains '/NOFORCECLOSEAPPLICATIONS') -and ($ArgumentList -notcontains '/RELAUNCH')) 'Installer cannot force-close or independently relaunch.'
+            Assert-True ($ArgumentList -contains ('/UNKNOWNALTPROGRESS=' + [IO.Path]::GetFileName($script:testRequest.stageDir).Substring('unknownalt-update-'.Length))) 'Silent installer receives its scoped window token.'
+            $status = Read-UpdateJson (Join-Path $script:testRequest.stageDir 'update-progress.json') 4096
+            Assert-True ($status.phase -ceq 'installing' -and $status.ownerPid -eq $PID) 'Helper owns the progress window before starting the installer.'
             Write-Fixture $script:testRequest.currentExe 'new-app'
             Write-Fixture (Join-Path $script:testRequest.installDir 'unins001.dat') 'new-uninstaller'
             $code=0; if ($script:testScenario -ceq 'installer-failure') { $code=1 }
@@ -161,6 +166,8 @@ try {
         function Start-UpdateApp($Request, [switch]$Probe) {
             $script:launches += [bool]$Probe
             if ($Probe) {
+                $status = Read-UpdateJson (Join-Path $Request.stageDir 'update-progress.json') 4096
+                Assert-True ($status.phase -ceq 'restarting') 'Restart status is written before opening the updated app.'
                 Write-Fixture (Join-Path $Request.dataDir 'UnknownAlt.db') 'failed-new-accounts'
                 Write-Fixture (Join-Path $Request.dataDir 'created-by-new') 'new-only-data'
                 Write-Fixture (Join-Path $script:testContext.appData 'com.unknownalt.desktop\window-state.json') 'new-window'
@@ -178,6 +185,12 @@ try {
         $script:recovering=$false
         $failed=$false
         try { Invoke-UnknownAltUpdate (Join-Path $caseStage 'request.json') } catch { $failed=$true }
+        $finalProgress = Read-UpdateJson $progressFile 4096
+        if ($scenario -ceq 'success') {
+            Assert-True ($finalProgress.phase -ceq 'completed') 'The window closes after successful startup acknowledgement.'
+        } else {
+            Assert-True ($finalProgress.phase -ceq 'failed') 'Failed or rolled back updates close the progress window.'
+        }
         $journal = Read-UpdateJson (Join-Path $caseStage 'transaction.json') 16000000
         if ($scenario -in @('installer-failure','probe-failure','commit-failure','recovery-live-app','registration-failure')) {
             Assert-True $failed ('Failed transaction reported: ' + $scenario)

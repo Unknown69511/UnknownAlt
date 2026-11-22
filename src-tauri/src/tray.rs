@@ -167,6 +167,7 @@ fn menu(app: &AppHandle, v: &View) -> tauri::Result<Menu<Wry>> {
 
 /// Shows, unminimizes and focuses the main window (it may be hidden in the tray).
 pub fn show_main(app: &AppHandle) {
+    if crate::update_progress::focus_active() { return; }
     // The page first, so the window doesn't show a stale frame.
     crate::set_main_shown(app, true);
     if let Some(w) = app.get_webview_window("main") {
@@ -239,6 +240,7 @@ pub(crate) fn on_menu(app: &AppHandle, id: &str) {
         }
         "lock" if app.state::<App>().vault.mode() == VaultMode::Master => commands::lock_vault(app),
         "quit" => {
+            if crate::update_progress::focus_active() { return; }
             let managed = app.try_state::<App>().is_some_and(|s| s.tracker.list().iter().any(|i| !i.held && i.state != InstanceState::Exited));
             if managed { show_main(app); let _ = app.emit("app://close-ask", ()); } else { app.exit(0); }
         },

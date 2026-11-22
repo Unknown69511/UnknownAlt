@@ -478,7 +478,7 @@ fn idle(s: &App) -> Result<()> {
     Ok(())
 }
 
-async fn download(app: &AppHandle,release: &Release,path: &Path) -> Result<File> {
+async fn download(app: &AppHandle,release: &Release,path: &Path,progress: &crate::update_progress::Progress) -> Result<File> {
     let s=app.state::<App>();
     let asset=release.installer_asset_id.ok_or_else(||invalid("The verified private installer asset is missing."))?;
     let mut response=asset_response(&s,&release.config,asset,Duration::from_secs(600)).await?;
@@ -491,11 +491,16 @@ async fn download(app: &AppHandle,release: &Release,path: &Path) -> Result<File>
         downloaded=downloaded.checked_add(chunk.len() as u64).ok_or_else(||invalid("Unknown alt update size overflow."))?;
         if downloaded>release.installer.size || downloaded>MAX_INSTALLER { return Err(invalid("The Unknown alt installer exceeds its signed size.")); }
         file.write_all(&chunk)?;
-        if sent.elapsed()>=Duration::from_millis(200) {publish(app,|u|u.downloaded=downloaded);sent=Instant::now();}
+        if sent.elapsed()>=Duration::from_millis(200) {
+            publish(app,|u|u.downloaded=downloaded);
+            progress.set("downloading",downloaded,release.installer.size);
+            sent=Instant::now();
+        }
     }
     file.sync_all()?; drop(file);
     if downloaded!=release.installer.size { return Err(invalid("The Unknown alt installer download was incomplete. Try again.")); }
     publish(app,|u|{u.downloaded=downloaded;u.state="verifying".into();});
+    progress.set("verifying",0,0);
     let path=path.to_owned(); let expected_hash=release.installer.sha256.clone(); let size=release.installer.size;
     blocking(move || verified_file(&path,&expected_hash,size)).await
 }
@@ -529,16 +534,20 @@ pub async fn install(app: &AppHandle) -> Result<()> {
 async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
     idle(s)?;
     let c=channel().map_err(invalid)?.ok_or_else(||invalid("Unknown alt updates are not connected yet. Configure your release repository and verification key first."))?;
+    let stage=TempDir(blocking(crate::update_handoff::new_stage).await?);
+    let stage_for_window=stage.0.clone();
+    let progress=blocking(move || crate::update_progress::Progress::start(&stage_for_window)).await?;
     let release=latest(s,&c).await?.ok_or_else(||invalid("Unknown alt is already up to date."))?;
     publish(app,|u|{u.available=Some(release.version.clone());u.state="downloading".into();u.downloaded=0;u.total=Some(release.installer.size);u.error=None;});
-    let stage=TempDir(crate::update_handoff::new_stage()?);
+    progress.set("downloading",0,release.installer.size);
     for (name,bytes) in [(MANIFEST_FILE,release.manifest.as_slice()),(SIGNATURE_FILE,release.signature.as_slice())] {
         let mut f=File::create_new(stage.0.join(name))?; f.write_all(bytes)?; f.sync_all()?;
     }
     let installer=stage.0.join(&release.installer.file_name);
-    let pinned=download(app,&release,&installer).await?;
+    let pinned=download(app,&release,&installer,&progress).await?;
     idle(s)?;
     publish(app,|u|u.state="installing".into());
+    progress.set("backing-up",0,0);
     let backup_app=app.clone();
     blocking(move || {
         crate::automatic_backup::create_at(&backup_app.state::<App>().db,&crate::automatic_backup::root()?,"before-update").map(|_|())
@@ -549,6 +558,7 @@ async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
     // ExitRequested hook saves its session before the process actually exits. No force termination.
     *lock(&s.self_update.prepared)=Some(pinned);
     let abandoned_stage=stage.0.clone();
+    progress.transfer();
     std::mem::forget(stage);
     let recovery=app.clone();
     tauri::async_runtime::spawn(async move {
@@ -560,6 +570,7 @@ async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
         if let Some(pinned)=lock(&s.self_update.prepared).take() {
             drop(pinned);
             crate::update_handoff::release_pins();
+            crate::update_progress::clear(&abandoned_stage);
             s.self_update.installing.store(false,Ordering::SeqCst);
             publish(&recovery,|u|{u.state="error".into();u.error=Some("Unknown alt could not close cleanly for the update. Nothing was replaced; try again after closing Browse.".into());});
             if let Err(e)=std::fs::remove_dir_all(&abandoned_stage) {

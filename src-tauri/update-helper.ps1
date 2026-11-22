@@ -377,6 +377,16 @@ function Write-UpdateOutcome($Request, [string]$Status, [string]$Message) {
     Write-UpdateJson $Request.outcomeFile ([ordered]@{ status=$Status; message=$Message; fromVersion=$Request.currentVersion; toVersion=$Request.expectedVersion; at=[DateTime]::UtcNow.ToString('o') }) $Request.defaultDataDir
 }
 
+function Publish-UpdateProgress($Request, [string]$Phase) {
+    try {
+        $path = Join-Path $Request.stageDir 'update-progress.json'
+        if (-not [IO.File]::Exists($path)) { return }
+        $process = [Diagnostics.Process]::GetCurrentProcess()
+        try { $ownerStart = $process.StartTime.ToFileTimeUtc().ToString() } finally { $process.Dispose() }
+        Write-UpdateJson $path ([ordered]@{ phase=$Phase; current=0; total=0; ownerPid=$PID; ownerStart=$ownerStart }) $Request.stageDir 4096
+    } catch { }
+}
+
 function Show-UpdateRecoveryError([string]$Message) {
     # Hidden RunOnce recovery needs a visible last-resort result when it cannot recover safely.
     # This is never used for routine feed/network errors or a successfully restored installation.
@@ -492,6 +502,7 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
                 # Recovery cannot assume a formerly spawned process is still an uncommitted probe.
                 throw 'Close UnknownAlt before recovering the interrupted update. Its backups are retained.'
             }
+            Publish-UpdateProgress $request 'restoring'
             Restore-UpdateTransaction $request $journal
             Clear-UpdateRecovery $recoveryCommand
             Write-UpdateOutcome $request 'rolled_back' 'The interrupted UnknownAlt update was recovered. Your previous version and saved data were restored.'
@@ -499,10 +510,12 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
         } else {
             $parentIdentity = Assert-UpdateParent $request; Assert-UpdateBinary $request.currentExe $request.currentVersion
             $webviews = @(Get-UpdateWebViews $request.parentPid)
+            Publish-UpdateProgress $request 'closing'
             Write-UpdateJson $request.readyFile ([ordered]@{status='ready';nonce=$request.healthNonce}) $request.stageDir
             Wait-UpdateProcesses (@($parentIdentity) + $webviews) 120
             $parentStopped = $true
             Assert-UpdateNoApp $request.currentExe
+            Publish-UpdateProgress $request 'backing-up'
             $backup = Join-Path $request.stageDir 'backup'; [void][IO.Directory]::CreateDirectory((Assert-UpdateChild $backup $request.stageDir))
             $journal = [pscustomobject][ordered]@{ schema=1; nonce=$request.healthNonce; phase='backing_up'; roamingDir=(Join-Path $context.appData 'com.unknownalt.desktop'); managed=@(); registry=@(); data=$null; roaming=$null; defaultData=$null; installerIdentity=$null; probeStarted=$false; probeIdentity=$null; dataPreserved=$false; failedDataDir=''; recoveryCommand='' }
             $journal.managed = @(Backup-UpdateManaged $request.installDir (Join-Path $backup 'app') $request.stageDir)
@@ -517,12 +530,18 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
             [void](Set-UpdateRecovery $request $PSCommandPath)
             $mayHaveInstalled = $true
             $arguments = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/NOCLOSEAPPLICATIONS','/NOFORCECLOSEAPPLICATIONS','/NORESTARTAPPLICATIONS',('/DIR="' + $request.installDir + '"'))
+            $progressFile = Join-Path $request.stageDir 'update-progress.json'
+            if ([IO.File]::Exists($progressFile)) {
+                $arguments += '/UNKNOWNALTPROGRESS=' + [IO.Path]::GetFileName($request.stageDir).Substring('unknownalt-update-'.Length)
+            }
+            Publish-UpdateProgress $request 'installing'
             $installer = Start-Process -FilePath $request.installerFile -ArgumentList $arguments -WindowStyle Hidden -PassThru
             $journal.installerIdentity = Get-UpdateProcessIdentity $installer.Id; Save-UpdateJournal $request $journal
             $installer.WaitForExit()
             if ($installer.ExitCode -ne 0) { throw 'The installer did not complete successfully.' }
             Assert-UpdateBinary $request.currentExe $request.expectedVersion
             $journal.phase = 'probing'; $journal.probeStarted = $true; Save-UpdateJournal $request $journal
+            Publish-UpdateProgress $request 'restarting'
             $replacement = Start-UpdateApp $request -Probe
             $probeIdentity = Get-UpdateProcessIdentity $replacement.Id; $journal.probeIdentity = $probeIdentity; Save-UpdateJournal $request $journal
             $health = Wait-UpdateHealth $request $replacement
@@ -559,6 +578,7 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
                     Wait-UpdateInstaller $request
                     if ($null -ne $journal.installerIdentity) { Wait-UpdateProcesses @($journal.installerIdentity) 120 }
                     Stop-UpdateProbe $replacement $probeIdentity
+                    Publish-UpdateProgress $request 'restoring'
                     Restore-UpdateTransaction $request $journal
                     Clear-UpdateRecovery $recoveryCommand
                     Write-UpdateOutcome $request 'rolled_back' 'The UnknownAlt update could not finish. Your previous version and saved data were restored.'
@@ -585,6 +605,10 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
         foreach ($stream in $pins) { $stream.Dispose() }
         foreach ($stream in $locks) { $stream.Dispose() }
         if ($parentStopped -and $null -ne $request) { try { [void](Start-UpdateApp $request) } catch { } }
+        if ($validated -and -not $OnlyValidate) {
+            if ($ackDelivered) { Publish-UpdateProgress $request 'completed' }
+            else { Publish-UpdateProgress $request 'failed' }
+        }
         if (-not [string]::IsNullOrEmpty($recoveryError)) { Show-UpdateRecoveryError $recoveryError }
     }
 }
