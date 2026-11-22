@@ -8,6 +8,7 @@ import type { DiscordRpc } from "./DiscordRpc";
 import type { FlagScope } from "./FlagScope";
 import type { Look } from "./Look";
 import type { MemThrottle } from "./MemThrottle";
+import type { NumberFormat } from "./NumberFormat";
 import type { RenderFlags } from "./RenderFlags";
 import type { TabLayout } from "./TabLayout";
 import type { Theme } from "./Theme";
@@ -21,7 +22,7 @@ export type Settings = { theme: Theme, tabLayout: TabLayout,
 /**
  * `#rrggbb`, or "" for the theme's own (monochrome).
  */
-accent: string, 
+accent: string, numberFormat: NumberFormat,
 /**
  * What `Theme::Custom` shows.
  */

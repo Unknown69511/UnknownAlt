@@ -1,3 +1,4 @@
+import { fmtDate, fmtNum } from "../../i18n";
 import { useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Icon } from "../../ui/Icon";
@@ -6,6 +7,8 @@ import { percent, useGameSearch } from "../discover/catalog";
 import { DAY, HOUR, STATS, WATCH, archiveOptions, at, growthBetween, measurements, number, useArchive, type Daily } from "./archive";
 import { saveAnalyticsCsv } from "./csv";
 import { HistoryChart, type Sample, type Series } from "./HistoryChart";
+import { monthlyEstimate, Revenue, RevenueAssumptions } from "./revenue";
+import { Timeline, type TimeWindow } from "./Timeline";
 import { Source } from "./Platform";
 import { summary } from "./history";
 import type { GameRecord } from "./store";
@@ -16,17 +19,26 @@ const ranges = [["Live", 15 * 60_000], ["1H", HOUR], ["6H", 6 * HOUR], ["1D", DA
 const metrics = { players: "Players", peak: "Daily peak", visits: "Daily visits", total: "Total visits", session: "Est. session minutes",
   favorites: "Favorites", likes: "Likes", approval: "Approval" };
 type Metric = keyof typeof metrics;
-type Window = { from: number; to: number };
+type GameTrace = Series & { universe: number };
+const dayOf = (timestamp: number) => Math.floor(timestamp / DAY);
 
 function dailySamples(daily: Daily[] | null | undefined, peak: boolean) {
   return measurements(daily, (row) => row.at, (row) => peak ? row.high : row.average,
     peak ? "RoWatcher · daily peak (UTC) · CC BY 4.0" : "RoWatcher · daily average (UTC) · CC BY 4.0");
 }
 
-function useHistory(ids: number[]) {
+function useHistory(ids: number[], long: boolean, includeTotals: boolean) {
   const daily = useQueries({ queries: ids.map((id) => archiveOptions("gameDaily", id)) });
   const recent = useQueries({ queries: ids.map((id) => archiveOptions("gameSeries", id)) });
-  return { daily, recent };
+  const archive = useQueries({ queries: long ? ids.map((id) => archiveOptions("gameArchive", id)) : [] });
+  const totals = useQueries({ queries: includeTotals ? ids.map((id) => archiveOptions("gameTotals", id)) : [] });
+  return { daily, recent, archive, totals };
+}
+
+function mergeReadings(primary: Sample[], secondary: Sample[], bucket: (at: number) => number) {
+  const store = new Map<number, Sample>();
+  for (const sample of [...secondary, ...primary]) store.set(bucket(sample.at), sample);
+  return [...store.values()].sort((a, b) => a.at - b.at);
 }
 
 export function GameHistory({ game, records, comparison, setComparison, updates, selectedUpdate, selectUpdate }: {
@@ -35,11 +47,10 @@ export function GameHistory({ game, records, comparison, setComparison, updates,
   updates: string[]; selectedUpdate?: string; selectUpdate: (at: string) => void;
 }) {
   const ids = [game.universeId, ...comparison];
-  const { daily, recent } = useHistory(ids);
   const [range, setRange] = useState(5);
   const [metric, setMetric] = useState<Metric>("players");
   const [week, setWeek] = useState(false);
-  const [zoom, setZoom] = useState<Window | null>(null);
+  const [zoom, setZoom] = useState<TimeWindow | null>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [input, setInput] = useState("");
@@ -47,64 +58,99 @@ export function GameHistory({ game, records, comparison, setComparison, updates,
   const search = useGameSearch(term);
   const selectRange = (index: number) => { setRange(index); setZoom(null); setStart(""); setEnd(""); };
   const duration = ranges[range][1];
-  const isDaily = range >= 4 || !!start && !!end && !!zoom;
+  const isDaily = range >= 4 || ["peak", "visits", "session"].includes(metric);
+  const { daily, recent, archive, totals } = useHistory(ids, isDaily, metric === "total");
+  const alternates: Sample[][] = [];
+  const now = Date.now();
   const sources = ids.map((id, i) => {
     const row = records[id];
-    const archive = recent[i].data;
+    const hourlyArchive = recent[i].data;
+    const longArchive = archive[i]?.data;
     if (metric === "peak") return dailySamples(daily[i].data, true);
     if (metric === "players") {
       const dailyPoints = dailySamples(daily[i].data, false);
-      const hourly = measurements(archive?.hours, (item) => item.t, (item) => item.v, "RobloxGameStats · hourly record");
+      const hourly = hourlyArchive?.bucketHours === 1
+        ? measurements(hourlyArchive.hours, (item) => item.t, (item) => item.v, "RobloxGameStats · hourly record") : [];
       const local = measurements(row?.samples, (item) => item.at, (item) => item.players, "Roblox · saved sample");
-      if (isDaily && dailyPoints.length) return dailyPoints;
-      // Use compatible time buckets. Local high-frequency recordings stay separate
-      // from hourly aggregates even when both sources have data.
-      if (range < 2) return local.some((p) => p.at > Date.now() - duration) ? local : hourly;
-      return hourly.length && hourly.at(-1)!.at > Date.now() - 6 * HOUR ? hourly : local.length ? local : hourly;
+      if (isDaily) {
+        const coarse = longArchive?.bucketHours === 24
+          ? measurements(longArchive.hours, (item) => item.t, (item) => item.v, "RobloxGameStats · daily record (UTC)") : [];
+        if (dailyPoints.length) {
+          const known = new Set(dailyPoints.map((point) => dayOf(point.at)));
+          alternates[i] = coarse.filter((sample) => !known.has(dayOf(sample.at)));
+          return dailyPoints;
+        }
+        if (coarse.length) return coarse;
+      }
+      if (local.some((point) => point.at >= now - duration) && (range < 2 || !hourly.some((point) => point.at >= now - duration))) return local;
+      return hourly.length ? hourly : local;
     }
     if (metric === "visits" || metric === "session" || metric === "approval") {
       const field = metric === "approval" ? "likes" : metric;
-      const recorded = measurements(archive?.days, (item) => item.t, (item) => item[field],
-        metric === "session" ? "RobloxGameStats · estimated daily session (UTC)" : "RobloxGameStats · daily value (UTC)");
+      const label = metric === "session" ? "RobloxGameStats · estimated daily session (UTC)" : "RobloxGameStats · daily value (UTC)";
+      const long = measurements(longArchive?.days, (item) => item.t, (item) => item[field], label);
+      const short = measurements(hourlyArchive?.days, (item) => item.t, (item) => item[field], label);
+      const recorded = mergeReadings(short, long, dayOf);
       if (recorded.length && (isDaily || metric !== "approval")) return recorded;
     }
     if (metric === "visits" || metric === "session") return [];
     const field = metric === "total" ? "visits" : metric;
-    return measurements(row?.totals, (item) => item.at, (item) => item[field], "Roblox · saved snapshot");
+    const saved = measurements(row?.totals, (item) => item.at, (item) => item[field], "Roblox · saved snapshot");
+    if (metric !== "total" || !isDaily) return saved;
+    const history = measurements(totals[i]?.data, (item) => item.at, (item) => item.value, "RoWatcher · recorded visits");
+    return mergeReadings(saved, history, dayOf);
   });
-  const now = Date.now();
   const endDate = new Date(now).toISOString().slice(0, 10);
   const source = sources[0];
-  const from = zoom?.from ?? (duration === Infinity ? Math.min(...sources.map((points) => points[0]?.at ?? now - DAY)) : now - duration);
+  const starts = [...sources, ...alternates].flatMap((items) => items?.length ? [items[0].at] : []);
+  const earliest = starts.length ? Math.min(...starts) : now - DAY;
+  const startOfRange = duration === Infinity ? earliest : isDaily ? (dayOf(now) + 1) * DAY - duration : now - duration;
+  const bounds = { from: Math.min(earliest, startOfRange, zoom?.from ?? now), to: now };
+  const from = Math.min(now - 1, zoom?.from ?? startOfRange);
   const to = zoom?.to ?? now;
   const inside = (point: Sample) => point.at >= from && point.at <= to;
   const points = source.filter(inside);
   const stats = summary(points.map((point) => point.value));
   const useDailyExtremes = metric === "players" && isDaily && points.some((point) => point.source?.startsWith("RoWatcher"));
   const dailiesInRange = (daily[0].data ?? []).filter((point) => point.at >= from && point.at <= to);
-  const highest = useDailyExtremes ? Math.max(...dailiesInRange.map((point) => point.high)) : stats.high;
-  const lowest = useDailyExtremes ? Math.min(...dailiesInRange.map((point) => point.low)) : stats.low;
-  const traces: Series[] = ids.map((id, i) => ({ label: records[id]?.game.name ?? (i === 0 ? game.name : `Game ${id}`), points: sources[i].filter(inside) }));
-  if (week) traces.push({ label: "Previous week", dashed: true,
+  const highs = dailiesInRange.flatMap(({ high }) => high == null ? [] : [high]);
+  const lows = dailiesInRange.flatMap(({ low }) => low == null ? [] : [low]);
+  const highest = useDailyExtremes ? (highs.length ? Math.max(...highs) : null) : stats.high;
+  const lowest = useDailyExtremes ? (lows.length ? Math.min(...lows) : null) : stats.low;
+  const traces: GameTrace[] = ids.flatMap((id, i) => {
+    const label = records[id]?.game.name ?? (i === 0 ? game.name : `Game ${id}`);
+    const rows = [{ label, universe: id, points: sources[i].filter(inside) }];
+    const extra = alternates[i]?.filter(inside);
+    return extra?.length ? [...rows, { label: `${label} · RobloxGameStats`, universe: id, points: extra, dashed: true }] : rows;
+  });
+  if (week) traces.push({ label: "Previous week", universe: game.universeId, dashed: true,
     points: source.map((point) => ({ ...point, at: point.at + 7 * DAY, observedAt: point.at })).filter(inside) });
-  const format = (value: number) => Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) + (metric === "approval" ? "%" : "") : "Unavailable";
+  const format = (value: number) => !Number.isFinite(value) ? "Unavailable" : metric === "approval"
+    ? fmtNum(value / 100, { style: "percent", maximumFractionDigits: 2 }) : fmtNum(value, { maximumFractionDigits: 1 });
   const value = (x: number | null) => x == null ? "Unavailable" : format(x);
   const compareGame = (id: number) => setComparison((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-3));
-  const errors = [...daily, ...recent].filter((query) => query.isError);
-  const pending = daily[0].isPending || recent[0].isPending;
-  const dailyChart = isDaily || ["peak", "visits", "session"].includes(metric);
+  const requests = [...daily, ...recent, ...archive, ...totals];
+  const errors = requests.filter((query) => query.isError);
+  const pending = requests.some((query) => query.isPending);
+  const covered = new Set([...points, ...alternates[0]?.filter(inside) ?? []].map((point) => dayOf(point.at)));
+  const missingDays = isDaily ? Math.max(0, dayOf(to - 1) - dayOf(from) + 1 - covered.size) : 0;
+  const sourceUrl = (trace: GameTrace, point: Sample) => {
+    if (point.source?.startsWith("RobloxGameStats")) return `${STATS}/game/${trace.universe}`;
+    if (point.source === "RoWatcher · recorded visits") return `${WATCH}/api/v1/games/${trace.universe}/history`;
+    return point.source?.startsWith("RoWatcher") ? `${WATCH}/api/v1/games/${trace.universe}/history.csv?days=730` : "https://games.roblox.com/";
+  };
   return <section className="panel analytics-market-card">
     <header className="analytics-panel-heading"><div><h2>Player and Engagement History</h2>
-      <p className="text-sm text-fg-2">{dailyChart ? "Daily records use UTC." : "Move over the chart to inspect an observation."} Drag across the chart to zoom.</p></div>
+      <p className="text-sm text-fg-2">{isDaily ? "Daily records use UTC." : "Move over the chart to inspect an observation."} Drag across the chart to zoom.</p></div>
       <button className="btn btn-sm" disabled={!traces.some((trace) => trace.points.length)} onClick={() => void saveAnalyticsCsv(
         `UnknownALT-${game.universeId}-${metric}.csv`, ["game", "metric", "observed_at_utc", "value", "source", "source_url"], traces.flatMap((trace) =>
           trace.points.map((point) => [trace.label, metrics[metric], new Date(point.observedAt ?? point.at).toISOString(), point.value, point.source ?? "",
-            point.source?.startsWith("RoWatcher") ? `${WATCH}/api/v1/games/${ids[traces.indexOf(trace)] ?? game.universeId}/history.csv?days=730`
-            : point.source?.startsWith("RobloxGameStats") ? `${STATS}/game/${ids[traces.indexOf(trace)] ?? game.universeId}` : "https://games.roblox.com/"]))).catch(toastError)}>
+            sourceUrl(trace, point)]))).catch(toastError)}>
         <Icon name="download" />Export CSV</button></header>
     <div className="analytics-toolbar">
       <div className="analytics-segment" role="group" aria-label="Game chart range">{ranges.map(([label], i) =>
-        <button key={label} aria-pressed={range === i && !zoom} onClick={() => selectRange(i)}>{label}</button>)}</div>
+        <button key={label} aria-pressed={range === i && !zoom}
+          disabled={i < 4 && ["peak", "visits", "session"].includes(metric)} onClick={() => selectRange(i)}>{label}</button>)}</div>
       <select className="field" aria-label="Chart metric" value={metric} onChange={(event) => {
         const next = event.target.value as Metric;
         setMetric(next);
@@ -115,8 +161,11 @@ export function GameHistory({ game, records, comparison, setComparison, updates,
     </div>
     {pending && !points.length ? <p className="analytics-chart-empty analytics-loading" role="status">Loading recorded history…</p>
       : <HistoryChart key={`${metric}:${range}`} points={points} from={from} to={to} format={format} series={traces.length > 1 ? traces : undefined}
-        size="large" gap={dailyChart ? DAY * 1.6 : range < 2 ? 25 * 60_000 : HOUR * 3} onZoom={setZoom}
+        size="large" gap={isDaily ? DAY * 1.6 : range < 2 ? 25 * 60_000 : HOUR * 3} onZoom={(window) => {
+          if (window.to - window.from >= (isDaily ? DAY * 2 : 60_000)) setZoom(window);
+        }}
         markers={updates.map((update) => ({ at: Date.parse(update), label: `Roblox update · ${new Date(update).toLocaleString()}` }))} />}
+    <Timeline bounds={bounds} viewing={{ from, to }} update={setZoom} minWidth={isDaily ? DAY * 2 : 60_000} />
     {pending && points.length > 0 && <p role="status" className="analytics-feedback">Loading provider history…</p>}
     {!!errors.length && <p className="analytics-feedback" role="status">A history source is unavailable. Existing records are available offline.
       {" "}<button className="btn btn-sm" onClick={() => { for (const query of errors) void query.refetch(); }}>Retry</button></p>}
@@ -162,7 +211,12 @@ export function GameHistory({ game, records, comparison, setComparison, updates,
       }}><option value="">Select an update</option>{[...updates].reverse().map((update) => <option key={update} value={update}>{new Date(update).toLocaleString()}</option>)}</select>
     </label>}
     <footer className="analytics-chart-foot">
-      <span>{points.length} records in view. {points[0]?.source?.startsWith("Roblox ·") && "Saved samples can include retained peaks."}</span>
+      <span>{fmtNum(points.length)} primary readings in view.
+        {missingDays > 0 && ` No records for ${fmtNum(missingDays)} UTC ${missingDays === 1 ? "day" : "days"} in this view.`}
+        {starts.length > 0 && ` Earliest loaded record ${fmtDate(earliest, { dateStyle: "medium", timeZone: "UTC" })}.`}
+        {alternates[0]?.length ? " The dashed archive series uses a separate provider." : ""}
+        {points[0]?.source?.startsWith("Roblox ·") && " Saved samples can include retained peaks."}
+      </span>
       <Source url={`${WATCH}/api/v1/games/${game.universeId}/history.csv?days=730`}>RoWatcher (CC BY 4.0)</Source>
       <Source url={`${STATS}/game/${game.universeId}`}>RobloxGameStats</Source>
     </footer>
@@ -180,13 +234,13 @@ export function GameMarketStats({ id }: { id: number }) {
   const visitSamples = measurements(stats.data?.days, (item) => item.t, (item) => item.visits, "RobloxGameStats");
   const playersGrowth = growthBetween(samples, 7);
   const visitsGrowth = growthBetween(visitSamples, 7);
-  const peak = (daily.data ?? []).reduce<number | null>((high, row) => Math.max(high ?? 0, row.high), null);
+  const peak = (daily.data ?? []).reduce<number | null>((high, row) => row.high == null ? high : Math.max(high ?? 0, row.high), null);
   const providerPeak = number(profile.data?.peakAll);
   const providerPeakDate = at(profile.data?.peakAllAt);
   const observedPeak = peak == null ? providerPeak : providerPeak == null ? peak : Math.max(peak, providerPeak);
-  const estimate = number(model.data?.estimate);
+  const estimate = monthlyEstimate(model.data?.estimate, model.data?.robuxPerDay);
   const session = number(profile.data?.session);
-  const p = (n: number | null, suffix = "") => n == null ? "Unavailable" : n.toLocaleString(undefined, { maximumFractionDigits: 2 }) + suffix;
+  const p = (n: number | null, suffix = "") => n == null ? "Unavailable" : fmtNum(n, { maximumFractionDigits: 1 }) + suffix;
   const w = (n: number | null) => n == null ? "Unavailable" : percent(n);
   return <section className="panel analytics-market-card">
     <header className="analytics-panel-heading"><div><h2>Performance Snapshot</h2><p className="text-sm text-fg-2">Public history and independently modeled figures.</p></div></header>
@@ -194,17 +248,19 @@ export function GameMarketStats({ id }: { id: number }) {
     <dl className="analytics-stat-grid">
       {[["7-day avg. concurrent", p(summary(recent.map((row) => row.value)).average)], ["Recorded peak", p(observedPeak)],
         ["7-day player growth", w(playersGrowth)], ["7-day visit growth", w(visitsGrowth)],
-        ["Est. session duration", p(session, " min")], ["Est. monthly spending", estimate == null ? "Unavailable" : new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(estimate)],
+        ["Est. session duration", p(session, " min")], ["Estimated monthly revenue", <Revenue estimate={estimate} />],
         ["Genre percentile", p(number(model.data?.genrePercentile), "%")]].map(([label, reading]) =>
-        <div key={label}><dt>{label}</dt><dd>{reading}</dd></div>)}
+        <div key={String(label)}><dt>{label}</dt><dd>{reading}</dd></div>)}
     </dl>
     {profile.data?.ranks?.length ? <div className="analytics-toolbar"><strong>Roblox chart positions recorded by RobloxGameStats</strong>
       {profile.data.ranks.filter((item) => number(item.rank) != null).map((item) => <span className="analytics-rank-chip" key={item.id}>
         {item.id.replaceAll("-", " ")} · #{item.rank}</span>)}</div> : null}
     {providerPeakDate != null && providerPeak != null && <p className="text-sm text-fg-2">
       RobloxGameStats recorded {p(providerPeak)} players on {new Date(providerPeakDate).toLocaleDateString()}.</p>}
+    <RevenueAssumptions />
     <footer className="analytics-chart-foot">
-      <span>Monthly spending is a model estimate{model.data?.confidence ? ` · ${model.data.confidence} model confidence` : ""}. Peak covers the source’s available records.</span>
+      <span>Peak covers the available records.{model.data?.confidence ? ` Model confidence · ${model.data.confidence}.` : ""}
+        {at(model.data?.recordedAt) != null && ` Estimate sampled ${fmtDate(at(model.data?.recordedAt)!, { dateStyle: "medium" })}.`}</span>
       <Source url={`${WATCH}/methodology`}>RoWatcher methodology</Source><Source url={`${STATS}/game/${id}`}>RobloxGameStats</Source>
     </footer>
   </section>;

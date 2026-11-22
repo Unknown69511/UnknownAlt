@@ -1,3 +1,4 @@
+import { fmtNum } from "../../i18n";
 import { useState } from "react";
 import { HistoryChart } from "./HistoryChart";
 import { HOUR, updateActivity, type Observation } from "./history";
@@ -26,17 +27,18 @@ export function ObservedUpdates({ game, samples, updates, selected, onSelect, da
   if (!Number.isFinite(at)) return <p className="text-sm text-fg-2">Update activity is unavailable.</p>;
   const activity = updateActivity(samples, latest);
   const day = Math.floor(at / DAY) * DAY;
-  const beforeDays = daily.filter((row) => row.at >= day - 3 * DAY && row.at < day);
-  const afterDays = daily.filter((row) => row.at > day && row.at <= day + 3 * DAY);
+  const available = daily.filter((row): row is Daily & { average: number } => row.average != null);
+  const beforeDays = available.filter((row) => row.at >= day - 3 * DAY && row.at < day);
+  const afterDays = available.filter((row) => row.at > day && row.at <= day + 3 * DAY);
   const canUseDays = (activity.before.length < 2 || activity.after.length < 2) && beforeDays.length >= 2 && afterDays.length >= 2;
-  const avg = (rows: Daily[]) => Math.round(rows.reduce((sum, row) => sum + row.average, 0) / rows.length);
+  const avg = (rows: typeof available) => Math.round(rows.reduce((sum, row) => sum + row.average, 0) / rows.length);
   const points = canUseDays
     ? [...beforeDays, ...afterDays].map((row) => ({ at: row.at, value: row.average, source: "RoWatcher · daily average (UTC)" }))
     : [...activity.before, ...activity.after].map((sample) => ({ at: sample.at, value: sample.players, source: "Recorded reading" }));
   const comparison = canUseDays
     ? [[ "Days before", avg(beforeDays), beforeDays.length ], [ "Days after", avg(afterDays), afterDays.length ]] as const
     : [[ "24h before", activity.beforeAverage, activity.before.length ], [ "24h after", activity.afterAverage, activity.after.length ]] as const;
-  const reading = (value: number | null, count: number) => value == null ? "No observations" : `${value.toLocaleString()} players · ${count} ${canUseDays ? "days" : count === 1 ? "reading" : "readings"}`;
+  const reading = (value: number | null, count: number) => value == null ? "No observations" : `${fmtNum(value)} players · ${count} ${canUseDays ? "days" : count === 1 ? "reading" : "readings"}`;
   return <div className="space-y-3" aria-label={`Observed updates for ${game.name}`}>
     <label className="flex flex-wrap items-center gap-2 text-sm">Roblox update date
       <select className="field" value={latest} onChange={(event) => (onSelect ?? setChosen)(event.target.value)}>
@@ -49,7 +51,7 @@ export function ObservedUpdates({ game, samples, updates, selected, onSelect, da
     {canUseDays && <p className="text-xs text-fg-2">Up to three complete UTC days on each side. The update date is excluded.</p>}
     {points.length < 4 && <p className="text-xs text-fg-2">There are too few readings to compare the periods reliably.</p>}
     <HistoryChart points={points} from={canUseDays ? day - 3 * DAY : at - DAY} to={canUseDays ? day + 3 * DAY : at + DAY}
-      format={(value) => `${value.toLocaleString()} players`} gap={canUseDays ? DAY * 1.5 : 2 * HOUR} markers={[{ at, label: "Roblox update" }]} />
+      format={(value) => `${fmtNum(value)} players`} gap={canUseDays ? DAY * 1.5 : 2 * HOUR} markers={[{ at, label: "Roblox update" }]} />
   </div>;
 }
 

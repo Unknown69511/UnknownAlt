@@ -1935,5 +1935,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analiz"
+  "app.nav.analytics": "Analiz",
+  "settings.numberFormat": "Sayı biçimi",
+  "settings.numberFormatHint": "Sayıların, Robux ve para birimlerinin nasıl gösterileceğini seçin.",
+  "settings.numberCompact": "Kısa",
+  "settings.numberFull": "Tam"
 }

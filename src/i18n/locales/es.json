@@ -1935,5 +1935,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analíticas"
+  "app.nav.analytics": "Analíticas",
+  "settings.numberFormat": "Formato de números",
+  "settings.numberFormatHint": "Elige cómo se muestran los recuentos, Robux y divisas.",
+  "settings.numberCompact": "Compacto",
+  "settings.numberFull": "Completo"
 }

@@ -149,6 +149,10 @@ const SETTINGS_ENTRIES: readonly Entry[] = [
   { id: "client", place: launching, label: "settings.client", more: "settings.clientInstallHint", control: ACTION, aliases: ["roblox", "install", "update", "version", "bloxstrap"] },
   { id: "autoUpdate", place: launching, label: "settings.autoUpdate", more: "settings.autoUpdateHint", field: "autoUpdate", control: SWITCH, aliases: ["roblox", "version"] },
 
+  { id: "numberFormat", place: appearance, label: "settings.numberFormat", hint: "settings.numberFormatHint",
+    field: "numberFormat", control: { kind: "segmented", options: [
+      { value: "compact", label: "settings.numberCompact" }, { value: "full", label: "settings.numberFull" },
+    ] }, aliases: ["1K", "1000", "numbers", "compact", "full", "Robux"] },
   { id: "theme", place: appearance, label: "settings.theme", hint: "settings.themeHint", field: "theme", control: CUSTOM, aliases: ["dark", "light", "mode", "custom"] },
   { id: "themes", place: appearance, label: "look.themes", hint: "look.themesHint", field: ["theme", "look", "accent", "corners"], control: CUSTOM, aliases: ["theme", "preset", "midnight", "sakura", "terminal", "ocean", "paper"] },
   {

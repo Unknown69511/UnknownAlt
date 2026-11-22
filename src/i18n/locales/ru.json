@@ -1996,5 +1996,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Аналитика"
+  "app.nav.analytics": "Аналитика",
+  "settings.numberFormat": "Формат чисел",
+  "settings.numberFormatHint": "Выберите способ отображения чисел, Robux и валют.",
+  "settings.numberCompact": "Краткий",
+  "settings.numberFull": "Полный"
 }

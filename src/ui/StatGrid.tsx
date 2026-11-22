@@ -1,4 +1,4 @@
-import { fmtNum, t, type Key } from "../i18n";
+import { fmtExact, fmtNum, t, type Key } from "../i18n";
 
 /** Label, value (null = no answer), tooltip. */
 export type Stat = [Key, string | null, string?];
@@ -6,8 +6,7 @@ export type Stat = [Key, string | null, string?];
 /** Big counts shrink to "1.2M" with the exact number as the tooltip. */
 export function num(k: Key, n: number | null): Stat {
   if (n === null) return [k, null];
-  if (n < 100_000) return [k, fmtNum(n)];
-  return [k, fmtNum(n, { notation: "compact", maximumFractionDigits: 1 }), fmtNum(n)];
+  return [k, fmtNum(n), fmtExact(n)];
 }
 
 /** Numbers three to a row, each under its label; one Roblox didn't answer shows a dash. */

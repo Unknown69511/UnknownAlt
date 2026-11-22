@@ -1874,5 +1874,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analitik"
+  "app.nav.analytics": "Analitik",
+  "settings.numberFormat": "Format angka",
+  "settings.numberFormatHint": "Pilih tampilan hitungan, Robux, dan mata uang.",
+  "settings.numberCompact": "Ringkas",
+  "settings.numberFull": "Lengkap"
 }

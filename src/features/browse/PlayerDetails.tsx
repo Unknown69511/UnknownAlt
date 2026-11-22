@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type PlayerStats } from "../../api";
 import { qk, useSettings } from "../../data";
-import { fmtDate, fmtNum, t } from "../../i18n";
+import { fmtDate, fmtExact, fmtNum, t } from "../../i18n";
 import { Skeleton } from "../../ui/Bits";
 import { Button, IconButton } from "../../ui/Button";
 import { Drawer } from "../../ui/Drawer";
@@ -144,7 +144,7 @@ function Body({ p, accountId, onGame }: { p: PlayerStats; accountId: number; onG
               side={(g) => (
                 <span className="flex-none flex flex-col items-end text-[13px]">
                   <span>{g.role}</span>
-                  <span className="text-fg-3" title={fmtNum(g.members)}>{t("player.members", { count: g.members, n: compact(g.members) })}</span>
+                  <span className="text-fg-3" title={fmtExact(g.members)}>{t("player.members", { count: g.members, n: compact(g.members) })}</span>
                 </span>
               )}
             />
@@ -157,7 +157,7 @@ function Body({ p, accountId, onGame }: { p: PlayerStats; accountId: number; onG
               empty={t("player.noGames")}
               side={(g) => (
                 <span className="flex-none flex items-center gap-3">
-                  <span className="mono text-[13px] text-fg-3" title={fmtNum(g.visits)}>{t("player.visits", { count: g.visits, n: compact(g.visits) })}</span>
+                  <span className="mono text-[13px] text-fg-3" title={fmtExact(g.visits)}>{t("player.visits", { count: g.visits, n: compact(g.visits) })}</span>
                   <Button size="sm" variant="ghost" icon="info" onClick={() => onGame(g.placeId)}>{t("game.details")}</Button>
                 </span>
               )}

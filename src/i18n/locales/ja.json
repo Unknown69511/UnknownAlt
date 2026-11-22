@@ -1874,5 +1874,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "分析"
+  "app.nav.analytics": "分析",
+  "settings.numberFormat": "数値の表示形式",
+  "settings.numberFormatHint": "件数、Robux、通貨の表示方法を選択します。",
+  "settings.numberCompact": "省略",
+  "settings.numberFull": "完全"
 }

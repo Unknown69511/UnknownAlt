@@ -58,7 +58,7 @@ export const SECTION_ICON: Record<Section, IconName> = {
   mods: "palette",
   crashes: "alert",
   debug: "terminal",
-  farm: "home",
+  farm: "wheat",
   updates: "download",
   analytics: "chart",
   discover: "search",

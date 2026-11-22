@@ -1996,5 +1996,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analitika"
+  "app.nav.analytics": "Analitika",
+  "settings.numberFormat": "Format brojeva",
+  "settings.numberFormatHint": "Odaberite prikaz brojeva, Robuxa i valuta.",
+  "settings.numberCompact": "Skraćeno",
+  "settings.numberFull": "Puno"
 }

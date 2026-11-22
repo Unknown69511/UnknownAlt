@@ -1,3 +1,4 @@
+import { fmtDate, fmtExact, fmtNum } from "../../i18n";
 import { useId, useMemo, useState, type PointerEvent } from "react";
 
 export type Sample = { at: number; value: number; observedAt?: number; source?: string };
@@ -9,9 +10,11 @@ type Props = Interval & { points: Sample[]; format: (value: number) => string; g
 const width = 850;
 const colors = ["currentColor", "#73b6ec", "#d998d7", "#7bbc9e", "#b5a1db"];
 const stamp = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
-const date = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
-const short = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
+const axisValue = (value: number) => fmtNum(Math.abs(value) < 100 ? value : Math.round(value), { maximumFractionDigits: 1 });
+const observationTime = (point: Sample) => point.source?.includes("(UTC)")
+  ? fmtDate(point.observedAt ?? point.at, { dateStyle: "medium", timeZone: "UTC" })
+  : stamp.format(point.observedAt ?? point.at);
 
 function runs(points: Sample[], gap: number) {
   const result: Sample[][] = [];
@@ -28,8 +31,9 @@ export function HistoryChart({ points, from, to, format, gap = Infinity, series,
   const [drag, setDrag] = useState<{ start: number; end: number } | null>(null);
   const shade = useId();
   const compact = size === "compact";
+  const longDates = to - from >= 340 * 86_400_000;
+  const axisDate = (at: number) => fmtDate(at, { month: "short", day: "numeric", ...(longDates ? { year: "numeric" } : {}) });
   const height = size === "large" ? 280 : compact ? 78 : 166;
-  const left = compact ? 5 : 47;
   const right = width - (compact ? 5 : 25);
   const top = compact ? 4 : 19;
   const floor = height - (compact ? 4 : 26);
@@ -45,6 +49,7 @@ export function HistoryChart({ points, from, to, format, gap = Infinity, series,
   const spread = Math.max(ceiling - bottom, ceiling * .025, 1);
   const max = ceiling + spread * .14;
   const min = Math.max(0, bottom - spread * .15);
+  const left = compact ? 5 : Math.max(48, Math.max(axisValue(max).length, axisValue(min).length) * 9 + 13);
   const x = (at: number) => left + (right - left) * (at - from) / Math.max(1, to - from);
   const y = (value: number) => floor - (floor - top) * (value - min) / (max - min);
   const path = (rows: Sample[]) => rows.map((point, i) => {
@@ -62,8 +67,8 @@ export function HistoryChart({ points, from, to, format, gap = Infinity, series,
   };
   return <div className={compact ? "analytics-chart compact" : "analytics-chart"}>
     {(!compact || selected != null) && <output className={compact ? "analytics-spark-readout" : "analytics-chart-readout"}>
-      <strong>{format(focus.value)}</strong>
-      <span>{[traces[focus.index].label, stamp.format(focus.observedAt ?? focus.at), focus.source].filter(Boolean).join(" · ")}</span>
+      <strong title={fmtExact(focus.value, { maximumFractionDigits: 4 })}>{format(focus.value)}</strong>
+      <span>{[traces[focus.index].label, observationTime(focus), focus.source].filter(Boolean).join(" · ")}</span>
       {simultaneous.map((point) => <span key={point.index}>{traces[point.index].label} · {format(point.value)}</span>)}
     </output>}
     <svg viewBox={`0 0 ${width} ${height}`} className="analytics-svg" role="img"
@@ -99,7 +104,7 @@ export function HistoryChart({ points, from, to, format, gap = Infinity, series,
       {!compact && [0, .25, .5, .75, 1].map((step) => {
         const value = min + (max - min) * step;
         return <g key={step}><line x1={left} x2={right} y1={y(value)} y2={y(value)} stroke="currentColor" opacity=".18" />
-          <text x={left - 8} y={y(value) + 4} textAnchor="end" className="analytics-axis">{short.format(value)}</text></g>;
+          <text x={left - 8} y={y(value) + 4} textAnchor="end" className="analytics-axis">{axisValue(value)}</text></g>;
       })}
       {traces.map((trace, i) => runs(trace.points.filter((point) => point.at >= from && point.at <= to), gap).map((rows) => {
         const curve = path(rows);
@@ -116,12 +121,12 @@ export function HistoryChart({ points, from, to, format, gap = Infinity, series,
       {!compact && [0, .25, .5, .75, 1].map((step) => {
         const value = from + (to - from) * step;
         return <text key={step} x={x(value)} y={height - 6} textAnchor={step === 0 ? "start" : step === 1 ? "end" : "middle"}
-          className="analytics-axis">{to - from < 48 * 3_600_000 ? time.format(value) : date.format(value)}</text>;
+          className="analytics-axis">{to - from < 48 * 3_600_000 ? time.format(value) : axisDate(value)}</text>;
       })}
       {drag && <rect x={x(Math.min(drag.start, drag.end))} y={top} width={Math.abs(x(drag.end) - x(drag.start))}
         height={floor - top} fill="currentColor" opacity=".16" />}
       {selected != null && <g><line x1={x(focus.at)} x2={x(focus.at)} y1={top} y2={floor} stroke="currentColor" opacity=".5" />
-        <circle cx={x(focus.at)} cy={y(focus.value)} r={compact ? 7 : 4} fill={colors[focus.index % colors.length]}><title>{format(focus.value)} · {stamp.format(focus.at)}</title></circle></g>}
+        <circle cx={x(focus.at)} cy={y(focus.value)} r={compact ? 7 : 4} fill={colors[focus.index % colors.length]}><title>{format(focus.value)} · {observationTime(focus)}</title></circle></g>}
     </svg>
     {series && <ul className="flex flex-wrap gap-3 text-xs">{series.map((trace, i) => <li key={`${i}:${trace.label}`}><span
       className="text-[var(--user-accent-text)]" style={{ color: colors[i % colors.length] === "currentColor" ? undefined : colors[i % colors.length] }}>●</span> {trace.label}{trace.points.length ? "" : " (no records)"}</li>)}</ul>}

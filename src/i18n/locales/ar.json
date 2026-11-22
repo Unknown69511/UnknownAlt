@@ -2179,5 +2179,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "التحليلات"
+  "app.nav.analytics": "التحليلات",
+  "settings.numberFormat": "تنسيق الأرقام",
+  "settings.numberFormatHint": "اختر طريقة عرض الأعداد والروبوكس والعملات.",
+  "settings.numberCompact": "مختصر",
+  "settings.numberFull": "كامل"
 }

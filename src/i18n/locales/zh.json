@@ -1874,5 +1874,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "数据分析"
+  "app.nav.analytics": "数据分析",
+  "settings.numberFormat": "数字格式",
+  "settings.numberFormatHint": "选择计数、Robux 和货币的显示方式。",
+  "settings.numberCompact": "简写",
+  "settings.numberFull": "完整"
 }

@@ -308,6 +308,58 @@ pub async fn public_analytics_studio(creator: u64, group: bool) -> Result<Public
     public_analytics_snapshot(ids(list.data.into_iter().map(|game| game.id), 25), false).await
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StudioPortfolio {
+    games: Vec<PublicGame>,
+    published_games: usize,
+    complete: bool,
+    active_players: Option<u64>,
+    visits: Option<u64>,
+    observed_at: i64,
+}
+
+pub(crate) async fn studio_portfolio(creator: u64, group: bool) -> Result<StudioPortfolio> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Page { data: Vec<Published>, next_page_cursor: Option<String> }
+    #[derive(Deserialize)]
+    struct Published { id: u64 }
+
+    let route = if group { format!("groups/{creator}/gamesV2") } else { format!("users/{creator}/games") };
+    let client = client()?;
+    let url = Url::parse(&format!("{GAMES}/v2/{route}?accessFilter=Public&limit=50&sortOrder=Desc"))
+        .map_err(|_| invalid("Invalid Roblox creator route."))?;
+    let mut cursor: Option<String> = None;
+    let mut seen = HashSet::new();
+    let mut universes = Vec::new();
+    let mut has_last_page = false;
+    for _ in 0..4 {
+        let mut request = url.clone();
+        if let Some(next) = &cursor { request.query_pairs_mut().append_pair("cursor", next); }
+        let page: Page = json(client.get(request)).await?;
+        universes.extend(ids(page.data.into_iter().map(|row| row.id), 50).into_iter().filter(|id| seen.insert(*id)));
+        let Some(next) = page.next_page_cursor.filter(|value| !value.is_empty()) else {
+            has_last_page = true;
+            break;
+        };
+        if cursor.as_ref() == Some(&next) || next.len() > 512 { break; }
+        cursor = Some(next);
+    }
+    let mut games = Vec::new();
+    for chunk in universes.chunks(PUBLIC_BATCH) {
+        games.extend(public_analytics_snapshot(chunk.to_vec(), false).await?.games);
+    }
+    let sum = |metric: fn(&PublicGame) -> Option<u64>| -> Option<u64> {
+        if games.len() != universes.len() { return None; }
+        games.iter().try_fold(0_u64, |total, game| total.checked_add(metric(game)?))
+    };
+    let active_players = sum(|game| game.playing);
+    let visits = sum(|game| game.visits);
+    Ok(StudioPortfolio { active_players, visits, games, published_games: universes.len(), complete: has_last_page,
+        observed_at: DateTime::<Utc>::from(SystemTime::now()).timestamp_millis() })
+}
+
 #[tauri::command]
 pub fn creator_analytics_connect(key: String) -> Result<()> {
     let key = Secret::new(key);

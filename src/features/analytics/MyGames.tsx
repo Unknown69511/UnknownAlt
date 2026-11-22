@@ -1,3 +1,4 @@
+import { fmtNum } from "../../i18n";
 import { useEffect, useRef, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { api } from "../../api";
@@ -14,7 +15,7 @@ const metrics: Record<CreatorMetric, string> = {
   dayOne: "Day 1 retention", daySeven: "Day 7 retention", revenue: "Revenue (Robux)",
   traffic: "Players by traffic source", payers: "Payer conversion", engagement: "Players by engagement level",
 };
-const format = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 });
+const format = (value: number) => fmtNum(value, { maximumFractionDigits: Math.abs(value) >= 1_000 ? 1 : 4 });
 const label = (series: MetricSeries) => series.breakdowns.map((part) => part.value).join(" · ") || "All players";
 const today = () => new Date().toISOString().slice(0, 10);
 const lastWeek = () => new Date(Date.now() - 7 * 24 * HOUR).toISOString().slice(0, 10);
@@ -168,7 +169,7 @@ export function MyGames() {
           const total = loaded?.rows.find((row) => !row.breakdowns.length)?.dataPoints.filter(measured).at(-1);
           return <button key={id} className="panel p-3 text-start" disabled={busy || !universe.trim()} onClick={() => { setMetric(id); void run(id); }}>
             <span className="block text-sm font-medium">{metrics[id]}</span>
-            <span className="text-xs text-fg-2">{total?.value != null ? `${format.format(total.value)} · ${total.time.slice(0, 10)}`
+            <span className="text-xs text-fg-2">{total?.value != null ? `${format(total.value)} · ${total.time.slice(0, 10)}`
               : loaded ? loaded.rows.length ? "Show breakdowns" : "Unavailable for this range" : "Load metric"}</span>
           </button>;
         })}
@@ -187,7 +188,7 @@ export function MyGames() {
         {result.rows.map((row, i) => <option key={i} value={i}>{label(row)}</option>)}
       </select></label>}
       {!!result.rows.length && <HistoryChart key={seriesIndex} points={points} from={Date.parse(result.from)} to={Date.parse(result.to) + 24 * HOUR}
-        format={(value) => format.format(value)} gap={36 * HOUR} />}
+        format={(value) => format(value)} gap={36 * HOUR} />}
     </div>}
   </section>;
 }

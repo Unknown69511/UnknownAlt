@@ -1,3 +1,12 @@
+# UnknownALT 1.2.8
+
+- Studio analytics now show Roblox icons, public portfolios, players, visits,
+  and coverage-labeled revenue estimates.
+- Game charts use the longer provider archives and show missing days. Analytics
+  has timeline zoom and scrolling, plus USD and Robux estimate displays.
+- Added a global Compact or Full number format. Farm Control Center uses an
+  outlined wheat icon.
+
 # UnknownALT 1.2.7
 
 - Rebuilt Roblox Analytics with a platform activity dashboard, game records,

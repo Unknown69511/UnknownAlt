@@ -1874,5 +1874,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "분석"
+  "app.nav.analytics": "분석",
+  "settings.numberFormat": "숫자 형식",
+  "settings.numberFormatHint": "개수, Robux, 통화의 표시 방식을 선택하세요.",
+  "settings.numberCompact": "간략",
+  "settings.numberFull": "전체"
 }

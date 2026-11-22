@@ -61,10 +61,15 @@ drag-to-zoom, game comparisons and attributed CSV exports.
 
 Game player history comes from [RoWatcher daily records](https://rowatcher.com/developers)
 (CC BY 4.0, up to 730 days) and [RobloxGameStats](https://robloxgamestats.com/docs/api)
-hourly and daily records. Coverage varies by game and metric. Platform totals
+hourly and daily records. The long-range charts show gaps when providers lack
+records and offer zoom and timeline scrolling. Coverage varies by metric. Platform totals
 cover experiences tracked by the named provider. Figures titled **Est.** are
 model estimates. The **Official Top Earning** chart shows Roblox ranking order
-without dollar amounts. Missing dates remain gaps.
+without dollar amounts. Pick USD, Robux, or Both for estimates. Robux shows
+gross spending. USD is the model’s before-tax DevEx equivalent at the standard
+rate. Studio estimates cover only games with available models. The global
+**Appearance → Number Format** setting changes the display without changing
+stored values or CSV exports.
 
 Watched games still support local samples and notifications. A bounded public
 history cache enables offline viewing when previously requested records are

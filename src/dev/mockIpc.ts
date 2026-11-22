@@ -83,7 +83,7 @@ let accounts: AccountSummary[] = seed.map(([alias, displayName, username, userId
 }));
 
 let settings: Settings = {
-  theme: "dark", accent: "#8b5e3c", look: { base: "dark", colors: {} }, corners: 100, backgroundDim: 60, backgroundMotion: "focused", density: "detailed", autoLockMinutes: 15, lockOnSessionLock: true, clipboardClearSeconds: 30, cacheMinutes: 10,
+  theme: "dark", accent: "#8b5e3c", numberFormat: "compact", look: { base: "dark", colors: {} }, corners: 100, backgroundDim: 60, backgroundMotion: "focused", density: "detailed", autoLockMinutes: 15, lockOnSessionLock: true, clipboardClearSeconds: 30, cacheMinutes: 10,
   multiInstance: true, protectSharedLogin: true, launchDelayMs: 6000, autoRejoin: false, autoRestartOnCrash: false,
   breakerMax: 3, breakerWindowMin: 10, closeGraceS: 5, launchArgs: "", closeToTray: false,
   memRestartMb: 0, memThrottle: { mb: 0, cpuCap: 10 }, trimEveryMin: 0, autoSpread: false, fairCap: false,

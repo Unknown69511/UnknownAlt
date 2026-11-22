@@ -1935,5 +1935,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analys"
+  "app.nav.analytics": "Analys",
+  "settings.numberFormat": "Talformat",
+  "settings.numberFormatHint": "Välj hur antal, Robux och valutor visas.",
+  "settings.numberCompact": "Kompakt",
+  "settings.numberFull": "Fullständigt"
 }

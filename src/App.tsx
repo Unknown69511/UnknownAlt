@@ -11,7 +11,7 @@ import { resetLaunches } from "./features/launch/launchQueue";
 import { Splash } from "./features/splash/Splash";
 import { RecoveryCodeHost } from "./features/vault/recoveryCode";
 import { UnlockScreen, type LockReason } from "./features/vault/UnlockScreen";
-import { t, useLang } from "./i18n";
+import { applyNumberFormat, t, useLang } from "./i18n";
 import { Announcer } from "./ui/a11y";
 import { MotionRoot } from "./ui/motion";
 import { Dialog } from "./ui/Dialog";
@@ -57,6 +57,7 @@ function Root() {
   const s = settings.data;
   // Before any child renders, so the whole tree uses the chosen language.
   useLang(s?.language);
+  if (s?.numberFormat) applyNumberFormat(s.numberFormat);
   const unlocked = !!v && !v.locked;
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { api } from "../../api";
+import type { PublicGame } from "./types";
 import type { Sample } from "./HistoryChart";
 
 export const WATCH = "https://rowatcher.com";
@@ -8,17 +9,18 @@ export const ROBLOX_CHARTS = "https://www.roblox.com/charts";
 export const HOUR = 3_600_000;
 export const DAY = HOUR * 24;
 
-export type Daily = { at: number; average: number; low: number; high: number };
+export type Daily = { at: number; average: number | null; low: number | null; high: number | null };
 type Interval = { t: number; v: number };
 export type MarketGame = {
   id?: string | number; universeId?: string | number; name?: string; creator?: string; creatorName?: string;
   creatorId?: string | number; creatorType?: string; genre?: string; genreL1?: string;
   playing?: number; playerCount?: number; iconUrl?: string; thumb?: string; visits?: string | number;
   robloxCreatedAt?: string; robloxUpdatedAt?: string; createdAt?: number; robloxUpdated?: number;
-  ccuDeltaPercent24h?: number; change24?: number; estimatedMonthlyRevenueUsd?: number;
+  ccuDeltaPercent24h?: number; change24?: number; estimatedMonthlyRevenueUsd?: number; estimatedDailyRevenueRobux?: number; lastScraped?: string;
   peakAll?: number; recordAt?: number; milestoneAt?: number; milestone?: unknown;
 };
-type Studio = { creatorId: string | number; creatorName: string; totalPlaying: string | number; totalVisits: string | number; gameCount: string | number };
+export type Studio = { creatorId: string | number; creatorName: string; totalPlaying: string | number; totalVisits: string | number; gameCount: string | number; iconUrl?: string };
+export type Portfolio = { games: PublicGame[]; publishedGames: number; complete: boolean; activePlayers: number | null; visits: number | null; observedAt: number };
 type Trend = { id: string; name: string; category: string; keywords: string[] };
 type LivePlatform = { current: number; recordedAt: string; history: { recordedAt: string; totalCCU: number }[] };
 type PlatformArchive = {
@@ -28,15 +30,15 @@ type PlatformArchive = {
 type SeriesArchive = { bucketHours: number; hours: Interval[]; updates: number[]; days: { t: number; visits: number | null; session: number | null; likes: number | null }[] };
 type Profile = { peakAll: number | null; peakAllAt: number | null; session: number | null; ranks: { id: string; rank: number }[] | null;
   updates: number[] | null; milestones: { at?: number; value?: number; type?: string }[] | null; trackingSince: number | null };
-type Estimate = { estimate: number | null; confidence: string | null; genrePercentile: number | null; recordedAt: string | null };
+type Estimate = { estimate: number | null; robuxPerDay?: number | null; confidence: string | null; genrePercentile: number | null; recordedAt: string | null };
 type Archive = {
-  platformLive: LivePlatform; platformHistory: PlatformArchive; gameDaily: Daily[]; gameSeries: SeriesArchive;
+  platformLive: LivePlatform; platformHistory: PlatformArchive; gameDaily: Daily[]; gameTotals: { at: number; value: number }[]; gameSeries: SeriesArchive; gameArchive: SeriesArchive;
   gameProfile: Profile; gameEstimate: Estimate; officialChart: MarketGame[]; games: MarketGame[];
   records: { recent: MarketGame[]; peaks: MarketGame[]; milestones: MarketGame[]; trackingSince: number };
-  newGames: { games: MarketGame[] }; studios: Studio[]; trends: Trend[];
+  newGames: { games: MarketGame[] }; studios: Studio[]; studioPortfolio: Portfolio; studioEstimates: MarketGame[]; trends: Trend[];
 };
 type Kind = keyof Archive;
-type Saved = { at: number; body: unknown };
+type Saved = { at: number; body: unknown; revision?: number };
 const CACHE = "UnknownALT.analytics.archive.v1";
 const CACHE_AGE = 14 * DAY;
 const MAX_CHARACTERS = 1_500_000;
@@ -73,7 +75,7 @@ function remember(key: string, entry: Saved) {
   } catch { /* A disabled or full cache cannot prevent using the current response. */ }
 }
 
-const lists = new Set<Kind>(["gameDaily", "officialChart", "games", "studios", "trends"]);
+const lists = new Set<Kind>(["gameDaily", "gameTotals", "officialChart", "games", "studios", "studioEstimates", "trends"]);
 function recognized(kind: Kind, value: unknown) {
   return value === null || (lists.has(kind) ? Array.isArray(value) : !!value && typeof value === "object" && !Array.isArray(value));
 }
@@ -84,16 +86,17 @@ export function archiveOptions<K extends Kind>(kind: K, universe?: number, filte
   const saved = cached()[key];
   const valid = saved?.at > Date.now() - CACHE_AGE && recognized(kind, saved.body);
   const live = kind === "platformLive";
-  const staleTime = kind === "gameDaily" ? 12 * HOUR : kind === "trends" ? DAY :
-    ["gameSeries", "gameProfile", "gameEstimate", "studios"].includes(kind) ? HOUR : live ? 5 * 60_000 : 15 * 60_000;
+  const staleTime = kind === "gameDaily" || kind === "gameArchive" || kind === "gameTotals" ? 12 * HOUR : kind === "trends" ? DAY :
+    ["gameSeries", "gameProfile", "gameEstimate", "studios", "studioEstimates"].includes(kind) ? HOUR : live ? 5 * 60_000 : 15 * 60_000;
   return queryOptions({
     queryKey: ["analyticsArchive", ...params], staleTime, gcTime: 20 * 60_000, retry: false,
-    initialData: valid ? saved.body as Archive[K] | null : undefined, initialDataUpdatedAt: valid ? saved.at : undefined,
+    initialData: valid ? saved.body as Archive[K] | null : undefined,
+    initialDataUpdatedAt: valid ? (saved.revision === 2 ? saved.at : 0) : undefined,
     refetchInterval: live ? staleTime : false, refetchOnWindowFocus: true,
     queryFn: async () => {
       const body = await api.analyticsArchive(kind, universe, filter, page);
       if (!recognized(kind, body)) throw new Error("The analytics provider sent an unsupported response.");
-      remember(key, { at: Date.now(), body });
+      remember(key, { at: Date.now(), body, revision: 2 });
       return body as Archive[K] | null;
     },
   });

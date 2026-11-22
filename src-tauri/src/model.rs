@@ -292,6 +292,15 @@ pub enum Density {
     Compact,
 }
 
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+#[ts(export)]
+pub enum NumberFormat {
+    #[default]
+    Compact,
+    Full,
+}
+
 /// App settings, stored as one JSON value. New fields need `#[serde(default)]` semantics,
 /// which the struct-level default gives.
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -302,6 +311,7 @@ pub struct Settings {
     pub tab_layout: TabLayout,
     /// `#rrggbb`, or "" for the theme's own (monochrome).
     pub accent: String,
+    pub number_format: NumberFormat,
     /// What `Theme::Custom` shows.
     pub look: Look,
     /// Corner roundness, % of the design's radii: one of `CORNERS`.
@@ -695,6 +705,7 @@ impl Default for Settings {
             theme: Theme::Dark,
             tab_layout: TabLayout::Top,
             accent: "#8b5e3c".into(),
+            number_format: NumberFormat::default(),
             look: Look::default(),
             corners: 100,
             background_dim: 60,
@@ -772,6 +783,8 @@ pub struct SettingsPatch {
     pub tab_layout: Option<TabLayout>,
     #[ts(optional)]
     pub accent: Option<String>,
+    #[ts(optional)]
+    pub number_format: Option<NumberFormat>,
     #[ts(optional)]
     pub look: Option<Look>,
     #[ts(optional)]

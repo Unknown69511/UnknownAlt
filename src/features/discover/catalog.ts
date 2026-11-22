@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fmtNum } from "../../i18n";
 import { api } from "../../api";
 import { dayChange } from "../analytics/history";
 import { record, type GameRecord } from "../analytics/store";
@@ -13,7 +14,7 @@ function savedCatalog(): Discovery | undefined {
     return saved?.snapshot?.games?.length ? saved : undefined;
   } catch { return undefined; }
 }
-export const count = (value: number | null) => value == null ? "Unavailable" : value.toLocaleString();
+export const count = (value: number | null) => value == null ? "Unavailable" : fmtNum(value);
 export function approval(game: PublicGame) {
   const votes = (game.likes ?? 0) + (game.dislikes ?? 0);
   return votes && game.likes != null && game.dislikes != null ? game.likes / votes : null;

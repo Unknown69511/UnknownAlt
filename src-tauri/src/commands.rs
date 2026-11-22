@@ -3981,6 +3981,7 @@ pub(crate) fn set_settings(app: &AppHandle, s: &App, patch: SettingsPatch) -> Re
     let mut v = s.db.settings()?;
     apply_performance(&mut v, &patch)?;
     if let Some(t) = patch.theme { v.theme = t }
+    if let Some(format) = patch.number_format { v.number_format = format }
     if let Some(l) = &patch.language {
         if !(l.is_empty() || crate::i18n::LANGS.contains(&l.as_str())) {
             return Err(AppError::Invalid(tr!("That language isn't available.")));

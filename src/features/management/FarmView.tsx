@@ -50,7 +50,7 @@ export function FarmView({ accounts = [] }: { accounts?: AccountSummary[] }) {
   const usage = query.data?.usage;
   const ram = usage && usage.memTotalMb > 0 ? Math.min(100, 100 * usage.memUsedMb / usage.memTotalMb) : null;
   return <main className="flex flex-col flex-1 min-h-0 overflow-auto gap-4 p-4">
-    <header><h1 className="text-xl font-semibold flex items-center gap-2"><Icon name="home" />Farm Control Center</h1></header>
+    <header><h1 className="text-xl font-semibold flex items-center gap-2"><Icon name="wheat" />Farm Control Center</h1></header>
     <div className="flex gap-2 flex-wrap" role="group" aria-label="Farm sections">
       {([["overview", "Overview", "grid"], ["clients", "Client audio", "sliders"], ["performance", "Performance", "gauge"], ["storage", "Storage", "database"]] as const).map(([id, label, icon]) =>
         <button key={id} className={tab === id ? "btn btn-primary" : "btn"} aria-pressed={tab === id} onClick={() => setTab(id)}><Icon name={icon} />{label}</button>)}

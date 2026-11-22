@@ -4,6 +4,7 @@ import { useGameSearch } from "../discover/catalog";
 import { GameDetails } from "./GameDetails";
 import { GameUpdateTracker } from "./GameUpdateTracker";
 import { MarketOverview, MarketSection, RankedGames, sections, type Section } from "./Market";
+import { RevenuePreference } from "./revenue";
 import { MyGames } from "./MyGames";
 import { trackGame, useAnalyticsStore, useWatchlistCollector } from "./store";
 import { count } from "../discover/catalog";
@@ -37,12 +38,12 @@ export function AnalyticsView({ initialGame }: { initialGame?: number }) {
   useEffect(() => { scroll.current?.scrollTo({ top: 0 }); }, [selected, tab, picked, term]);
   const hits = search.data?.games ?? (search.isError ? Object.values(saved).map((row) => row.game)
     .filter((game) => game.name.toLowerCase().includes(term.toLowerCase())) : []);
-  return <main ref={scroll} className="analytics-shell flex-1 min-h-0 overflow-auto">
+  return <RevenuePreference>{(currencyPicker) => <main ref={scroll} className="analytics-shell flex-1 min-h-0 overflow-auto">
     <div className="analytics-content">
       <header className="analytics-header">
         <div className="analytics-title"><span className="analytics-title-icon"><Icon name="chart" size={23} /></span>
           <div><h1>Roblox Analytics</h1><p className="text-sm text-fg-2">Experience performance, records, and creator insights</p></div></div>
-        <form className="analytics-search" onSubmit={(event) => {
+        <div className="analytics-header-controls"><form className="analytics-search" onSubmit={(event) => {
           event.preventDefault();
           const next = input.trim();
           setSelection([]);
@@ -52,7 +53,7 @@ export function AnalyticsView({ initialGame }: { initialGame?: number }) {
             placeholder="Search games by name or Roblox URL" maxLength={300} value={input} onChange={(event) => setInput(event.target.value)} />
           <button type="submit" className="btn btn-primary">Search</button>
           {term && <button type="button" className="btn" aria-label="Clear game search" onClick={() => { setInput(""); setTerm(""); setSelection([]); }}><Icon name="x" /></button>}
-        </form>
+        </form>{currencyPicker}</div>
       </header>
       <nav className="analytics-nav" aria-label="Analytics sections">
         {sections.map((name) => <button key={name} aria-current={tab === name && !term && !selected ? "page" : undefined}
@@ -69,7 +70,7 @@ export function AnalyticsView({ initialGame }: { initialGame?: number }) {
         </section> : tab === "My Games" ? <MyGames /> : tab === "Watchlist" ? <Watchlist select={open} />
           : tab === "Overview" ? <MarketOverview select={open} go={go} /> : <MarketSection key={`${tab}:${picked}`} section={tab} select={open} picked={picked} />}
     </div>
-  </main>;
+  </main>}</RevenuePreference>;
 }
 
 function Watchlist({ select }: { select: (id: number) => void }) {

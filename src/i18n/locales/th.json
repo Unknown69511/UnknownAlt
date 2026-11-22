@@ -1874,5 +1874,9 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "การวิเคราะห์"
+  "app.nav.analytics": "การวิเคราะห์",
+  "settings.numberFormat": "รูปแบบตัวเลข",
+  "settings.numberFormatHint": "เลือกวิธีแสดงจำนวน Robux และสกุลเงิน",
+  "settings.numberCompact": "ย่อ",
+  "settings.numberFull": "เต็ม"
 }

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { toast } from "./Toast";
-import { fmtNum, t } from "../i18n";
+import { fmtExact, t } from "../i18n";
 import { Morph, useLiquid } from "./motion";
 import type { Range } from "./ranges";
 
@@ -136,8 +136,8 @@ export function NumberField({ label, name, unit, short, min, max, step = 1, valu
       onInvalid?.(null);
       onCommit(n);
     } else {
-      const bounds = { unit, min: fmtNum(min), max: fmtNum(max) };
-      const message = step === 1 ? t("ui.numberWhole", bounds) : t("ui.numberStep", { ...bounds, step: fmtNum(step) });
+      const bounds = { unit, min: fmtExact(min), max: fmtExact(max) };
+      const message = step === 1 ? t("ui.numberWhole", bounds) : t("ui.numberStep", { ...bounds, step: fmtExact(step) });
       if (onInvalid) {
         onInvalid(message);
         setBad(true);

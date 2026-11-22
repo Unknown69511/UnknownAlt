@@ -7,6 +7,7 @@
 // language (`key_one`, `key_few`, `key_many`, `key_other`); `t(key, { count })` picks one with
 // Intl.PluralRules. `scripts/check-i18n.mjs` fails the build when a catalog misses a key.
 import { Fragment, createElement, useEffect, useReducer, type ReactNode } from "react";
+import type { NumberFormat } from "../bindings/NumberFormat";
 import { readStored, writeStored } from "../ui/stored";
 import en from "./locales/en.json";
 
@@ -46,7 +47,16 @@ type Params = Record<string, string | number>;
 
 let lang: Lang = "en";
 let rules = new Intl.PluralRules("en");
-let numbers = new Intl.NumberFormat("en");
+const NUMBER_FORMAT_KEY = "UnknownALT.numberFormat";
+let numberFormat: NumberFormat = readStored(NUMBER_FORMAT_KEY) === "full" ? "full" : "compact";
+
+export const readNumberFormat = () => numberFormat;
+
+export function applyNumberFormat(next: NumberFormat) {
+  if (numberFormat === next) return;
+  numberFormat = next;
+  writeStored(NUMBER_FORMAT_KEY, next);
+}
 
 const isLang = (l: string): l is Lang => LANGUAGES.some(([code]) => code === l);
 
@@ -65,7 +75,6 @@ function apply(next: Lang) {
   if (next === lang) return;
   lang = next;
   rules = new Intl.PluralRules(lang);
-  numbers = new Intl.NumberFormat(lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   // Without storage, the next start shows English until settings load.
@@ -112,7 +121,7 @@ function lookup(key: Key, p?: Params): string {
 }
 
 /** `count` is shown as a localized number; other numbers as they are (ports, ids, years). */
-const show = (name: string, v: string | number) => (name === "count" && typeof v === "number" ? numbers.format(v) : String(v));
+const show = (name: string, v: string | number) => (name === "count" && typeof v === "number" ? fmtNum(v) : String(v));
 
 /** The translated string for `key`, with `{name}` placeholders filled from `p`. */
 export function t(key: Key, p?: Params): string {
@@ -142,13 +151,24 @@ export function tx(key: Key, p: Record<string, ReactNode | string | number> = {}
 // and Num formats every animation frame. The key holds the language, so a switch never reuses one.
 const formats = new Map<string, Intl.NumberFormat>();
 /** A number in the current language (grouping, decimals). */
-export const fmtNum = (n: number, o?: Intl.NumberFormatOptions) => {
-  if (!o) return n.toLocaleString(lang);
-  const key = lang + JSON.stringify(o);
-  let f = formats.get(key);
-  if (!f) formats.set(key, (f = new Intl.NumberFormat(lang, o)));
-  return f.format(n);
-};
+function formatNumber(n: number, options: Intl.NumberFormatOptions) {
+  const key = lang + JSON.stringify(options);
+  let formatter = formats.get(key);
+  if (!formatter) formats.set(key, (formatter = new Intl.NumberFormat(lang, options)));
+  return formatter.format(n);
+}
+
+/** Full readings remain available for tooltips and exact numeric input bounds. */
+export const fmtExact = (n: number, options?: Intl.NumberFormatOptions) =>
+  formatNumber(n, { ...options, notation: "standard" });
+
+export function fmtNum(n: number, options?: Intl.NumberFormatOptions) {
+  const { notation: _legacyNotation, ...rest } = options ?? {};
+  if (numberFormat === "full" || rest.style === "percent" || rest.style === "unit" || Math.abs(n) < 1000) {
+    return fmtExact(n, rest);
+  }
+  return formatNumber(n, { maximumFractionDigits: 1, ...rest, notation: "compact", minimumFractionDigits: 0 });
+}
 /** A file's size in MB; a tiny one shows as 0.1 MB, not 0. */
 export const fmtSize = (bytes: number) => t("mods.size", { mb: fmtNum(Math.max(0.1, bytes / 1_048_576), { maximumFractionDigits: bytes < 10_485_760 ? 1 : 0 }) });
 /** A date, time or both in the current language. */

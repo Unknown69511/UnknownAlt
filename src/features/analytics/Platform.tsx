@@ -1,13 +1,15 @@
+import { fmtNum } from "../../i18n";
 import { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { toastError } from "../../ui/Toast";
 import { saveAnalyticsCsv } from "./csv";
 import { HistoryChart, type Sample, type Series } from "./HistoryChart";
 import { DAY, HOUR, STATS, WATCH, at, measurements, number, useArchive } from "./archive";
+import { Timeline, type TimeWindow } from "./Timeline";
 import { summary } from "./history";
 
 const modes = [["Live", 3 * HOUR], ["1D", DAY], ["1W", 7 * DAY], ["1M", 30 * DAY], ["1Y", 365 * DAY], ["All time", Infinity]] as const;
-const format = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+const format = (n: number) => fmtNum(n, { maximumFractionDigits: 1 });
 const change = (n: number) => (n > 0 ? "+" : "") + format(n);
 const isoDay = (n: number) => new Date(n).toISOString().slice(0, 10);
 
@@ -24,7 +26,7 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
   const [range, setRange] = useState("1D");
   const [metric, setMetric] = useState("players");
   const [compare, setCompare] = useState(false);
-  const [zoom, setZoom] = useState<{ from: number; to: number } | null>(null);
+  const [zoom, setZoom] = useState<TimeWindow | null>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const recent = measurements(live.data?.history, (row) => row.recordedAt, (row) => row.totalCCU, "RoWatcher · recorded sample");
@@ -39,14 +41,19 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
   const duration = modes.find(([label]) => label === range)?.[1] ?? DAY;
   const last = source.at(-1)?.at ?? newest ?? Date.now();
   const allFrom = source[0]?.at ?? last - DAY;
-  const to = zoom?.to ?? (short ? last : last + HOUR * 6);
-  const from = zoom?.from ?? Math.min(last - 1, duration === Infinity ? allFrom : to - duration);
+  const now = Date.now();
+  const to = zoom?.to ?? now;
+  const rangeStart = duration === Infinity ? allFrom : (short ? now : Math.floor(now / DAY) * DAY + DAY) - duration;
+  const from = zoom?.from ?? Math.min(to - 1, rangeStart);
+  const bounds = { from: Math.min(allFrom, rangeStart, from), to: now };
   const filter = (sample: Sample) => sample.at >= from && sample.at <= to;
   const points = source.filter(filter);
   const first = points[0]?.value;
   const final = points.at(-1)?.value;
   const delta = first != null && final != null && points.length > 1 ? final - first : null;
   const stats = summary(points.map((p) => p.value));
+  const coveredDays = new Set(points.map((p) => Math.floor(p.at / DAY)));
+  const missingDays = short ? 0 : Math.max(0, Math.floor((to - 1) / DAY) - Math.floor(from / DAY) + 1 - coveredDays.size);
   const traces: Series[] = [{ label: metric === "peak" ? "Daily peak" : short ? "Concurrent players" : "Daily average", points }];
   const durationCompare = to - from;
   if (compare) traces.push({ label: "Previous period", dashed: true, points: source.filter((p) => p.at < from).map((point) =>
@@ -81,7 +88,10 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
     </div>
     {(live.isPending && older.isPending) ? <div className="analytics-chart-empty analytics-loading" role="status">Loading platform history…</div>
       : <HistoryChart key={range + metric} from={from} to={to} points={points} size="large" format={format} series={compare ? traces : undefined}
-        gap={short ? fromRecentProvider ? 25 * 60_000 : HOUR * 3 : DAY * 1.6} onZoom={setZoom} />}
+        gap={short ? fromRecentProvider ? 25 * 60_000 : HOUR * 3 : DAY * 1.6} onZoom={(interval) => {
+          if (interval.to - interval.from >= (short ? 10 * 60_000 : 2 * DAY)) setZoom(interval);
+        }} />}
+    {full && <Timeline bounds={bounds} viewing={{ from, to }} update={setZoom} minWidth={short ? 10 * 60_000 : 2 * DAY} />}
     {(live.isError || older.isError) && <div className="analytics-toolbar text-sm" role="status">
       <span>A platform feed is unavailable. Recorded data is shown where available.</span>
       <button className="btn btn-sm" onClick={() => { void live.refetch(); void older.refetch(); }}>Retry</button>
@@ -108,7 +118,7 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
       <span>Average <strong>{stats.average == null ? "—" : format(stats.average)}</strong></span>
       <span>High <strong>{stats.high == null ? "—" : format(stats.high)}</strong></span>
       <span>Low <strong>{stats.low == null ? "—" : format(stats.low)}</strong></span>
-      <span className="basis-full">Coverage varies by source. This series starts {source.length ? new Date(allFrom).toLocaleDateString() : "when records become available"}.
+      <span className="basis-full">{missingDays > 0 && `No records for ${fmtNum(missingDays)} UTC days in this view. `}Coverage varies by source. This series starts {source.length ? new Date(allFrom).toLocaleDateString() : "when records become available"}.
         {" "}<Source url={`${WATCH}/roblox-player-count`}>RoWatcher</Source> · <Source url={`${STATS}/docs/api`}>RobloxGameStats</Source></span>
     </footer>
   </section>;
