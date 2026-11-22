@@ -278,7 +278,7 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const failed = accounts.error ?? groups.error;
+  const failed = (!accounts.data && accounts.error) || (!groups.data && groups.error);
   if (failed) return <LoadFailed error={failed} busy={accounts.isFetching || groups.isFetching} onRetry={() => { accounts.refetch(); groups.refetch(); }} />;
   if (!accounts.data || !groups.data) return <div className="flex-1" />;
 

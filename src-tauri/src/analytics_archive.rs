@@ -6,14 +6,15 @@ use crate::error::{AppError, Result};
 
 const WATCH: &str = "https://rowatcher.com/api/v1";
 const STATS: &str = "https://robloxgamestats.com/api/v1";
+const CCU: &str = "https://ccucheck.com/api/v1";
 const ROBLOX: &str = "https://apis.roblox.com/explore-api/v1";
 static CLIENT: LazyLock<Option<reqwest::Client>> = LazyLock::new(|| crate::http::client("analytics archive"));
-static REQUESTS: Mutex<[VecDeque<Instant>; 3]> = Mutex::new([VecDeque::new(), VecDeque::new(), VecDeque::new()]);
-static NEXT_ALLOWED: Mutex<[Option<Instant>; 3]> = Mutex::new([None; 3]);
+static REQUESTS: Mutex<[VecDeque<Instant>; 4]> = Mutex::new([VecDeque::new(), VecDeque::new(), VecDeque::new(), VecDeque::new()]);
+static NEXT_ALLOWED: Mutex<[Option<Instant>; 4]> = Mutex::new([None; 4]);
 static SLOTS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(4);
 
 #[derive(Clone, Copy)]
-enum Provider { Watch, Stats, Roblox }
+enum Provider { Watch, Stats, Roblox, Ccu }
 
 impl Provider {
     fn reserve(self) -> Result<()> {
@@ -21,6 +22,7 @@ impl Provider {
             Self::Watch => (425, Duration::from_secs(86_400)),
             Self::Stats => (45, Duration::from_secs(60)),
             Self::Roblox => (24, Duration::from_secs(60)),
+            Self::Ccu => (48, Duration::from_secs(3600)),
         };
         let now = Instant::now();
         if let Some(delay) = NEXT_ALLOWED.lock().unwrap_or_else(|e| e.into_inner())[self as usize] {
@@ -29,6 +31,9 @@ impl Provider {
         let mut requests = REQUESTS.lock().unwrap_or_else(|e| e.into_inner());
         let queue = &mut requests[self as usize];
         while queue.front().is_some_and(|at| now.duration_since(*at) >= window) { queue.pop_front(); }
+        if matches!(self, Self::Ccu) && queue.iter().rev().take_while(|at| now.duration_since(**at) < Duration::from_secs(60)).count() >= 18 {
+            return Err(AppError::RateLimited(60));
+        }
         if queue.len() >= max {
             let wait = window.saturating_sub(now.duration_since(queue[0])).as_secs().saturating_add(1);
             return Err(AppError::RateLimited(wait));
@@ -117,8 +122,10 @@ pub async fn analytics_archive(kind: String, universe: Option<u64>, filter: Opti
         "platformHistory" => (Provider::Stats, format!("{STATS}/platform"), false),
         "gameTotals" => (Provider::Watch, format!("{WATCH}/games/{}/history", id()?), false),
         "gameDaily" => (Provider::Watch, format!("{WATCH}/games/{}/history.csv?days=730", id()?), true),
-        "gameArchive" => (Provider::Stats, format!("{STATS}/games/{}/series?days=400", id()?), false),
+        "gameArchive" => (Provider::Stats, format!("{STATS}/games/{}/series?days=730", id()?), false),
         "gameSeries" => (Provider::Stats, format!("{STATS}/games/{}/series?days=14", id()?), false),
+        "gameHourly" => (Provider::Ccu, format!("{CCU}/games/{}/history?days=30&resolution=hour", id()?), false),
+        "gameRecent" => (Provider::Ccu, format!("{CCU}/games/{}/history?days=2&resolution=10min", id()?), false),
         "gameProfile" => (Provider::Stats, format!("{STATS}/games/{}", id()?), false),
         "gameEstimate" => (Provider::Watch, format!("{WATCH}/games/{}", id()?), false),
         "records" => (Provider::Stats, format!("{STATS}/records"), false),
@@ -144,7 +151,11 @@ pub async fn analytics_archive(kind: String, universe: Option<u64>, filter: Opti
     let _slot = SLOTS.acquire().await.map_err(|_| invalid())?;
     provider.reserve()?;
     let client = CLIENT.as_ref().ok_or_else(|| AppError::Network("Analytics provider is unavailable.".into()))?;
-    let sent = client.get(url).send().await.map_err(|_| AppError::Network("Could not reach the analytics provider.".into()))?;
+    let request = client.get(url);
+    let request = if matches!(provider, Provider::Ccu) {
+        request.header(reqwest::header::USER_AGENT, "UnknownALT (https://github.com/Unknown69511/UnknownAlt)")
+    } else { request };
+    let sent = request.send().await.map_err(|_| AppError::Network("Could not reach the analytics provider.".into()))?;
     let status = sent.status().as_u16();
     if status == 404 { return Ok(Value::Null); }
     if status == 429 {
@@ -180,6 +191,13 @@ pub async fn analytics_archive(kind: String, universe: Option<u64>, filter: Opti
             }
         }
         return Ok(result);
+    }
+    if matches!(provider, Provider::Ccu) {
+        let resolution = if kind == "gameHourly" { "hour" } else { "10min" };
+        if data["data"]["resolution"] != resolution || !data["data"]["points"].is_array() {
+            return Err(invalid());
+        }
+        return Ok(json!({"points": data["data"]["points"].take(), "asOf": data["as_of"]}));
     }
     // Keep only the fields used for the detailed profile. Values requiring provider sign-in
     // stay unavailable, and only official Roblox Open Cloud credentials are accepted elsewhere.
@@ -226,6 +244,19 @@ mod tests {
     async fn refuses_invalid_routes_before_requesting() {
         assert!(analytics_archive("gameDaily".into(), Some(0), None, None).await.is_err());
         assert!(analytics_archive("officialChart".into(), None, Some("../other".into()), None).await.is_err());
+    }
+    #[tokio::test]
+    #[ignore = "live provider contract"]
+    async fn compares_blox_fruits_and_steal_an_egg_history() {
+        for (id, minimum_days) in [(994732206, 365), (10563114921, 60)] {
+            let daily = analytics_archive("gameDaily".into(), Some(id), None, None).await.unwrap();
+            assert!(daily.as_array().is_some_and(|rows| rows.len() >= minimum_days));
+            let hourly = analytics_archive("gameHourly".into(), Some(id), None, None).await.unwrap();
+            assert!(hourly["points"].as_array().is_some_and(|rows| rows.len() >= 500));
+            assert!(hourly["asOf"].as_str().and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()).is_some());
+            let recent = analytics_archive("gameRecent".into(), Some(id), None, None).await.unwrap();
+            assert!(recent["points"].as_array().is_some_and(|rows| rows.len() >= 72));
+        }
     }
     #[tokio::test]
     #[ignore = "live provider contract"]

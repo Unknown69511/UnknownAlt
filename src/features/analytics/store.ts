@@ -6,7 +6,10 @@ import { notify } from "../notifications/store";
 import { compactSamples, compactTotals, HOUR, type Observation, type Total } from "./history";
 import type { PublicGame, PublicSnapshot } from "./types";
 
-export type GameRecord = { game: PublicGame; observedAt: number; samples: Observation[]; updates: string[]; totals?: Total[] };
+export type MediaVersion = { at: number; urls: string[] };
+type MediaHistory = { icons?: MediaVersion[]; thumbnails?: MediaVersion[] };
+export type GameRecord = { game: PublicGame; observedAt: number; samples: Observation[]; updates: string[]; totals?: Total[];
+  media?: MediaHistory; votesAt?: number };
 export type GameUpdate = { id: number; updated: string; name: string };
 type Data = { watch: number[]; follows: number[]; records: { [id: number]: GameRecord }; notices: GameUpdate[] };
 const key = "UnknownAlt.analytics.public.v1";
@@ -60,14 +63,45 @@ export function followGame(id: number) {
   return true;
 }
 
+function observedImages(previous: MediaVersion[] | undefined, values: (string | null)[], at: number) {
+  const urls = [...new Set(values.filter((raw): raw is string => {
+    try {
+      const url = new URL(raw ?? "");
+      return url.protocol === "https:" && !url.port && !url.username && !url.password && url.hostname.endsWith(".rbxcdn.com");
+    } catch { return false; }
+  }))].slice(0, 5);
+  const last = previous?.at(-1);
+  if (!urls.length || last && (at <= last.at || JSON.stringify(last.urls) === JSON.stringify(urls))) return previous;
+  return [...previous ?? [], { at, urls }].slice(-12);
+}
+
+export function recordThumbnails(id: number, thumbnails: string[], at: number) {
+  const old = state.records[id];
+  if (!old) return;
+  const next = observedImages(old.media?.thumbnails, thumbnails, at);
+  if (next === old.media?.thumbnails) return;
+  save({ ...state, records: { ...state.records, [id]: { ...old, media: { ...old.media, thumbnails: next } } } });
+}
+
 export function record(snapshot: PublicSnapshot, hasMedia: boolean) {
   if (!snapshot.games.length) return;
   const records = { ...state.records };
   const notices: GameUpdate[] = [];
   for (const game of snapshot.games) {
     const old = records[game.universeId];
-    if (old && old.observedAt > snapshot.observedAt) continue;
     const previous = old?.game;
+    const icons = hasMedia ? observedImages(old?.media?.icons, [game.icon], snapshot.observedAt) : old?.media?.icons;
+    const mediaChanged = icons !== old?.media?.icons;
+    const newerVotes = hasMedia && game.likes != null && game.dislikes != null && snapshot.observedAt >= (old?.votesAt ?? 0);
+    const media = mediaChanged ? { ...old?.media, icons } : old?.media;
+    if (old && old.observedAt > snapshot.observedAt) {
+      if (mediaChanged || newerVotes) records[game.universeId] = { ...old, media,
+        votesAt: newerVotes ? snapshot.observedAt : old.votesAt,
+        game: { ...old.game, icon: mediaChanged ? icons?.at(-1)?.urls[0] ?? old.game.icon : old.game.icon,
+          thumbnail: old.game.thumbnail ?? game.thumbnail, likes: newerVotes ? game.likes : old.game.likes,
+          dislikes: newerVotes ? game.dislikes : old.game.dislikes } };
+      continue;
+    }
     const total: Total = { at: snapshot.observedAt };
     for (const metric of ["visits", "favorites", "likes"] as const) {
       if (game[metric] != null) total[metric] = game[metric];
@@ -87,8 +121,9 @@ export function record(snapshot: PublicSnapshot, hasMedia: boolean) {
     records[game.universeId] = {
       observedAt: snapshot.observedAt,
       game: !previous ? game : { ...game, icon: game.icon ?? previous.icon, thumbnail: game.thumbnail ?? previous.thumbnail,
-        likes: hasMedia ? game.likes ?? previous.likes : previous.likes,
-        dislikes: hasMedia ? game.dislikes ?? previous.dislikes : previous.dislikes },
+        likes: newerVotes ? game.likes : previous.likes,
+        dislikes: newerVotes ? game.dislikes : previous.dislikes },
+      media, votesAt: newerVotes ? snapshot.observedAt : old?.votesAt,
       updates: updates.slice(-24),
       samples: compactSamples(old?.samples ?? [], game.playing == null ? null :
         { at: snapshot.observedAt, players: game.playing }, snapshot.observedAt),
@@ -107,11 +142,11 @@ export function record(snapshot: PublicSnapshot, hasMedia: boolean) {
   // Make room for watched histories and other WebView storage. Trim only the
   // oldest temporary, unwatched catalogue entries if the store grows large.
   let estimated = Object.values(records).reduce((sum, row) =>
-    sum + row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + 2500, 0);
+    sum + row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + JSON.stringify(row.media ?? {}).length + 2500, 0);
   for (const row of unwatched.slice(0, 64).reverse()) {
     if (estimated < 3_600_000) break;
     delete records[row.game.universeId];
-    estimated -= row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + 2500;
+    estimated -= row.samples.length * 44 + (row.totals?.length ?? 0) * 102 + JSON.stringify(row.media ?? {}).length + 2500;
   }
   save({ ...state, records, notices: [...notices, ...state.notices].slice(0, 50) });
   for (const item of notices) notify("game", `${item.id}:${item.updated}`, `${item.name} was updated on Roblox.`, { view: "analytics", game: item.id });

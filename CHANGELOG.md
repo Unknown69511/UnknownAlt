@@ -1,3 +1,11 @@
+# UnknownALT 1.2.9
+
+- Retained chart history through refreshes and outages. History is reconciled
+  by game, metric, and time bucket, with gaps and genuine zeroes shown separately.
+- Added CCUCheck's public history as an independent recorded source, added daily
+  tables and CSV export, and improved performance averages and update comparisons.
+- Added local game art history, exact chart hover values, and grouped update markers.
+
 # UnknownALT 1.2.8
 
 - Studio analytics now show Roblox icons, public portfolios, players, visits,

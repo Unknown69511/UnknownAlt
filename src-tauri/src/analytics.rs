@@ -194,7 +194,6 @@ pub async fn public_analytics_snapshot(universes: Vec<u64>, details: bool) -> Re
     games.retain(|game| universe_ids.contains(&game.universe_id) && game.root_place_id > 0);
     games.sort_by_key(|game| universe_ids.iter().position(|id| *id == game.universe_id));
     result.games = games;
-    result.observed_at = DateTime::<Utc>::from(SystemTime::now()).timestamp_millis();
     Ok(result)
 }
 

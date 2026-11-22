@@ -69,6 +69,6 @@ export function updateActivity(samples: Observation[], update: string) {
   const at = Date.parse(update);
   const before = samples.filter((point) => point.at >= at - DAY && point.at < at);
   const after = samples.filter((point) => point.at >= at && point.at <= at + DAY);
-  const average = (rows: Observation[]) => rows.length ? Math.round(rows.reduce((sum, point) => sum + point.players, 0) / rows.length) : null;
+  const average = (rows: Observation[]) => rows.length ? rows.reduce((sum, point) => sum + point.players, 0) / rows.length : null;
   return { before, after, beforeAverage: average(before), afterAverage: average(after) };
 }

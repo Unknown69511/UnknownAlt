@@ -92,7 +92,7 @@ function Root() {
 
   // Everything on screen asks again; the webview itself is never reloaded. Not the background
   // image: only Appearance changes it (and refreshes it), and a reread is up to 8 MB.
-  const refresh = () => void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== qk.background[0] });
+  const refresh = () => void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== qk.background[0] }, { cancelRefetch: false });
 
   const lock = () => {
     manualLockAt.current = Date.now();
@@ -176,7 +176,7 @@ function Root() {
     };
   });
 
-  const failed = vault.error ?? settings.error;
+  const failed = vault.error ?? (!s ? settings.error : null);
   return (
     <div className="app">
       <TitleBar

@@ -9,8 +9,8 @@ function clamp(start: number, width: number, outer: TimeWindow): TimeWindow {
   return { from, to: from + length };
 }
 
-export function Timeline({ bounds, viewing, update, minWidth }: {
-  bounds: TimeWindow; viewing: TimeWindow; update: (value: TimeWindow) => void; minWidth: number;
+export function Timeline({ bounds, viewing, update, minWidth, utc }: {
+  bounds: TimeWindow; viewing: TimeWindow; update: (value: TimeWindow) => void; minWidth: number; utc?: boolean;
 }) {
   const max = Math.max(0, bounds.to - bounds.from);
   const width = Math.min(max, viewing.to - viewing.from);
@@ -21,7 +21,7 @@ export function Timeline({ bounds, viewing, update, minWidth }: {
     const length = Math.min(max, Math.max(minWidth, next));
     update(clamp((viewing.from + viewing.to - length) / 2, length, bounds));
   };
-  const display = (at: number) => fmtDate(at, { dateStyle: "medium", ...(width < 2 * DAY ? { timeStyle: "short" } : {}) });
+  const display = (at: number) => fmtDate(at, { dateStyle: "medium", ...(utc ? { timeZone: "UTC" } : width < 2 * DAY ? { timeStyle: "short" } : {}) });
   return <div className="analytics-timeline">
     <div className="analytics-toolbar">
       <button type="button" className="btn btn-sm" disabled={width <= minWidth} onClick={() => zoom(width / 2)}>Zoom in</button>

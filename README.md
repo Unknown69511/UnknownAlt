@@ -59,10 +59,14 @@ samples, player records, studios, genres, and a game activity calendar. Search
 Roblox by name or link to open a game's analytics. Charts support date ranges,
 drag-to-zoom, game comparisons and attributed CSV exports.
 
-Game player history comes from [RoWatcher daily records](https://rowatcher.com/developers)
-(CC BY 4.0, up to 730 days) and [RobloxGameStats](https://robloxgamestats.com/docs/api)
-hourly and daily records. The long-range charts show gaps when providers lack
-records and offer zoom and timeline scrolling. Coverage varies by metric. Platform totals
+Game player history combines [RoWatcher daily records](https://rowatcher.com/developers)
+(CC BY 4.0, up to 730 days), [CCUCheck's public recorded history](https://ccucheck.com/docs),
+[RobloxGameStats](https://robloxgamestats.com/docs/api), and recent public Roblox
+observations. Each game has one reading per daily bucket. RoWatcher daily averages
+take priority and are compared against complete days from CCUCheck. Individual
+fallback readings do not contribute to average or growth calculations. Coverage
+varies by game and metric. Daily tables and chart CSVs preserve source attribution.
+Unobserved periods appear as gaps. Platform totals
 cover experiences tracked by the named provider. Figures titled **Est.** are
 model estimates. The **Official Top Earning** chart shows Roblox ranking order
 without dollar amounts. Pick USD, Robux, or Both for estimates. Robux shows
@@ -74,7 +78,8 @@ stored values or CSV exports.
 Watched games still support local samples and notifications. A bounded public
 history cache enables offline viewing when previously requested records are
 available. Public analytics uses anonymous requests and never shares saved
-Roblox credentials with either data provider.
+Roblox credentials with public data providers. Icon and thumbnail history
+uses dates first observed locally through Roblox's public media endpoints.
 
 **Tools → Roblox Status** shows service health, current incidents and resolved
 incident history. In-app alerts can be enabled on that page. Press **F11**

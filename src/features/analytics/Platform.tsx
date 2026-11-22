@@ -34,7 +34,7 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
   const daily = measurements(older.data?.days, (row) => row.t, (row) => metric === "peak" ? row.peak : row.avg,
     metric === "peak" ? "RobloxGameStats · daily peak (UTC)" : "RobloxGameStats · daily average (UTC)");
   const short = range === "Live" || range === "1D";
-  const fromRecentProvider = recent.length > 0 && (!compare || !hourly.length);
+  const fromRecentProvider = recent.length > 0;
   const source = short ? fromRecentProvider ? recent : hourly : daily;
   const newest = at(live.data?.recordedAt);
   const current = number(live.data?.current);
@@ -86,11 +86,11 @@ export function Platform({ expand, full = false }: { expand?: () => void; full?:
       <label className="analytics-check"><input type="checkbox" checked={compare} onChange={(event) => setCompare(event.target.checked)} />Compare prior period</label>
       {zoom && <button className="btn btn-sm" onClick={() => select(range)}>Reset zoom</button>}
     </div>
-    {(live.isPending && older.isPending) ? <div className="analytics-chart-empty analytics-loading" role="status">Loading platform history…</div>
-      : <HistoryChart key={range + metric} from={from} to={to} points={points} size="large" format={format} series={compare ? traces : undefined}
-        gap={short ? fromRecentProvider ? 25 * 60_000 : HOUR * 3 : DAY * 1.6} onZoom={(interval) => {
-          if (interval.to - interval.from >= (short ? 10 * 60_000 : 2 * DAY)) setZoom(interval);
-        }} />}
+    <HistoryChart from={from} to={to} points={points} size="large" format={format} series={compare ? traces : undefined}
+      utc={!short} loading={live.isFetching || older.isFetching}
+      gap={short ? fromRecentProvider ? 25 * 60_000 : HOUR * 3 : DAY * 1.6} onZoom={(interval) => {
+        if (interval.to - interval.from >= (short ? 10 * 60_000 : 2 * DAY)) setZoom(interval);
+      }} />
     {full && <Timeline bounds={bounds} viewing={{ from, to }} update={setZoom} minWidth={short ? 10 * 60_000 : 2 * DAY} />}
     {(live.isError || older.isError) && <div className="analytics-toolbar text-sm" role="status">
       <span>A platform feed is unavailable. Recorded data is shown where available.</span>
