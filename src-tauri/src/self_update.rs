@@ -25,6 +25,7 @@ use crate::App;
 use crate::error::{AppError, Result};
 use crate::launcher::update::{FILE_SHARE_READ, TempDir, blocking};
 use crate::model::AppUpdate;
+use sha2::{Digest, Sha256};
 
 #[path = "update_auth.rs"]
 pub(crate) mod auth;
@@ -61,15 +62,15 @@ fn private_visibility() -> String { "private".into() }
 impl Channel {
     /// Blank owner/repository is an intentional disconnected build, never a fallback.
     pub fn parse(raw: &str) -> std::result::Result<Option<Self>, String> {
-        let c: Self = serde_json::from_str(raw).map_err(|_| "The Unknown alt update-channel configuration is invalid.".to_owned())?;
+        let c: Self = serde_json::from_str(raw).map_err(|_| "The UnknownALT update-channel configuration is invalid.".to_owned())?;
         if c.schema_version != 1 || c.channel != "stable" || !matches!(c.visibility.as_str(), "private" | "public") {
-            return Err("Unknown alt requires update channel schema 1 and the stable channel.".into());
+            return Err("UnknownALT requires update channel schema 1 and the stable channel.".into());
         }
         if c.owner.is_empty() && c.repository.is_empty() {
             return Ok(None);
         }
         if c.owner.is_empty() || c.repository.is_empty() {
-            return Err("Connect both the owner and repository in Unknown alt's update channel.".into());
+            return Err("Connect both the owner and repository in UnknownALT's update channel.".into());
         }
         let owner_ok = c.owner.len() <= 39
             && !c.owner.starts_with('-') && !c.owner.ends_with('-')
@@ -77,14 +78,14 @@ impl Channel {
         let repo_ok = c.repository.len() <= 100 && c.repository != "." && c.repository != ".."
             && c.repository.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b));
         if !owner_ok || !repo_ok {
-            return Err("The Unknown alt release owner or repository name is invalid.".into());
+            return Err("The UnknownALT release owner or repository name is invalid.".into());
         }
         // This source cannot be repointed at the original product, even accidentally.
         if c.owner.eq_ignore_ascii_case("inspectsoftware") || c.repository.eq_ignore_ascii_case("roalt") {
-            return Err("Unknown alt updates must use your own Unknown alt release repository.".into());
+            return Err("UnknownALT updates must use your own UnknownALT release repository.".into());
         }
         if public_key(&c.public_key_p256).is_none() {
-            return Err("Unknown alt's release verification key is missing or invalid.".into());
+            return Err("UnknownALT's release verification key is missing or invalid.".into());
         }
         if !c.github_app_client_id.is_empty() && (!c.github_app_client_id.starts_with("Iv") || !(10..=128).contains(&c.github_app_client_id.len())
             || !c.github_app_client_id.bytes().all(|b|b.is_ascii_alphanumeric()||b"._-".contains(&b))) {
@@ -240,7 +241,7 @@ fn digest(bytes: &[u8]) -> Result<[u8; 32]> {
     let mut hash = [0; 32];
     // SAFETY: BCryptHash reads the live input slice and writes the fixed-size SHA-256 buffer.
     unsafe { BCryptHash(BCRYPT_SHA256_ALG_HANDLE, None, bytes, &mut hash) }
-        .ok().map_err(|_| AppError::Internal("Windows could not hash the Unknown alt update.".into()))?;
+        .ok().map_err(|_| AppError::Internal("Windows could not hash the UnknownALT update.".into()))?;
     Ok(hash)
 }
 
@@ -295,40 +296,40 @@ fn allowed_redirect(url: &Url, c: &Channel) -> bool {
 /// Pure product/source validation after the detached signature is accepted.
 fn validate_manifest(m: Manifest, c: &Channel, current: &str) -> Result<Option<Release>> {
     if m.schema_version != 1 || m.app_id != APP_ID || m.channel != c.channel || m.platform != PLATFORM {
-        return Err(invalid("The signed release does not belong to this Unknown alt installation."));
+        return Err(invalid("The signed release does not belong to this UnknownALT installation."));
     }
-    let new = version_key(&m.version).ok_or_else(|| invalid("The signed Unknown alt release version is invalid."))?;
-    let old = version_key(current).ok_or_else(|| invalid("This Unknown alt build has an invalid version."))?;
+    let new = version_key(&m.version).ok_or_else(|| invalid("The signed UnknownALT release version is invalid."))?;
+    let old = version_key(current).ok_or_else(|| invalid("This UnknownALT build has an invalid version."))?;
     let expected_name = installer_name(&m.version);
     if m.installer.file_name != expected_name
         || m.installer.url != c.installer_url(&m.version, &expected_name)
         || !(1..=MAX_INSTALLER).contains(&m.installer.size)
         || m.installer.sha256.len() != 64
         || !m.installer.sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err(invalid("The signed Unknown alt installer identity, location, size or hash is invalid."));
+        return Err(invalid("The signed UnknownALT installer identity, location, size or hash is invalid."));
     }
-    let url = Url::parse(&m.installer.url).map_err(|_| invalid("The signed Unknown alt installer URL is invalid."))?;
-    if !allowed_redirect(&url, c) { return Err(invalid("The signed installer is outside your Unknown alt release source.")); }
+    let url = Url::parse(&m.installer.url).map_err(|_| invalid("The signed UnknownALT installer URL is invalid."))?;
+    if !allowed_redirect(&url, c) { return Err(invalid("The signed installer is outside your UnknownALT release source.")); }
     if new <= old { return Ok(None); }
     Ok(Some(Release { version:m.version, installer:m.installer, manifest:Vec::new(), signature:Vec::new(), config:c.clone(), installer_asset_id:None }))
 }
 
 fn verified_manifest(bytes: &[u8], sig: &[u8], c: &Channel, current: &str) -> Result<Option<Release>> {
-    if bytes.len() as u64 > MAX_MANIFEST { return Err(invalid("Unknown alt's release manifest is too large.")); }
-    let sig_decoded = signature(sig).ok_or_else(|| invalid("Unknown alt's update signature is malformed."))?;
-    let key = public_key(&c.public_key_p256).ok_or_else(|| invalid("Unknown alt's verification key is invalid."))?;
+    if bytes.len() as u64 > MAX_MANIFEST { return Err(invalid("UnknownALT's release manifest is too large.")); }
+    let sig_decoded = signature(sig).ok_or_else(|| invalid("UnknownALT's update signature is malformed."))?;
+    let key = public_key(&c.public_key_p256).ok_or_else(|| invalid("UnknownALT's verification key is invalid."))?;
     let mut signed = SIGNED_PREFIX.to_vec(); signed.extend_from_slice(bytes);
-    if !verify(&key, &signed, &sig_decoded) { return Err(invalid("Unknown alt's update signature did not verify. Nothing was installed.")); }
-    let m: Manifest = serde_json::from_slice(bytes).map_err(|_| invalid("Unknown alt's signed release manifest is invalid."))?;
+    if !verify(&key, &signed, &sig_decoded) { return Err(invalid("UnknownALT's update signature did not verify. Nothing was installed.")); }
+    let m: Manifest = serde_json::from_slice(bytes).map_err(|_| invalid("UnknownALT's signed release manifest is invalid."))?;
     let mut release = validate_manifest(m,c,current)?;
     if let Some(r) = &mut release { r.manifest=bytes.to_vec(); r.signature=sig.to_vec(); }
     Ok(release)
 }
 
 fn network(error: reqwest::Error) -> AppError {
-    let message=if error.is_timeout() { "The Unknown alt update request timed out. Try again." }
-        else { "Unknown alt could not reach your release source. Check the connection and try again." };
-    log::info!("Unknown alt update request failed: {}", error.without_url());
+    let message=if error.is_timeout() { "The UnknownALT update request timed out. Try again." }
+        else { "UnknownALT could not reach your release source. Check the connection and try again." };
+    log::info!("UnknownALT update request failed: {}", error.without_url());
     invalid(message)
 }
 
@@ -389,7 +390,7 @@ async fn api_get(s:&App,c:&Channel,path:&str,max:u64)->Result<Option<zeroize::Ze
         .header(ACCEPT,"application/vnd.github+json").header("X-GitHub-Api-Version","2022-11-28")
         .timeout(Duration::from_secs(30)).send().await.map_err(network)?;
     if response.status().as_u16()==404 && path=="releases/latest"{return Ok(None);}
-    if !response.status().is_success(){return Err(invalid("The Unknown alt release source is unavailable. Try again later."));}
+    if !response.status().is_success(){return Err(invalid("The UnknownALT release source is unavailable. Try again later."));}
     Ok(Some(auth::bounded_response(response,max).await?))
 }
 
@@ -399,7 +400,7 @@ fn repository_matches(c:&Channel,private:bool,name:&str)->bool{
 
 async fn latest(s:&App,c: &Channel) -> Result<Option<Release>> {
     #[derive(Deserialize)]struct Repository{private:bool,full_name:String}
-    let metadata=api_get(s,c,"",128_000).await?.ok_or_else(||invalid("The configured Unknown alt update repository is unavailable."))?;
+    let metadata=api_get(s,c,"",128_000).await?.ok_or_else(||invalid("The configured UnknownALT update repository is unavailable."))?;
     let metadata:Repository=serde_json::from_slice(&metadata).map_err(|_|invalid("The private update repository returned invalid metadata."))?;
     if !repository_matches(c,metadata.private,&metadata.full_name){
         return Err(invalid("The update repository identity or visibility differs from this build's configuration."));
@@ -472,9 +473,9 @@ pub fn spawn(app: AppHandle) {
 }
 
 fn idle(s: &App) -> Result<()> {
-    if s.bulk.any_busy() { return Err(invalid("Wait for the running launch, batch or auto-rejoin to finish, then update Unknown alt.")); }
-    if s.update.installing() { return Err(invalid("Wait for Roblox's installer to finish, then update Unknown alt.")); }
-    if s.tracker.any_running() { return Err(invalid("Close the running Roblox clients before updating Unknown alt, so their controls and sessions are not interrupted.")); }
+    if s.bulk.any_busy() { return Err(invalid("Wait for the running launch, batch or auto-rejoin to finish, then update UnknownALT.")); }
+    if s.update.installing() { return Err(invalid("Wait for Roblox's installer to finish, then update UnknownALT.")); }
+    if s.tracker.any_running() { return Err(invalid("Close the running Roblox clients before updating UnknownALT, so their controls and sessions are not interrupted.")); }
     Ok(())
 }
 
@@ -482,14 +483,14 @@ async fn download(app: &AppHandle,release: &Release,path: &Path,progress: &crate
     let s=app.state::<App>();
     let asset=release.installer_asset_id.ok_or_else(||invalid("The verified private installer asset is missing."))?;
     let mut response=asset_response(&s,&release.config,asset,Duration::from_secs(600)).await?;
-    if !response.status().is_success() { return Err(invalid(format!("The Unknown alt installer download returned HTTP {}.",response.status().as_u16()))); }
-    if response.content_length().is_some_and(|n|n!=release.installer.size) { return Err(invalid("The Unknown alt installer size differs from its signed manifest.")); }
+    if !response.status().is_success() { return Err(invalid(format!("The UnknownALT installer download returned HTTP {}.",response.status().as_u16()))); }
+    if response.content_length().is_some_and(|n|n!=release.installer.size) { return Err(invalid("The UnknownALT installer size differs from its signed manifest.")); }
     let mut file=File::create_new(path)?;
     let mut downloaded=0u64;
     let mut sent=Instant::now();
     while let Some(chunk)=response.chunk().await.map_err(network)? {
-        downloaded=downloaded.checked_add(chunk.len() as u64).ok_or_else(||invalid("Unknown alt update size overflow."))?;
-        if downloaded>release.installer.size || downloaded>MAX_INSTALLER { return Err(invalid("The Unknown alt installer exceeds its signed size.")); }
+        downloaded=downloaded.checked_add(chunk.len() as u64).ok_or_else(||invalid("UnknownALT update size overflow."))?;
+        if downloaded>release.installer.size || downloaded>MAX_INSTALLER { return Err(invalid("The UnknownALT installer exceeds its signed size.")); }
         file.write_all(&chunk)?;
         if sent.elapsed()>=Duration::from_millis(200) {
             publish(app,|u|u.downloaded=downloaded);
@@ -498,22 +499,34 @@ async fn download(app: &AppHandle,release: &Release,path: &Path,progress: &crate
         }
     }
     file.sync_all()?; drop(file);
-    if downloaded!=release.installer.size { return Err(invalid("The Unknown alt installer download was incomplete. Try again.")); }
+    if downloaded!=release.installer.size { return Err(invalid("The UnknownALT installer download was incomplete. Try again.")); }
     publish(app,|u|{u.downloaded=downloaded;u.state="verifying".into();});
     progress.set("verifying",0,0);
     let path=path.to_owned(); let expected_hash=release.installer.sha256.clone(); let size=release.installer.size;
-    blocking(move || verified_file(&path,&expected_hash,size)).await
+    let report=progress.reporter();
+    blocking(move || verified_file(&path,&expected_hash,size,|read| report("verifying",read,size))).await
 }
 
-fn verified_file(path: &Path,expected_hash: &str,size: u64) -> Result<File> {
-    if !(1..=MAX_INSTALLER).contains(&size) {return Err(invalid("The Unknown alt installer size is invalid."));}
+fn verified_file(path: &Path,expected_hash: &str,size: u64,mut report: impl FnMut(u64)) -> Result<File> {
+    if !(1..=MAX_INSTALLER).contains(&size) {return Err(invalid("The UnknownALT installer size is invalid."));}
     // Deny writes/deletes after this point until the app exits. The helper re-verifies too.
     let mut pinned=OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(path)?;
-    let mut bytes=Vec::with_capacity(size as usize);
-    (&mut pinned).take(size+1).read_to_end(&mut bytes)?;
-    if bytes.len() as u64!=size || !hex(&digest(&bytes)?).eq_ignore_ascii_case(expected_hash) {
-        return Err(invalid("The downloaded Unknown alt installer failed verification. Nothing was installed."));
+    let mut remaining=(&mut pinned).take(size+1);
+    let mut buffer=vec![0;1024*1024];
+    let mut read=0u64;
+    let mut sha=Sha256::new();
+    report(0);
+    loop {
+        let count=remaining.read(&mut buffer)?;
+        if count==0 { break; }
+        sha.update(&buffer[..count]);
+        read+=count as u64;
+        if read<size && read.is_multiple_of(4*1024*1024) { report(read); }
     }
+    if read!=size || !hex(&sha.finalize()).eq_ignore_ascii_case(expected_hash) {
+        return Err(invalid("The downloaded UnknownALT installer failed verification. Nothing was installed."));
+    }
+    report(size);
     Ok(pinned)
 }
 
@@ -521,23 +534,23 @@ pub async fn install(app: &AppHandle) -> Result<()> {
     if crate::store_package::active() { return Err(invalid(crate::store_package::UPDATE_NOTICE)); }
     let s=app.state::<App>();
     s.self_update.installing.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst)
-        .map_err(|_|invalid("Unknown alt is already preparing an update."))?;
+        .map_err(|_|invalid("UnknownALT is already preparing an update."))?;
     let result=run_install(app,&s).await;
     if let Err(e)=&result {
         s.self_update.installing.store(false,Ordering::SeqCst);
         publish(app,|u|{u.state="error".into();u.error=Some(e.message());});
-        log::warn!("Unknown alt update was not applied: {}",e.message());
+        log::warn!("UnknownALT update was not applied: {}",e.message());
     }
     result
 }
 
 async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
     idle(s)?;
-    let c=channel().map_err(invalid)?.ok_or_else(||invalid("Unknown alt updates are not connected yet. Configure your release repository and verification key first."))?;
+    let c=channel().map_err(invalid)?.ok_or_else(||invalid("UnknownALT updates are not connected yet. Configure your release repository and verification key first."))?;
     let stage=TempDir(blocking(crate::update_handoff::new_stage).await?);
     let stage_for_window=stage.0.clone();
     let progress=blocking(move || crate::update_progress::Progress::start(&stage_for_window)).await?;
-    let release=latest(s,&c).await?.ok_or_else(||invalid("Unknown alt is already up to date."))?;
+    let release=latest(s,&c).await?.ok_or_else(||invalid("UnknownALT is already up to date."))?;
     publish(app,|u|{u.available=Some(release.version.clone());u.state="downloading".into();u.downloaded=0;u.total=Some(release.installer.size);u.error=None;});
     progress.set("downloading",0,release.installer.size);
     for (name,bytes) in [(MANIFEST_FILE,release.manifest.as_slice()),(SIGNATURE_FILE,release.signature.as_slice())] {
@@ -572,9 +585,9 @@ async fn run_install(app: &AppHandle,s: &App) -> Result<()> {
             crate::update_handoff::release_pins();
             crate::update_progress::clear(&abandoned_stage);
             s.self_update.installing.store(false,Ordering::SeqCst);
-            publish(&recovery,|u|{u.state="error".into();u.error=Some("Unknown alt could not close cleanly for the update. Nothing was replaced; try again after closing Browse.".into());});
+            publish(&recovery,|u|{u.state="error".into();u.error=Some("UnknownALT could not close cleanly for the update. Nothing was replaced; try again after closing Browse.".into());});
             if let Err(e)=std::fs::remove_dir_all(&abandoned_stage) {
-                log::info!("could not remove abandoned Unknown alt update stage: {e}");
+                log::info!("could not remove abandoned UnknownALT update stage: {e}");
             }
         }
     });
@@ -707,14 +720,16 @@ mod tests {
         let dir=TempDir::new("unknownalt-update-test-").unwrap();
         let path=dir.0.join(&release.installer.file_name);
         std::fs::write(&path,include_bytes!("../fixtures/updater/installer.bin")).unwrap();
-        let pinned=verified_file(&path,&release.installer.sha256,release.installer.size).unwrap();
+        let mut progress=Vec::new();
+        let pinned=verified_file(&path,&release.installer.sha256,release.installer.size,|bytes| progress.push(bytes)).unwrap();
+        assert_eq!(progress,vec![0,release.installer.size]);
         assert!(OpenOptions::new().write(true).open(&path).is_err(),"verified executable cannot be changed while staged");
         assert!(std::fs::remove_file(&path).is_err(),"verified executable cannot be replaced while staged");
         drop(pinned);
         std::fs::write(&path,b"incomplete").unwrap();
-        assert!(verified_file(&path,&release.installer.sha256,release.installer.size).is_err());
+        assert!(verified_file(&path,&release.installer.sha256,release.installer.size,|_|{}).is_err());
         let mut tampered=include_bytes!("../fixtures/updater/installer.bin").to_vec();tampered[0]^=1;
         std::fs::write(&path,tampered).unwrap();
-        assert!(verified_file(&path,&release.installer.sha256,release.installer.size).is_err());
+        assert!(verified_file(&path,&release.installer.sha256,release.installer.size,|_|{}).is_err());
     }
 }

@@ -31,9 +31,9 @@ pub fn seal_payload(password: &str, json: &[u8], magic: &[u8; 8]) -> Result<Vec<
 }
 
 /// `WrongPassword` when the password (or file) does not authenticate,
-/// `Invalid("This isn't an Unknown alt backup.")` on a bad magic / truncated file.
+/// `Invalid("This isn't an UnknownALT backup.")` on a bad magic / truncated file.
 pub fn open_file(path: &Path, password: &str) -> Result<Zeroizing<Vec<u8>>> {
-    let not_backup = || AppError::Invalid(tr!("This isn't an Unknown alt backup."));
+    let not_backup = || AppError::Invalid(tr!("This isn't an UnknownALT backup."));
     // About 2 KB per account: far above anyone's vault, and it isn't all read into memory first.
     if fs::metadata(path)?.len() > 64 << 20 {
         return Err(not_backup());

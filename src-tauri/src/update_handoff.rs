@@ -88,9 +88,9 @@ pub fn health_pending() -> bool { HEALTH_PENDING.load(Ordering::Acquire) }
 
 pub fn staging_root() -> Result<PathBuf> {
     let local = std::env::var_os("LOCALAPPDATA").filter(|s| !s.is_empty())
-        .ok_or_else(|| invalid("Windows could not locate Unknown alt's update staging folder."))?;
+        .ok_or_else(|| invalid("Windows could not locate UnknownALT's update staging folder."))?;
     let local = PathBuf::from(local);
-    if !local.is_absolute() { return Err(invalid("Unknown alt's update staging folder must be absolute.")); }
+    if !local.is_absolute() { return Err(invalid("UnknownALT's update staging folder must be absolute.")); }
     Ok(local.join("UnknownAlt-update-staging"))
 }
 
@@ -105,7 +105,7 @@ pub(crate) fn system32() -> Result<PathBuf> {
 fn regular_dir(path: &Path) -> Result<()> {
     let meta = std::fs::symlink_metadata(path)?;
     if !meta.is_dir() || meta.file_attributes() & REPARSE_POINT != 0 {
-        return Err(invalid("Unknown alt's update folder cannot be a link or junction."));
+        return Err(invalid("UnknownALT's update folder cannot be a link or junction."));
     }
     Ok(())
 }
@@ -126,11 +126,11 @@ fn private_dir(path: &Path) -> Result<()> {
     // Remove pre-existing explicit grants as well as inheritance. A precreated staging
     // root must not retain another user's write access after a successful grant command.
     let reset=Command::new(&icacls).arg(path).arg("/reset").creation_flags(NO_WINDOW).output()?;
-    if !reset.status.success() {return Err(invalid("Unknown alt could not secure its update folder. Nothing was installed."));}
+    if !reset.status.success() {return Err(invalid("UnknownALT could not secure its update folder. Nothing was installed."));}
     let result = Command::new(icacls).arg(path)
         .args(["/inheritance:r", "/grant:r", &format!("{user}:(OI)(CI)F"), "*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F"])
         .creation_flags(NO_WINDOW).output()?;
-    if !result.status.success() { return Err(invalid("Unknown alt could not secure its update folder. Nothing was installed.")); }
+    if !result.status.success() { return Err(invalid("UnknownALT could not secure its update folder. Nothing was installed.")); }
     Ok(())
 }
 
@@ -184,7 +184,7 @@ fn startup_decision(live:bool,matching_probe:bool,journal:Option<&JournalHeader>
 }
 
 fn recovery_required()->AppError {
-    invalid("Unknown alt has an interrupted update awaiting recovery. Restart Windows to run its retained recovery helper before opening Unknown alt. The previous version and saved-data backups are preserved.")
+    invalid("UnknownALT has an interrupted update awaiting recovery. Restart Windows to run its retained recovery helper before opening UnknownALT. The previous version and saved-data backups are preserved.")
 }
 
 fn helper_script(channel:&Channel)->Result<String> {
@@ -193,7 +193,7 @@ fn helper_script(channel:&Channel)->Result<String> {
         .replace("__UNKNOWNALT_OWNER__",&channel.owner)
         .replace("__UNKNOWNALT_REPOSITORY__",&channel.repository)
         .replace("__UNKNOWNALT_CHANNEL__",&channel.channel);
-    if script.trim().is_empty() || script.contains("__UNKNOWNALT_") {return Err(invalid("Unknown alt's trusted update helper is incomplete."));}
+    if script.trim().is_empty() || script.contains("__UNKNOWNALT_") {return Err(invalid("UnknownALT's trusted update helper is incomplete."));}
     Ok(script)
 }
 
@@ -233,7 +233,7 @@ fn begin_recovery(stage:&Path,nonce:&str,install:&Path)->Result<()> {
 /// transaction could later restore older data. A dead OS lock alone does not mean safety.
 pub fn guard_startup() -> Result<()> {
     let exe=std::env::current_exe()?;
-    let install=exe.parent().ok_or_else(||invalid("Unknown alt's installation folder is unavailable."))?;
+    let install=exe.parent().ok_or_else(||invalid("UnknownALT's installation folder is unavailable."))?;
     let lock=install.join(".unknownalt-update.lock");
     if !lock.exists() {return Ok(());}
     // The helper denies FileShare.Write; stale locks still carry the durable transaction.
@@ -245,7 +245,7 @@ pub fn guard_startup() -> Result<()> {
         && !(held.stage_dir.parent().is_some_and(|p|crate::same_dir(p,&root))
             && held.stage_dir.file_name().and_then(|s|s.to_str()).and_then(|s|s.strip_prefix(PREFIX)).is_some_and(|s|uuid::Uuid::parse_str(s).is_ok())) {return Err(recovery_required());}
     if !held.stage_dir.try_exists().map_err(|_|recovery_required())? {
-        return if live {Err(invalid("Unknown alt is finishing an update. Wait for it to restart before opening it again."))} else {Ok(())};
+        return if live {Err(invalid("UnknownALT is finishing an update. Wait for it to restart before opening it again."))} else {Ok(())};
     }
     regular_dir(&root).map_err(|_|recovery_required())?;regular_dir(&held.stage_dir).map_err(|_|recovery_required())?;
     let stage=canonical(&held.stage_dir).map_err(|_|recovery_required())?;
@@ -259,7 +259,7 @@ pub fn guard_startup() -> Result<()> {
         StartupDecision::Continue=>Ok(()),
         StartupDecision::Wait=>{
             if crate::update_progress::focus(&stage) { std::process::exit(0); }
-            Err(invalid("Unknown alt is finishing an update. Wait for it to restart before opening it again."))
+            Err(invalid("UnknownALT is finishing an update. Wait for it to restart before opening it again."))
         }
         StartupDecision::Recover=>begin_recovery(&stage,&held.nonce,install),
     }
@@ -284,33 +284,33 @@ fn bounded_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T> {
 
 fn bounded_json_limit<T: for<'a> Deserialize<'a>>(path: &Path,limit:u64) -> Result<T> {
     let meta=std::fs::symlink_metadata(path)?;
-    if !meta.is_file() || meta.file_attributes() & REPARSE_POINT != 0 || meta.len()>limit {return Err(invalid("Unknown alt's update metadata is invalid."));}
+    if !meta.is_file() || meta.file_attributes() & REPARSE_POINT != 0 || meta.len()>limit {return Err(invalid("UnknownALT's update metadata is invalid."));}
     let mut bytes=Vec::new(); File::open(path)?.take(limit+1).read_to_end(&mut bytes)?;
-    if bytes.len() as u64>limit {return Err(invalid("Unknown alt's update metadata is too large."));}
-    serde_json::from_slice(&bytes).map_err(|_|invalid("Unknown alt's update acknowledgement could not be read."))
+    if bytes.len() as u64>limit {return Err(invalid("UnknownALT's update metadata is too large."));}
+    serde_json::from_slice(&bytes).map_err(|_|invalid("UnknownALT's update acknowledgement could not be read."))
 }
 
 fn atomic_health(path: &Path, health: &Health) -> Result<()> {
     let pending=path.with_extension("pending");
     let mut file=File::create_new(&pending)?;
-    file.write_all(&serde_json::to_vec(health).map_err(|_|invalid("Unknown alt could not write its startup acknowledgement."))?)?;
+    file.write_all(&serde_json::to_vec(health).map_err(|_|invalid("UnknownALT could not write its startup acknowledgement."))?)?;
     file.sync_all()?; drop(file); std::fs::rename(pending,path)?; Ok(())
 }
 
 pub async fn health_ready() -> Result<Option<UpdateOutcome>> {
     crate::launcher::update::blocking(|| {
         if health_pending() {
-            let probe=PROBE.get().ok_or_else(||invalid("Unknown alt's update startup information is invalid. Close the app to recover the previous version."))?;
+            let probe=PROBE.get().ok_or_else(||invalid("UnknownALT's update startup information is invalid. Close the app to recover the previous version."))?;
             let health=Health{nonce:probe.nonce.clone(),pid:std::process::id(),version:env!("CARGO_PKG_VERSION").into()};
             if !probe.file.exists() {atomic_health(&probe.file,&health)?;}
             let ack=PathBuf::from(format!("{}.ack",probe.file.display()));
             let start=Instant::now();
             loop {
                 if let Ok(reply)=bounded_json::<Health>(&ack) {
-                    if reply.nonce!=health.nonce || reply.pid!=health.pid || reply.version!=health.version {return Err(invalid("Unknown alt's update commit acknowledgement did not match this process."));}
+                    if reply.nonce!=health.nonce || reply.pid!=health.pid || reply.version!=health.version {return Err(invalid("UnknownALT's update commit acknowledgement did not match this process."));}
                     HEALTH_PENDING.store(false,Ordering::Release);break;
                 }
-                if start.elapsed()>Duration::from_secs(65) {return Err(invalid("Unknown alt's update did not finish committing. Close the app so the previous version can be recovered."));}
+                if start.elapsed()>Duration::from_secs(65) {return Err(invalid("UnknownALT's update did not finish committing. Close the app so the previous version can be recovered."));}
                 std::thread::sleep(Duration::from_millis(100));
             }
         }
@@ -322,7 +322,7 @@ fn take_outcome() -> Result<Option<UpdateOutcome>> {
     let file=crate::default_dir().join("update-result.json");
     if !file.exists() {return Ok(None);}
     let value=bounded_json::<UpdateOutcome>(&file)?;
-    if !matches!(value.status.as_str(),"success"|"rolled_back"|"failed") || value.message.len()>2048 {return Err(invalid("Unknown alt's update result is invalid."));}
+    if !matches!(value.status.as_str(),"success"|"rolled_back"|"failed") || value.message.len()>2048 {return Err(invalid("UnknownALT's update result is invalid."));}
     std::fs::remove_file(file)?;Ok(Some(value))
 }
 
@@ -335,7 +335,7 @@ pub(crate) fn parent_start_time() -> Result<u64> {
     let(mut creation,mut exit,mut kernel,mut user)=(FILETIME::default(),FILETIME::default(),FILETIME::default(),FILETIME::default());
     // SAFETY: pseudo-handle is valid for this process and all out pointers are writable.
     unsafe{GetProcessTimes(GetCurrentProcess(),&mut creation,&mut exit,&mut kernel,&mut user)}
-        .map_err(|_|invalid("Windows could not identify this Unknown alt process for a safe restart."))?;
+        .map_err(|_|invalid("Windows could not identify this UnknownALT process for a safe restart."))?;
     Ok((u64::from(creation.dwHighDateTime)<<32)|u64::from(creation.dwLowDateTime))
 }
 
@@ -343,12 +343,12 @@ fn wait_ready(child: &mut Child,path: &Path,nonce: &str) -> Result<()> {
     #[derive(Deserialize)] struct Ready{status:String,nonce:String}
     let start=Instant::now();
     loop {
-        if child.try_wait()?.is_some() {return Err(invalid("Unknown alt's update helper could not prepare a safe restart. Nothing was installed."));}
+        if child.try_wait()?.is_some() {return Err(invalid("UnknownALT's update helper could not prepare a safe restart. Nothing was installed."));}
         if let Ok(ready)=bounded_json::<Ready>(path) {
             if ready.status=="ready" && ready.nonce==nonce {return Ok(());}
-            return Err(invalid("Unknown alt's update helper returned an invalid readiness acknowledgement."));
+            return Err(invalid("UnknownALT's update helper returned an invalid readiness acknowledgement."));
         }
-        if start.elapsed()>Duration::from_secs(10) {return Err(invalid("Unknown alt's update helper did not become ready. Nothing was installed."));}
+        if start.elapsed()>Duration::from_secs(10) {return Err(invalid("UnknownALT's update helper did not become ready. Nothing was installed."));}
         std::thread::sleep(Duration::from_millis(100));
     }
 }
@@ -356,11 +356,11 @@ fn wait_ready(child: &mut Child,path: &Path,nonce: &str) -> Result<()> {
 pub fn handoff(app:&AppHandle,release:&Release,installer:&Path,stage:&Path)->Result<()> {
     let root=canonical(&staging_root()?)?;
     regular_dir(stage)?;let stage=canonical(stage)?;
-    if stage.parent()!=Some(root.as_path()) || !valid_probe_path(&stage.join("health.json"),&root) {return Err(invalid("Unknown alt's update staging path is invalid."));}
+    if stage.parent()!=Some(root.as_path()) || !valid_probe_path(&stage.join("health.json"),&root) {return Err(invalid("UnknownALT's update staging path is invalid."));}
     let installer=canonical(installer)?;
-    if installer.parent()!=Some(stage.as_path()) || installer.file_name().and_then(|s|s.to_str())!=Some(release.installer.file_name.as_str()) {return Err(invalid("Unknown alt's verified installer path is invalid."));}
+    if installer.parent()!=Some(stage.as_path()) || installer.file_name().and_then(|s|s.to_str())!=Some(release.installer.file_name.as_str()) {return Err(invalid("UnknownALT's verified installer path is invalid."));}
     let current_exe=canonical(&std::env::current_exe()?)?;
-    let install_dir=current_exe.parent().ok_or_else(||invalid("Unknown alt's installation folder could not be identified."))?.to_owned();
+    let install_dir=current_exe.parent().ok_or_else(||invalid("UnknownALT's installation folder could not be identified."))?.to_owned();
     let health_nonce=uuid::Uuid::new_v4().to_string();
     let s=app.state::<App>();
     let request=Request{schema:1,parent_pid:std::process::id(),parent_start_file_time:parent_start_time()?,current_version:env!("CARGO_PKG_VERSION"),
@@ -369,7 +369,7 @@ pub fn handoff(app:&AppHandle,release:&Release,installer:&Path,stage:&Path)->Res
         outcome_file:crate::default_dir().join("update-result.json"),health_file:stage.join("health.json"),health_nonce};
     let script=helper_script(&release.config)?;
     let script_file=stage.join("update-helper.ps1");let request_file=stage.join("request.json");
-    let mut pins=vec![write_pinned(&script_file,script.as_bytes())?,write_pinned(&request_file,&serde_json::to_vec(&request).map_err(|_|invalid("Unknown alt's update restart request could not be prepared."))?)?];
+    let mut pins=vec![write_pinned(&script_file,script.as_bytes())?,write_pinned(&request_file,&serde_json::to_vec(&request).map_err(|_|invalid("UnknownALT's update restart request could not be prepared."))?)?];
     for file in [&request.manifest_file,&request.signature_file] {pins.push(OpenOptions::new().read(true).share_mode(SHARE_READ).open(file)?);}
     let mut child=Command::new(system32()?.join(r"WindowsPowerShell\v1.0\powershell.exe"))
         .args(["-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-File"]).arg(script_file).arg("-RequestFile").arg(request_file)

@@ -1,7 +1,7 @@
 //! Resizing a client freely, past Roblox's minimum size. The client holds its window to a minimum
 //! (`WM_GETMINMAXINFO`), and Windows' own sizing loop keeps to it whatever the window's style (see
-//! the ignored tests in `window`), so that loop must not start: a low-level mouse hook, in Unknown alt's
-//! process, takes a press on a client's edge (`on_mouse`) and Unknown alt sizes the window from there
+//! the ignored tests in `window`), so that loop must not start: a low-level mouse hook, in UnknownALT's
+//! process, takes a press on a client's edge (`on_mouse`) and UnknownALT sizes the window from there
 //! (`run_drag`). Nothing goes into the client, and no other window is touched. A small window's
 //! title bar goes the same way, since Windows' move loop would throw it up to the minimum too.
 //!
@@ -23,7 +23,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use super::window;
 
-/// The pids of Unknown alt's clients: no other window is touched.
+/// The pids of UnknownALT's clients: no other window is touched.
 static CLIENTS: Mutex<Vec<u32>> = Mutex::new(Vec::new());
 /// A drag: its window, where it was, where the pointer took hold, and its style if that was changed
 /// for the drag.
@@ -55,7 +55,7 @@ fn moved(from: RECT, grab: POINT, to: POINT) -> RECT {
     RECT { left: from.left + dx, top: from.top + dy, right: from.right + dx, bottom: from.bottom + dy }
 }
 
-/// An edge drag Unknown alt is running.
+/// An edge drag UnknownALT is running.
 struct EdgeDrag {
     hwnd: isize,
     from: RECT,
@@ -330,7 +330,7 @@ unsafe extern "system" fn on_event(_: HWINEVENTHOOK, event: u32, hwnd: HWND, obj
     }
 }
 
-/// The pid of the window, if it is one of Unknown alt's clients'.
+/// The pid of the window, if it is one of UnknownALT's clients'.
 fn client_of(hwnd: HWND) -> Option<u32> {
     let mut pid = 0;
     // SAFETY: reads which process owns a window into a local.

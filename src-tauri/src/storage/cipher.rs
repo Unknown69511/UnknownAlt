@@ -231,7 +231,7 @@ mod tests {
     fn a_plain_database_is_encrypted_with_its_data() {
         let dir = tmp();
         let path = dir.join("UnknownAlt.db");
-        // A plain database as an older Unknown alt left it: migrated schema, one account, WAL.
+        // A plain database as an older UnknownALT left it: migrated schema, one account, WAL.
         std::fs::create_dir_all(&dir).unwrap();
         Db::open_in_memory().unwrap().copy_to(&path, || Ok(())).unwrap();
         put(&path, 42);

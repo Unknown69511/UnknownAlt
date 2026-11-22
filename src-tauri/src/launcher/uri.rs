@@ -72,7 +72,7 @@ pub fn player_uri(ticket: &Secret, launch_time_ms: i64, p: &PlaceLaunch, product
 
 /// Where a `roblox-player:` URI from a Roblox page (its Play or Join button, in Browse) would go
 /// (pure), read from its `placelauncherurl` alone: the ticket in it (`gameinfo`) is never read, so
-/// Unknown alt launches with its own. None for anything else, or a launcher URL off Roblox.
+/// UnknownALT launches with its own. None for anything else, or a launcher URL off Roblox.
 pub fn target_of_player_uri(uri: &str) -> Option<crate::model::LaunchTarget> {
     use super::target::is_uuid;
     use crate::model::LaunchTarget as T;

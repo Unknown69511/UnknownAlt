@@ -1,17 +1,17 @@
-# Unknown alt online counter
+# UnknownALT online counter
 
-The Cloudflare Worker behind the "N using Unknown alt now" count beside the Discord button.
+The Cloudflare Worker behind the "N using UnknownALT now" count beside the Discord button.
 
-Each running Unknown alt with **Settings > About > Show how many people use Unknown alt** on sends
+Each running UnknownALT with **Settings > About > Show how many people use UnknownALT** on sends
 `POST /ping` with `{"id":"<random UUID made once per launch>","playing":<running Roblox clients>}`
 every 2 minutes. The Worker answers `{"online": N, "playing": M}`: how many different ids pinged in
 the last 5 minutes, and their clients added up (each id counts for at most 100). Nothing else is
-sent, and the Worker keeps the ids in memory only. With the setting off, Unknown alt sends nothing.
+sent, and the Worker keeps the ids in memory only. With the setting off, UnknownALT sends nothing.
 
 The client currently uses the existing compatibility counter endpoint configured in
 `src-tauri/src/online.rs`. Deploying this worker does not change installed clients. Set
 `ONLINE_URL` to your own worker and rebuild to use an independent counter. This optional
-counter is separate from Unknown alt's private update source.
+counter is separate from UnknownALT's private update source.
 
 ## Deploy
 

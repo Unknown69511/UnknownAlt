@@ -53,7 +53,7 @@ fn local_now() -> (u16, u16, u16, u16, u16, u16) {
     (t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond)
 }
 
-/// An export file Unknown alt names: `UnknownAlt-cookies-*.txt`, or a `.txt.tmp` left by a write that crashed
+/// An export file UnknownALT names: `UnknownAlt-cookies-*.txt`, or a `.txt.tmp` left by a write that crashed
 /// before the atomic rename (`vault::backup::write_atomic`) (pure).
 fn is_export(path: &Path) -> bool {
     path.file_name()
@@ -108,7 +108,7 @@ fn remove(path: &Path) {
     }
 }
 
-/// At start: the export files a closed Unknown alt left behind, nothing else in the folder.
+/// At start: the export files a closed UnknownALT left behind, nothing else in the folder.
 pub fn sweep(data_dir: &Path) {
     let Ok(entries) = std::fs::read_dir(data_dir.join(DIR)) else { return };
     for p in entries.filter_map(|e| Some(e.ok()?.path())) {
@@ -185,7 +185,7 @@ pub(crate) fn secure_exports(dir: &Path) -> Result<()> {
     let sddl: Vec<u16> = format!("D:P(A;OICI;FA;;;{sid})").encode_utf16().chain(Some(0)).collect();
     let path: Vec<u16> = dir.as_os_str().encode_wide().chain(Some(0)).collect();
     let mut descriptor = PSECURITY_DESCRIPTOR::default();
-    let fail = || AppError::Invalid("Windows could not secure Unknown alt's private local folder. No private files were written.".into());
+    let fail = || AppError::Invalid("Windows could not secure UnknownALT's private local folder. No private files were written.".into());
     // SAFETY: input strings are terminated and alive; Windows owns descriptor until LocalFree.
     unsafe {
         ConvertStringSecurityDescriptorToSecurityDescriptorW(PCWSTR(sddl.as_ptr()), 1, &mut descriptor, None).map_err(|_| fail())?;

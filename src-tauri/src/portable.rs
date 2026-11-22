@@ -51,7 +51,7 @@ struct PortableStatus {
 }
 
 fn invalid() -> AppError {
-    AppError::Invalid("Choose a compatible password-protected Unknown alt backup.".into())
+    AppError::Invalid("Choose a compatible password-protected UnknownALT backup.".into())
 }
 
 fn decode(bytes: &[u8]) -> Result<Archive> {
@@ -316,7 +316,7 @@ mod native {
                     "main",
                     tauri::WebviewUrl::App("index.html".into()),
                 )
-                .title("Unknown alt")
+                .title("UnknownALT")
                 .inner_size(1080.0, 720.0)
                 .min_inner_size(640.0, 480.0)
                 .initialization_script("window.__UNKNOWNALT_PORTABLE__ = true;")
@@ -328,10 +328,18 @@ mod native {
                 portable_import,
                 portable_export,
                 portable_backup,
-                crate::bulletins::update_bulletins
+                crate::bulletins::update_bulletins,
+                crate::analytics::public_analytics_search,
+                crate::analytics::public_analytics_snapshot,
+                crate::analytics::public_analytics_trending,
+                crate::analytics::public_analytics_studio,
+                crate::analytics::creator_analytics_connect,
+                crate::analytics::creator_analytics_disconnect,
+                crate::analytics::creator_analytics_metrics,
+                crate::analytics::creator_analytics_export
             ])
             .run(tauri::generate_context!())
-            .expect("Unknown alt could not start");
+            .expect("UnknownALT could not start");
     }
 }
 

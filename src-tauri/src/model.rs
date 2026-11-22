@@ -328,12 +328,12 @@ pub struct Settings {
     /// Relaunch a client Roblox disconnects (kicked, server shut down, connection lost; not the
     /// player's own Leave or a sign-in elsewhere) into the same target, within the breaker.
     pub auto_rejoin: bool,
-    /// Relaunch a client that ended without Unknown alt closing it or stopped responding (a window
+    /// Relaunch a client that ended without UnknownALT closing it or stopped responding (a window
     /// closed by hand looks the same, so it is opt-in), within the breaker.
     pub auto_restart_on_crash: bool,
     /// Crash breaker: at most this many rejoins and restarts of one account (1..=20) ...
     pub breaker_max: u32,
-    /// ... within this many minutes (1..=240); then Unknown alt gives up on it.
+    /// ... within this many minutes (1..=240); then UnknownALT gives up on it.
     pub breaker_window_min: u32,
     /// How long a closed client gets to exit before it is terminated, 1..=60 s.
     pub close_grace_s: u32,
@@ -347,7 +347,7 @@ pub struct Settings {
     pub protect_main: bool,
     /// Each client's own Windows audio session is muted once it reaches a game (`instances::audio`).
     pub mute_on_launch: bool,
-    /// Launched clients go into this layout on Unknown alt's monitor; not Off: it replaces `tiny_on_launch`.
+    /// Launched clients go into this layout on UnknownALT's monitor; not Off: it replaces `tiny_on_launch`.
     pub window_layout: WindowLayout,
     /// Restart a client whose private memory stays over this many MB (3 samples, 10 s apart),
     /// within the breaker; 0: off, else 512..=65 536.
@@ -378,7 +378,7 @@ pub struct Settings {
     /// never installed without a click.
     pub self_update: bool,
     /// Discord rich presence through the upstream registered application (`rpc`); its external
-    /// application name is unchanged, with local Unknown alt details and the game/alt count.
+    /// application name is unchanged, with local UnknownALT details and the game/alt count.
     pub discord_presence: bool,
     /// What Discord rich presence shows (`rpc`): game name, alt count, elapsed timer, buttons,
     /// and optional custom lines.
@@ -448,7 +448,7 @@ pub struct Settings {
     pub onboarded: bool,
 }
 
-/// The network Unknown alt runs on (`network`). Never its name: streamers show Unknown alt on screen.
+/// The network UnknownALT runs on (`network`). Never its name: streamers show UnknownALT on screen.
 #[derive(Serialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -574,7 +574,7 @@ pub struct DiscordRpc {
     pub show_count: bool,
     /// Show the elapsed timer.
     pub show_elapsed: bool,
-    /// Show the "Get Unknown alt" and "Join Discord" buttons.
+    /// Show the "Get UnknownALT" and "Join Discord" buttons.
     pub show_buttons: bool,
     /// Optional custom top line (`details`, up to 128 chars; supports `{game}` and `{count}`).
     pub custom_details: String,
@@ -1045,7 +1045,7 @@ pub struct CookieExport {
     pub count: u32,
     /// Accounts whose cookie couldn't be read.
     pub skipped: u32,
-    /// Unix ms when Unknown alt deletes it.
+    /// Unix ms when UnknownALT deletes it.
     pub deletes_at: i64,
 }
 
@@ -1166,7 +1166,7 @@ pub struct UserRef {
     pub display_name: String,
 }
 
-/// A client Unknown alt started.
+/// A client UnknownALT started.
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -1206,7 +1206,7 @@ pub enum InstanceState {
     Exited,
 }
 
-/// A Roblox client Unknown alt started and is following.
+/// A Roblox client UnknownALT started and is following.
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -1234,17 +1234,17 @@ pub struct Instance {
     pub afk_at: Option<i64>,
     /// Held to `Settings.mem_throttle`'s CPU cap: its memory is over that limit.
     pub throttled: bool,
-    /// Its window was made small by Unknown alt (`instance_micro`, `instances_tile`); "Normal size"
+    /// Its window was made small by UnknownALT (`instance_micro`, `instances_tile`); "Normal size"
     /// puts it back.
     pub micro: bool,
     /// The client size it was made small at, when not the Settings tiny size (a window-layout cell):
-    /// the tiny sweep keeps it at that, also after Unknown alt restarts.
+    /// the tiny sweep keeps it at that, also after UnknownALT restarts.
     #[serde(default)]
     #[ts(skip)]
     pub micro_size: Option<(u32, u32)>,
     /// The FPS cap its launch asked for (`LaunchInfo::fps_cap`); a rejoin uses it again.
     pub fps_cap: Option<u32>,
-    /// Unknown alt is working on relaunching it (`instances::rejoin`). Not kept over a restart of UnknownAlt.
+    /// UnknownALT is working on relaunching it (`instances::rejoin`). Not kept over a restart of UnknownAlt.
     #[serde(default, skip_deserializing)]
     pub relaunching: bool,
     /// Why that relaunch has to wait, while it does.
@@ -1323,7 +1323,7 @@ pub struct ClientMetrics {
 pub struct BandwidthStatus {
     /// The setting: what was last applied (0: none).
     pub kbps: u32,
-    /// The policy Unknown alt set is in force: applied since Windows last started.
+    /// The policy UnknownALT set is in force: applied since Windows last started.
     pub active: bool,
 }
 
@@ -1534,7 +1534,7 @@ pub struct PrivateServerPage {
 
 // ---------- M7 ----------
 
-/// The Roblox client Unknown alt would start.
+/// The Roblox client UnknownALT would start.
 #[derive(Serialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -1542,7 +1542,7 @@ pub struct RobloxClient {
     /// None when Roblox isn't installed.
     pub path: Option<String>,
     /// A bootstrapper (e.g. Bloxstrap) handles launches; it keeps Roblox up to date itself, so
-    /// Unknown alt never updates or installs over it.
+    /// UnknownALT never updates or installs over it.
     pub bootstrapper: bool,
     /// The installed version: the `Versions\version-…` folder the client is in. None when not
     /// installed, for a bootstrapper, or a client outside such a folder.
@@ -1611,7 +1611,7 @@ pub enum InstallProgress {
     Error { message: String },
 }
 
-/// Where Unknown alt keeps its data.
+/// Where UnknownALT keeps its data.
 #[derive(Serialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -1628,13 +1628,13 @@ pub struct DataDir {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum CrashKind {
-    /// Ended without Unknown alt closing it and without a disconnect in its log.
+    /// Ended without UnknownALT closing it and without a disconnect in its log.
     Crash,
     /// Roblox disconnected it (kick, shutdown, connection lost).
     Disconnect,
     /// Its window stopped responding.
     Hang,
-    /// Unknown alt restarted it: its memory stayed over `Settings.mem_restart_mb`.
+    /// UnknownALT restarted it: its memory stayed over `Settings.mem_restart_mb`.
     Mem,
     /// UnknownAlt restarted it: it had run for `Settings.restart_every_h`.
     Timed,
@@ -1854,7 +1854,7 @@ pub struct AccountValue {
     pub value: Option<i64>,
     /// The most valuable, highest first (at most 10).
     pub top: Vec<LimitedItem>,
-    /// Not every copy was counted (the inventory is bigger than Unknown alt reads, or Roblox stopped answering).
+    /// Not every copy was counted (the inventory is bigger than UnknownALT reads, or Roblox stopped answering).
     pub partial: bool,
     /// Unix ms.
     pub fetched_at: i64,

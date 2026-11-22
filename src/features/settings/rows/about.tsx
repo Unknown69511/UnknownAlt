@@ -7,7 +7,7 @@ import { toastError } from "../../../ui/Toast";
 import { SettingRow } from "../kit/SettingRow";
 export function VersionRow() {
 
- return <SettingRow id="version" name={`Unknown alt ${import.meta.env.APP_VERSION}`} title={<span className="set-label">Unknown alt <span className="mono">{import.meta.env.APP_VERSION}</span></span>} detail="MIT licensed · inspectsoftware">
+ return <SettingRow id="version" name={`UnknownALT ${import.meta.env.APP_VERSION}`} title={<span className="set-label">UnknownALT <span className="mono">{import.meta.env.APP_VERSION}</span></span>} detail="MIT licensed · inspectsoftware">
  <Button size="md" iconEnd="external" onClick={() => openUrl("https://github.com/Unknown69511/UnknownAlt/releases").catch(toastError)}>{t("settings.openReleases")}</Button></SettingRow>;
 }
 export function ReplayTourRow() { return <SettingRow id="replayTour"><Button size="md" onClick={replayOnboarding}>{t("onboarding.replayButton")}</Button></SettingRow>; }

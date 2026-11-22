@@ -138,7 +138,7 @@ impl Db {
             match e {
                 // An older UnknownAlt installed over a newer one's data: say so, the data is fine.
                 rusqlite_migration::Error::MigrationDefinition(rusqlite_migration::MigrationDefinitionError::DatabaseTooFarAhead) => {
-                    AppError::Invalid(tr!("This data was saved by a newer Unknown alt. Install the newest Unknown alt to open it. Nothing was changed."))
+                    AppError::Invalid(tr!("This data was saved by a newer UnknownALT. Install the newest UnknownALT to open it. Nothing was changed."))
                 }
                 e => AppError::Storage(e.to_string()),
             }
@@ -187,7 +187,7 @@ impl Db {
     /// meanwhile. Fails when `path` exists.
     pub fn copy_to<T>(&self, path: &Path, then: impl FnOnce() -> Result<T>) -> Result<T> {
         if path.exists() {
-            return Err(AppError::Invalid(tr!("That folder already has an Unknown alt database.")));
+            return Err(AppError::Invalid(tr!("That folder already has an UnknownALT database.")));
         }
         let conn = self.conn();
         match &self.file {
@@ -1326,7 +1326,7 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.pragma_update(None, "user_version", 99).unwrap();
         match Db::init(conn, None) {
-            Err(AppError::Invalid(m)) => assert!(m.contains("newer Unknown alt"), "{m}"),
+            Err(AppError::Invalid(m)) => assert!(m.contains("newer UnknownALT"), "{m}"),
             other => panic!("expected the newer-data message, got {:?}", other.map(drop)),
         }
     }

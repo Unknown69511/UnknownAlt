@@ -1,7 +1,7 @@
 //! "Mute clients on launch": sets one client's own Windows audio session muted or not (Core Audio,
 //! by process id); Roblox's settings file is untouched. Windows may remember a mute for the next
-//! session of the same exe, so every Unknown alt client gets set, unmuted when the setting is off; a
-//! Roblox started outside Unknown alt can still inherit one. The user can change it in the volume mixer.
+//! session of the same exe, so every UnknownALT client gets set, unmuted when the setting is off; a
+//! Roblox started outside UnknownALT can still inherit one. The user can change it in the volume mixer.
 
 use std::time::Duration;
 

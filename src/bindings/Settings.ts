@@ -66,7 +66,7 @@ launchDelayMs: number,
  */
 autoRejoin: boolean, 
 /**
- * Relaunch a client that ended without Unknown alt closing it or stopped responding (a window
+ * Relaunch a client that ended without UnknownALT closing it or stopped responding (a window
  * closed by hand looks the same, so it is opt-in), within the breaker.
  */
 autoRestartOnCrash: boolean, 
@@ -75,7 +75,7 @@ autoRestartOnCrash: boolean,
  */
 breakerMax: number, 
 /**
- * ... within this many minutes (1..=240); then Unknown alt gives up on it.
+ * ... within this many minutes (1..=240); then UnknownALT gives up on it.
  */
 breakerWindowMin: number, 
 /**
@@ -103,7 +103,7 @@ protectMain: boolean,
  */
 muteOnLaunch: boolean, 
 /**
- * Launched clients go into this layout on Unknown alt's monitor; not Off: it replaces `tiny_on_launch`.
+ * Launched clients go into this layout on UnknownALT's monitor; not Off: it replaces `tiny_on_launch`.
  */
 windowLayout: WindowLayout, 
 /**
@@ -154,7 +154,7 @@ askBrowserLinks: boolean,
 selfUpdate: boolean, 
 /**
  * Discord rich presence through the upstream registered application (`rpc`); its external
- * application name is unchanged, with local Unknown alt details and the game/alt count.
+ * application name is unchanged, with local UnknownALT details and the game/alt count.
  */
 discordPresence: boolean, 
 /**

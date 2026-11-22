@@ -35,14 +35,14 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path dist-distribution -Force | Out-Null
-          Copy-Item -LiteralPath src-tauri\target\release\unknownalt.exe -Destination dist-distribution\UnknownAlt.exe
+          Copy-Item -LiteralPath src-tauri\target\release\unknownalt.exe -Destination dist-distribution\UnknownALT.exe
           Copy-Item -LiteralPath LICENSE, REBRANDING.md -Destination dist-distribution
       - uses: actions/upload-artifact@v7
         with:
           name: UnknownAlt-Windows
           path: |
-            dist-distribution/UnknownAlt.exe
+            dist-distribution/UnknownALT.exe
             dist-distribution/LICENSE
             dist-distribution/REBRANDING.md
-            dist-installer/UnknownAlt-Setup-*.exe
+            dist-installer/UnknownALT-Setup-*.exe
           if-no-files-found: error

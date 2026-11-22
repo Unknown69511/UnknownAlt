@@ -106,7 +106,7 @@ fn write_with_magic(path: &Path, password: &str, payload: &BackupPayload, magic:
 
 pub fn read(path: &Path, password: &str) -> Result<BackupPayload> {
     let json = crate::backup_codec::open_file(path, password)?;
-    serde_json::from_slice(&json).map_err(|_| AppError::Invalid(tr!("This isn't an Unknown alt backup.")))
+    serde_json::from_slice(&json).map_err(|_| AppError::Invalid(tr!("This isn't an UnknownALT backup.")))
 }
 pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut tmp = path.as_os_str().to_owned();
@@ -232,7 +232,7 @@ mod tests {
         let _ = fs::remove_file(&path);
 
         for r in rejected {
-            assert!(matches!(r, Err(AppError::Invalid(m)) if m == "This isn't an Unknown alt backup."));
+            assert!(matches!(r, Err(AppError::Invalid(m)) if m == "This isn't an UnknownALT backup."));
         }
         assert!(matches!(cut_body, Err(AppError::WrongPassword)));
     }

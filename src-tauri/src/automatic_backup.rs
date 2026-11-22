@@ -30,7 +30,7 @@ pub struct AutomaticBackup {
     pub bytes: u64,
 }
 fn invalid() -> AppError {
-    AppError::Invalid("Unknown alt could not safely create or verify its encrypted local backup. Existing backups were kept.".into())
+    AppError::Invalid("UnknownALT could not safely create or verify its encrypted local backup. Existing backups were kept.".into())
 }
 pub fn root() -> Result<PathBuf> {
     let local = std::env::var_os("LOCALAPPDATA")

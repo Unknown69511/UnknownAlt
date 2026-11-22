@@ -1,4 +1,4 @@
-//! Discord rich presence (`Settings.discord_presence` + `Settings.discord_rpc`): "Playing Unknown alt",
+//! Discord rich presence (`Settings.discord_presence` + `Settings.discord_rpc`): "Playing UnknownALT",
 //! idling or with the game and how many alts run, plus optional Get UnknownAlt / Join Discord buttons.
 //!
 //! Spoken to the Discord app on this PC over its local IPC pipe `\\.\pipe\discord-ipc-N`: each
@@ -235,7 +235,7 @@ fn status(instances: &[Instance], cfg: &DiscordRpc, game_name: impl Fn(i64) -> O
 fn activity(p: &Presence, since_ms: i64) -> Value {
     let mut obj = json!({
         "details": p.details,
-        "assets": { "large_image": "unknownalt", "large_text": format!("Unknown alt · {}", tr!("Managing Roblox alts")) },
+        "assets": { "large_image": "unknownalt", "large_text": format!("UnknownALT · {}", tr!("Managing Roblox alts")) },
     });
     if let Some(state) = &p.state {
         obj["state"] = json!(state);
@@ -245,7 +245,7 @@ fn activity(p: &Presence, since_ms: i64) -> Value {
     }
     if p.show_buttons {
         obj["buttons"] = json!([
-            { "label": tr!("Get Unknown alt"), "url": DOWNLOAD },
+            { "label": tr!("Get UnknownALT"), "url": DOWNLOAD },
             { "label": tr!("Join Discord"), "url": INVITE },
         ]);
     }
@@ -403,7 +403,7 @@ mod tests {
         let p = status(&[], &DiscordRpc::default(), name);
         let a = activity(&p, 5_000);
         assert_eq!(a["timestamps"]["start"], 5);
-        assert_eq!(a["buttons"][0]["label"], "Get Unknown alt");
+        assert_eq!(a["buttons"][0]["label"], "Get UnknownALT");
         assert_eq!(a["buttons"][1]["url"], INVITE);
     }
 }

@@ -1,6 +1,6 @@
 # Platform builds and signing
 
-The Windows EXE is the full Unknown alt application. The macOS and Linux build
+The Windows EXE is the full UnknownALT application. The macOS and Linux build
 targets provide native desktop account archive and Updates views. Use the
 in-app Platform support page for the feature limits.
 
@@ -63,7 +63,7 @@ public signing key so it contains only the approved project identity.
 Build from an allowlisted source staging directory and inspect both archive
 contents and executable metadata before sharing. Exclude runtime data, logs,
 keys, personal paths and build history. The update manifest uses only
-Unknown69511/UnknownAlt and its pinned key. Roblox and DevForum notices are
+Unknown69511/UnknownALT and its pinned key. Roblox and DevForum notices are
 read-only editorial feeds loaded when the Updates page is opened.
 
 Portable import keeps the authenticated export payload intact, including settings

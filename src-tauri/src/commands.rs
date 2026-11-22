@@ -94,7 +94,7 @@ pub async fn vault_recovery_create(app: AppHandle, s: State<'_, App>, current_pa
 fn recovery_file_text(code: &str) -> Result<String> {
     let code = crate::vault::master::normalize_code(code).ok_or_else(not_a_code)?;
     Ok(tr!(
-        "Unknown alt recovery code: {code}\n\nIf you forget your master password, press Forgot password? on the unlock screen and enter this code. \
+        "UnknownALT recovery code: {code}\n\nIf you forget your master password, press Forgot password? on the unlock screen and enter this code. \
          It works once, for this Windows user on this PC.\n\nAnyone who finds this file on this PC can open your vault. Keep it on a USB stick, \
          a phone or paper.\n",
         code = code.expose()
@@ -401,14 +401,14 @@ pub async fn accounts_import_ram(app: AppHandle, s: State<'_, App>, path: String
     unlocked(&s)?;
     let meta = std::fs::metadata(&path).map_err(|e| {
         log::warn!("could not read RAM file metadata: {e}");
-        AppError::Invalid(tr!("Unknown alt couldn't read that file."))
+        AppError::Invalid(tr!("UnknownALT couldn't read that file."))
     })?;
     if meta.len() > 32 * 1024 * 1024 {
         return Err(AppError::Invalid(tr!("That file is too big to be an AccountData.json.")));
     }
     let data = zeroize::Zeroizing::new(std::fs::read(&path).map_err(|e| {
         log::warn!("could not read RAM file: {e}");
-        AppError::Invalid(tr!("Unknown alt couldn't read that file."))
+        AppError::Invalid(tr!("UnknownALT couldn't read that file."))
     })?);
     if data.starts_with(RAM_HEADER) {
         return Err(AppError::Invalid(tr!(
@@ -420,7 +420,7 @@ pub async fn accounts_import_ram(app: AppHandle, s: State<'_, App>, path: String
         Err(_) if data.trim_ascii_start().starts_with(b"[") || data.starts_with(b"\xEF\xBB\xBF") => ram_accounts(&data)?,
         Err(_) => {
             return Err(AppError::Invalid(tr!(
-                "Unknown alt couldn't decrypt this file. It must come from Roblox Account Manager on this PC, signed in as the same Windows user."
+                "UnknownALT couldn't decrypt this file. It must come from Roblox Account Manager on this PC, signed in as the same Windows user."
             )));
         }
     };
@@ -1220,7 +1220,7 @@ pub(crate) async fn launch_tracked(
     let _busy = s.bulk.begin_launch();
     // After `_busy`: an install starting now sees this launch, one already running is seen here.
     if s.self_update.installing() || crate::update_handoff::health_pending() {
-        return Err(AppError::Wait("Unknown alt is finishing an app update. Try launching again when it has restarted.".into()));
+        return Err(AppError::Wait("UnknownALT is finishing an app update. Try launching again when it has restarted.".into()));
     }
     if s.update.installing() {
         return Err(AppError::Wait(installing()));
@@ -1295,7 +1295,7 @@ pub fn notice(app: &AppHandle, error: bool, message: impl Into<String>) {
     let _ = app.emit("app://notice", Notice { error, message });
 }
 
-/// The Roblox client Unknown alt would start (`launcher::client::find`; not installed → path None),
+/// The Roblox client UnknownALT would start (`launcher::client::find`; not installed → path None),
 /// its version and Roblox's latest (`launcher::update`).
 #[tauri::command]
 pub fn roblox_client(app: AppHandle) -> RobloxClient {
@@ -1324,7 +1324,7 @@ pub async fn roblox_install(app: AppHandle) -> Result<RobloxClient> {
     crate::launcher::update::install(&app).await
 }
 
-/// Unknown alt's version and the newer release the last check found (no network).
+/// UnknownALT's version and the newer release the last check found (no network).
 #[tauri::command]
 pub fn self_update_status(s: State<'_, App>) -> AppUpdate {
     crate::self_update::status(&s)
@@ -1362,13 +1362,13 @@ pub async fn online_ping(s: State<'_, App>) -> Result<Option<crate::online::Onli
     Ok(crate::online::ping(s.tracker.clients().len()).await)
 }
 
-/// Checks only the embedded Unknown alt owner's signed release channel.
+/// Checks only the embedded UnknownALT owner's signed release channel.
 #[tauri::command]
 pub async fn self_update_check(app: AppHandle) -> Result<AppUpdate> {
     crate::self_update::check(&app).await
 }
 
-/// Downloads, verifies and hands off an owned Unknown alt release for a graceful restart.
+/// Downloads, verifies and hands off an owned UnknownALT release for a graceful restart.
 #[tauri::command]
 pub async fn self_update_install(app: AppHandle) -> Result<()> {
     crate::self_update::install(&app).await
@@ -1397,7 +1397,7 @@ pub fn data_dir_open(app: AppHandle, s: State<'_, App>) -> Result<()> {
     app.opener().open_path(s.data_dir.display().to_string(), None::<&str>).map_err(|e| AppError::Internal(e.to_string()))
 }
 
-/// Opens Unknown alt's own log folder (data folder\logs) in Explorer.
+/// Opens UnknownALT's own log folder (data folder\logs) in Explorer.
 #[tauri::command]
 pub fn logs_open(app: AppHandle, s: State<'_, App>) -> Result<()> {
     use tauri_plugin_opener::OpenerExt;
@@ -1552,19 +1552,19 @@ fn shutdown_exe(args: &[&str]) -> Result<(i32, String)> {
     Ok((code, text))
 }
 
-/// The settings-table row with the scheduled shutdown's deadline (Unix ms), so Unknown alt still knows
+/// The settings-table row with the scheduled shutdown's deadline (Unix ms), so UnknownALT still knows
 /// it (and can cancel it) after a restart; Windows keeps the timer either way.
 const SHUTDOWN_KEY: &str = "shutdown_at";
 
-/// The deadline of a shutdown scheduled before Unknown alt restarted, if it is still ahead (at start).
+/// The deadline of a shutdown scheduled before UnknownALT restarted, if it is still ahead (at start).
 pub fn pending_shutdown(db: &crate::storage::Db) -> Option<i64> {
     let v = db.setting_value(SHUTDOWN_KEY).inspect_err(|e| log::warn!("could not read the scheduled shutdown: {e}")).ok().flatten()?;
     v.parse::<i64>().inspect_err(|e| log::warn!("scheduled shutdown deadline {v:?} unreadable: {e}")).ok().filter(|&at| at > now_ms())
 }
 
 /// Tells Windows to shut down in `in_secs` or at `at_ms` (`shutdown /s /t`, no admin rights;
-/// Windows then force-closes every app). Replaces one Unknown alt scheduled. `close_clients`: Unknown alt's
-/// clients are asked to close 30 s before (while Unknown alt keeps running). Returns the deadline
+/// Windows then force-closes every app). Replaces one UnknownALT scheduled. `close_clients`: UnknownALT's
+/// clients are asked to close 30 s before (while UnknownALT keeps running). Returns the deadline
 /// (Unix ms), stored (`SHUTDOWN_KEY`) until it is called off or passes.
 #[tauri::command]
 pub fn shutdown_schedule(app: AppHandle, s: State<'_, App>, at_ms: Option<i64>, in_secs: Option<u32>, close_clients: bool) -> Result<Option<i64>> {
@@ -1598,12 +1598,12 @@ pub fn shutdown_schedule(app: AppHandle, s: State<'_, App>, at_ms: Option<i64>, 
     Ok(Some(deadline))
 }
 
-/// Calls off the shutdown Unknown alt scheduled (`shutdown /a`).
+/// Calls off the shutdown UnknownALT scheduled (`shutdown /a`).
 #[tauri::command]
 pub fn shutdown_cancel(s: State<'_, App>) -> Result<Option<i64>> {
     let mut at = s.shutdown.lock().unwrap_or_else(|e| e.into_inner());
     if at.is_some() {
-        // 1116: none is scheduled any more (called off outside Unknown alt).
+        // 1116: none is scheduled any more (called off outside UnknownALT).
         let (code, text) = shutdown_exe(&["/a"])?;
         if code != 0 && code != 1116 {
             return Err(AppError::Invalid(tr!("Windows wouldn't call off the shutdown: {text}", text = text)));
@@ -1615,7 +1615,7 @@ pub fn shutdown_cancel(s: State<'_, App>) -> Result<Option<i64>> {
     Ok(None)
 }
 
-/// When the shutdown Unknown alt scheduled is due (Unix ms); None when there is none.
+/// When the shutdown UnknownALT scheduled is due (Unix ms); None when there is none.
 #[tauri::command]
 pub fn shutdown_status(s: State<'_, App>) -> Option<i64> {
     *s.shutdown.lock().unwrap_or_else(|e| e.into_inner())
@@ -1624,7 +1624,7 @@ pub fn shutdown_status(s: State<'_, App>) -> Option<i64> {
 /// Copies the database into `path` (a new folder or one without a UnknownAlt.db; not the current
 /// folder or inside it) with SQLite's `VACUUM INTO` (consistent while open), records it in
 /// `%LOCALAPPDATA%\UnknownAlt\location.json` as `{"dataDir": path, "movedFrom": current}` and
-/// restarts Unknown alt, all with the database locked so no write lands in the old copy after the
+/// restarts UnknownALT, all with the database locked so no write lands in the old copy after the
 /// copy. The next start deletes the old folder's UnknownAlt.db, UnknownAlt.db-wal and UnknownAlt.db-shm once
 /// the new database opened, and drops `movedFrom`. Returns only on failure, after deleting the
 /// database files it may have left in `path`. Refused for test runs (`UNKNOWNALT_DATA_DIR`), when
@@ -2661,7 +2661,7 @@ fn check_window_size((w, h): (u32, u32)) -> Result<()> {
     Ok(())
 }
 
-/// Lays every running client's window out in a grid on the monitor Unknown alt is on, `micro`-sized
+/// Lays every running client's window out in a grid on the monitor UnknownALT is on, `micro`-sized
 /// or as big as all fit (`window::tile`; hidden and minimized ones are left alone). How many it laid out.
 #[tauri::command]
 pub async fn instances_tile(app: AppHandle, s: State<'_, App>, micro: bool) -> Result<usize> {
@@ -2717,7 +2717,7 @@ const PREVIEW_FOR: Duration = Duration::from_secs(6);
 /// Bumped by each preview: an older one's timer leaves a newer window alone.
 static PREVIEW_ROUND: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// Draws the window layout's spots for launching `account_ids` (in list order) over Unknown alt's monitor
+/// Draws the window layout's spots for launching `account_ids` (in list order) over UnknownALT's monitor
 /// for a few seconds: numbered (launch order) with the account's name, spots of clients already
 /// running marked `running` (the caller's translated word). The same slots and cells a launch gets
 /// (`Tracker::preview_slots`, `window::slot_rect`). The window is see-through and click-through,
@@ -2764,8 +2764,8 @@ pub async fn layout_preview(app: AppHandle, s: State<'_, App>, account_ids: Vec<
     }
     let w = builder
         .initialization_script(format!("window.__UNKNOWNALT_LAYOUT_PREVIEW__ = {data};"))
-        .title("Unknown alt")
-        // The main window's WebView2 profile: none of its own outside Unknown alt's data folder.
+        .title("UnknownALT")
+        // The main window's WebView2 profile: none of its own outside UnknownALT's data folder.
         .data_directory(s.data_dir.join("webview"))
         .decorations(false)
         .transparent(true)
@@ -2773,7 +2773,7 @@ pub async fn layout_preview(app: AppHandle, s: State<'_, App>, account_ids: Vec<
         .always_on_top(true)
         .skip_taskbar(true)
         .focused(false)
-        // Never the foreground window: Unknown alt keeps the keyboard.
+        // Never the foreground window: UnknownALT keeps the keyboard.
         .focusable(false)
         .resizable(false)
         .visible(false)
@@ -2813,7 +2813,7 @@ pub fn layout_preview_stop(app: AppHandle) {
     close_layout_previews(&app);
 }
 
-/// Ends every layout preview on screen (a new one replaces it; Unknown alt's window closing ends it too).
+/// Ends every layout preview on screen (a new one replaces it; UnknownALT's window closing ends it too).
 pub fn close_layout_previews(app: &AppHandle) {
     for (label, w) in app.webview_windows() {
         if label.starts_with(PREVIEW) {
@@ -2911,7 +2911,7 @@ pub(crate) fn retake_multi(s: &App, v: &Settings) {
 }
 
 /// Locks the shared login files at once when protection is on and clients already run
-/// (Unknown alt's, or ones from before a restart).
+/// (UnknownALT's, or ones from before a restart).
 fn protect_running(s: &App, v: &Settings) {
     if v.protect_shared_login && (s.multi.in_flight() || s.tracker.any_running() || s.multi.has_survivors()) {
         s.multi.lock_shared();
@@ -2976,7 +2976,7 @@ fn follow_outside(app: &AppHandle, s: &App) {
         let found = read.is_some();
         let (Some((log, offset)), Some(account), Some(place_id)) = (read, account, facts.place_id) else {
             let (joined, known) = (facts.user_id.is_some(), account.is_some());
-            log::info!("take-over: client {} not followed (log found: {found}, in a game: {joined}, Unknown alt's account: {known})", p.pid);
+            log::info!("take-over: client {} not followed (log found: {found}, in a game: {joined}, UnknownALT's account: {known})", p.pid);
             left += 1;
             continue;
         };
@@ -3001,7 +3001,7 @@ fn follow_outside(app: &AppHandle, s: &App) {
         instances_changed(app);
     }
     if left > 0 {
-        notice(app, false, tr!("A Roblox client that isn't in a game yet, or plays a Roblox user Unknown alt doesn't have, isn't shown in Overview."));
+        notice(app, false, tr!("A Roblox client that isn't in a game yet, or plays a Roblox user UnknownALT doesn't have, isn't shown in Overview."));
     }
 }
 
@@ -3075,7 +3075,7 @@ fn swap_hotkey(app: &AppHandle, old: &str, key: &str, what: &str) -> Result<()> 
             log::warn!("could not re-register the old {what} hotkey; none is bound: {e}");
         }
         log::warn!("could not register the {what} hotkey {key}: {e}");
-        return Err(AppError::Invalid(tr!("Windows wouldn't give Unknown alt {key}: another app probably uses it. Pick another.", key = key)));
+        return Err(AppError::Invalid(tr!("Windows wouldn't give UnknownALT {key}: another app probably uses it. Pick another.", key = key)));
     }
     Ok(())
 }
@@ -3143,7 +3143,7 @@ fn diagnostics_sources(s: &App) -> Result<crate::diagnostics::Sources> {
     // Whether the lock is held and, when it isn't, why: what multi-instance reports turn on.
     let multi = s.multi.status(v.multi_instance, v.protect_shared_login);
     let head = format!(
-        "Unknown alt {} on {} {} (build {})\nMulti-instance: {}, lock held: {}{}\nPerformance: {}\n",
+        "UnknownALT {} on {} {} (build {})\nMulti-instance: {}, lock held: {}{}\nPerformance: {}\n",
         env!("CARGO_PKG_VERSION"),
         reg("ProductName"),
         reg("DisplayVersion"),
@@ -3601,7 +3601,7 @@ fn check_backup(p: &backup::BackupPayload) -> Result<()> {
         || p.groups.iter().any(|g| bad(&g.name))
         || p.favourites.iter().any(|f| f.name.is_empty() || bad(&f.name) || f.groups.len() > 200 || f.groups.iter().any(|g| bad(g)));
     if wrong {
-        return Err(AppError::Invalid(tr!("This isn't an Unknown alt backup.")));
+        return Err(AppError::Invalid(tr!("This isn't an UnknownALT backup.")));
     }
     for a in &p.accounts {
         if let Some(args) = &a.launch_args {
@@ -3779,7 +3779,7 @@ pub async fn performance_export(s: State<'_, App>, path: String, preview_fps: Op
 /// through `settings_set`).
 #[tauri::command]
 pub async fn performance_read(s: State<'_, App>, path: String) -> Result<crate::performance::Profile> {
-    let refused = || AppError::Invalid(tr!("This isn't an Unknown alt performance profile."));
+    let refused = || AppError::Invalid(tr!("This isn't an UnknownALT performance profile."));
     if std::fs::metadata(&path)?.len() > crate::performance::MAX_BYTES as u64 {
         return Err(refused());
     }
@@ -3958,7 +3958,7 @@ fn is_colour(c: &str) -> bool {
 fn checked_look(mut l: crate::model::Look) -> Result<crate::model::Look> {
     let id_ok = |k: &str| (1..=24).contains(&k.len()) && k.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
     if l.colors.len() > LOOK_MAX || !l.colors.iter().all(|(k, c)| id_ok(k) && is_colour(c)) {
-        return Err(AppError::Invalid(tr!("That theme has a colour Unknown alt can't use.")));
+        return Err(AppError::Invalid(tr!("That theme has a colour UnknownALT can't use.")));
     }
     for c in l.colors.values_mut() {
         c.make_ascii_lowercase();

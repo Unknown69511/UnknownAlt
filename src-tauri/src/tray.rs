@@ -41,7 +41,7 @@ fn shown() -> MutexGuard<'static, Option<View>> {
     SHOWN.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// Builds the tray icon (the app's window icon, tooltip "Unknown alt") and its menu; menu events go
+/// Builds the tray icon (the app's window icon, tooltip "UnknownALT") and its menu; menu events go
 /// to `on_menu`. Called once from setup.
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     let view = view(app);
@@ -64,8 +64,8 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Rebuilds the menu: favourites in tray order by name (ids `fav:<id>`; disabled with the label
-/// "Unlock Unknown alt to launch" while the vault is locked; "No favourites" when none), "Close all
-/// clients" (disabled when none run), "Kill all Roblox" (always: it also ends clients Unknown alt
+/// "Unlock UnknownALT to launch" while the vault is locked; "No favourites" when none), "Close all
+/// clients" (disabled when none run), "Kill all Roblox" (always: it also ends clients UnknownALT
 /// didn't start), "Lock vault" (only in master-password mode, disabled
 /// while locked). Called after favourites change, the vault locks or unlocks, and clients
 /// start or end. Never fails loudly: errors are logged.
@@ -119,10 +119,10 @@ fn view(app: &AppHandle) -> View {
 /// "UnknownAlt", whether locked, and how many clients run while any does.
 fn tooltip(v: &View) -> String {
     match (v.locked, v.running) {
-        (true, 0) => format!("Unknown alt · {}", tr!("Locked")),
-        (true, n) => format!("Unknown alt · {} · {}: {}", tr!("Locked"), tr!("Roblox clients"), n),
+        (true, 0) => format!("UnknownALT · {}", tr!("Locked")),
+        (true, n) => format!("UnknownALT · {} · {}: {}", tr!("Locked"), tr!("Roblox clients"), n),
         (false, 0) => "UnknownAlt".into(),
-        (false, n) => format!("Unknown alt · {}: {}", tr!("Roblox clients"), n),
+        (false, n) => format!("UnknownALT · {}: {}", tr!("Roblox clients"), n),
     }
 }
 
@@ -132,7 +132,7 @@ fn menu(app: &AppHandle, v: &View) -> tauri::Result<Menu<Wry>> {
     if v.favourites.is_empty() {
         favourites.append(&MenuItem::new(app, tr!("No favourites"), false, None::<&str>)?)?;
     } else if v.locked {
-        favourites.append(&MenuItem::new(app, tr!("Unlock Unknown alt to launch"), false, None::<&str>)?)?;
+        favourites.append(&MenuItem::new(app, tr!("Unlock UnknownALT to launch"), false, None::<&str>)?)?;
     } else {
         for (id, name) in &v.favourites {
             // A single `&` would mark a shortcut key in a Windows menu.
@@ -143,7 +143,7 @@ fn menu(app: &AppHandle, v: &View) -> tauri::Result<Menu<Wry>> {
     let menu = Menu::with_items(
         app,
         &[
-            &item("show", &tr!("Show Unknown alt"), true)?,
+            &item("show", &tr!("Show UnknownALT"), true)?,
             &favourites,
             &PredefinedMenuItem::separator(app)?,
             &item("tile", &tr!("Tile windows"), running)?,
@@ -161,7 +161,7 @@ fn menu(app: &AppHandle, v: &View) -> tauri::Result<Menu<Wry>> {
         menu.append(&item("lock", &tr!("Lock vault"), !v.locked)?)?;
     }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
-    menu.append(&item("quit", &tr!("Quit Unknown alt"), true)?)?;
+    menu.append(&item("quit", &tr!("Quit UnknownALT"), true)?)?;
     Ok(menu)
 }
 
@@ -301,7 +301,7 @@ async fn launch(app: &AppHandle, id: i64) -> Result<()> {
     match ids.len() {
         0 => {
             show_main(app);
-            notice(app, false, tr!("No account of \"{name}\" can launch. Pick accounts for it in Unknown alt.", name = fav.name));
+            notice(app, false, tr!("No account of \"{name}\" can launch. Pick accounts for it in UnknownALT.", name = fav.name));
         }
         1 => {
             // Without the multi-instance lock it would end the client that runs.

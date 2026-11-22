@@ -187,7 +187,7 @@ impl Event {
             Self::Launch { name, .. } => format!("🎮 {}", tr!("**{name}**: in game.", name = name)),
             Self::SignIn { name, note } => format!("🔐 **{name}**: {note}."),
             Self::Throttled { name } => format!("🐢 {}", tr!("**{name}**: slowed down, it uses too much memory.", name = name)),
-            Self::Update { version } => format!("⬆️ {}", tr!("Unknown alt {version} is out.", version = version)),
+            Self::Update { version } => format!("⬆️ {}", tr!("UnknownALT {version} is out.", version = version)),
             Self::PcMemory { pct, clients } => format!("🧠 {}", tr!("This PC's memory is {pct}% full (clients running: {n}).", pct = pct, n = clients)),
             Self::PcGpu { pct, clients } => format!("🖥️ {}", tr!("The clients keep the GPU at {pct}% (clients running: {n}).", pct = pct, n = clients)),
             Self::Restart { name, cause: CrashKind::Disconnect } => format!("🔁 {}", tr!("**{name}**: rejoined.", name = name)),
@@ -205,8 +205,8 @@ impl Event {
                 "⛔ {}",
                 trn!(
                     *count,
-                    "**{name}**: Unknown alt gave up after {n} relaunch in {minutes} min.",
-                    "**{name}**: Unknown alt gave up after {n} relaunches in {minutes} min.",
+                    "**{name}**: UnknownALT gave up after {n} relaunch in {minutes} min.",
+                    "**{name}**: UnknownALT gave up after {n} relaunches in {minutes} min.",
                     name = name,
                     minutes = window_min
                 )
@@ -319,9 +319,9 @@ pub fn message(events: &[Event], ping: &str, ping_level: PingLevel) -> Value {
         _ => 0xB4_F0_00,
     };
     let mut body = json!({
-        "username": "Unknown alt",
+        "username": "UnknownALT",
         "allowed_mentions": { "parse": [] },
-        "embeds": [{ "title": "Unknown alt", "description": lines.join("\n"), "color": color }],
+        "embeds": [{ "title": "UnknownALT", "description": lines.join("\n"), "color": color }],
     });
     let min_sev = match ping_level {
         PingLevel::Urgent => 2,
@@ -519,9 +519,9 @@ pub fn set(s: &App, url: Option<&str>) -> Result<DiscordStatus> {
 pub async fn test(s: &App) -> Result<()> {
     let hook = webhook(s)?.ok_or_else(|| AppError::Invalid(tr!("Set a webhook first.")))?;
     let mut body = json!({
-        "username": "Unknown alt",
+        "username": "UnknownALT",
         "allowed_mentions": { "parse": [] },
-        "embeds": [{ "title": "Unknown alt", "description": format!("✅ {}", tr!("Test message: Unknown alt's alerts reach this channel.")), "color": 0xB4_F0_00 }],
+        "embeds": [{ "title": "UnknownALT", "description": format!("✅ {}", tr!("Test message: UnknownALT's alerts reach this channel.")), "color": 0xB4_F0_00 }],
     });
     // The test pings too, so it shows the mention works.
     add_ping(&mut body, &ping_settings(s).0);
@@ -949,7 +949,7 @@ mod tests {
         assert_eq!(t(inst(InGame, Some(HUNG)), inst(InGame, Some(HUNG))), None, "still hung");
         assert_eq!(t(inst(InGame, None), inst(Exited, Some(UNEXPECTED))), Some(CrashKind::Crash));
         assert_eq!(t(inst(Starting, None), inst(Exited, Some(UNEXPECTED))), Some(CrashKind::Crash));
-        // Ended after a disconnect (already told), closed by the user or Unknown alt, replaced.
+        // Ended after a disconnect (already told), closed by the user or UnknownALT, replaced.
         assert_eq!(t(inst(Disconnected, None), inst(Exited, Some(UNEXPECTED))), None);
         assert_eq!(t(inst(InGame, None), inst(Exited, Some("Closed"))), None);
         assert_eq!(t(inst(InGame, Some(HUNG)), inst(Exited, Some("Closed"))), None);
@@ -975,7 +975,7 @@ mod tests {
     fn builds_one_embed_per_message() {
         let crash = Event::Crash { name: "Nova (@nova\\_builds)".into(), place_id: Some(1818), game: None };
         let one = message(std::slice::from_ref(&crash), "", PingLevel::Urgent);
-        assert_eq!(one["username"], "Unknown alt");
+        assert_eq!(one["username"], "UnknownALT");
         assert_eq!(one["allowed_mentions"]["parse"], json!([]));
         let embeds = one["embeds"].as_array().unwrap();
         assert_eq!(embeds.len(), 1);
@@ -1025,7 +1025,7 @@ mod tests {
         assert_eq!(sign_in.line(), "🔐 **A**: Roblox wants a human check.");
         assert_eq!(sign_in.severity(), 1, "a sign-in problem pings");
         assert_eq!(Event::Throttled { name: "A".into() }.line(), "🐢 **A**: slowed down, it uses too much memory.");
-        assert_eq!(Event::Update { version: "1.2.0".into() }.line(), "⬆️ Unknown alt 1.2.0 is out.");
+        assert_eq!(Event::Update { version: "1.2.0".into() }.line(), "⬆️ UnknownALT 1.2.0 is out.");
 
         // On by default: sign-in trouble and updates. The throttle is news most don't want.
         let v = DiscordEvents::default();
@@ -1075,7 +1075,7 @@ mod tests {
         assert_eq!(message(&news, "<@123>", PingLevel::Warnings).get("content"), None);
         assert_eq!(
             message(&crash, "", PingLevel::Urgent),
-            json!({ "username": "Unknown alt", "allowed_mentions": { "parse": [] }, "embeds": message(&crash, "<@1>", PingLevel::Urgent)["embeds"] })
+            json!({ "username": "UnknownALT", "allowed_mentions": { "parse": [] }, "embeds": message(&crash, "<@1>", PingLevel::Urgent)["embeds"] })
         );
         // A disconnect (severity 1) doesn't ping on Urgent (default), but does on Warnings.
         let mixed = [news[0].clone(), Event::Disconnect { name: "B".into(), reason: None }];

@@ -17,7 +17,7 @@ showCount: boolean,
  */
 showElapsed: boolean, 
 /**
- * Show the "Get Unknown alt" and "Join Discord" buttons.
+ * Show the "Get UnknownALT" and "Join Discord" buttons.
  */
 showButtons: boolean, 
 /**

@@ -1,5 +1,5 @@
 //! Roblox pages on kept WebView2 profiles: the sign-in window, and each account's own profile
-//! for Browse (`browse`, Roblox inside the Unknown alt window). A fresh profile each time looked like a
+//! for Browse (`browse`, Roblox inside the UnknownALT window). A fresh profile each time looked like a
 //! never-seen browser to Roblox and drew a captcha (403) on most sign-ins. `.ROBLOSECURITY` (the
 //! vault holds it) and Google / Apple sign-ins are deleted when a page opens and again before it
 //! closes. One that never closed normally (crash, quit with it open) leaves an `OPEN_MARK` behind:
@@ -95,7 +95,7 @@ pub async fn capture_login(app: &AppHandle, data_dir: &Path, fill: Option<&Login
     mark_open(&profile);
     // Blank first: the old cookie goes before anything loads from Roblox.
     let window = WebviewWindowBuilder::new(app, &label, WebviewUrl::External(parse_url("about:blank")?))
-        .title(tr!("Sign in to Roblox — Unknown alt"))
+        .title(tr!("Sign in to Roblox — UnknownALT"))
         .inner_size(480.0, 760.0)
         .center()
         .data_directory(profile.clone())

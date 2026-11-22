@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-const ANNOUNCEMENTS: &str = "https://devforum.roblox.com/c/updates/announcements/36.json";
-const RELEASE_NOTES: &str = "https://devforum.roblox.com/c/updates/release-notes/62.json";
+const ANNOUNCEMENTS: &str = "https://devforum.roblox.com/c/updates/announcements/36.rss";
+const RELEASE_NOTES: &str = "https://devforum.roblox.com/c/updates/release-notes/62.rss";
 
 #[derive(Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -81,7 +81,7 @@ fn releases(raw: &str, channel: &PublicChannel) -> Option<Vec<Bulletin>> {
                 Some(Bulletin {
                     id: format!("unknownalt:{version}"),
                     source: BulletinSource::UnknownAlt,
-                    title: format!("Unknown alt {version}"),
+                    title: format!("UnknownALT {version}"),
                     summary: r.body.unwrap_or_default().chars().take(20_000).collect(),
                     url: format!(
                         "https://github.com/{}/{}/releases/tag/v{version}",
@@ -96,42 +96,48 @@ fn releases(raw: &str, channel: &PublicChannel) -> Option<Vec<Bulletin>> {
 }
 
 #[derive(Deserialize)]
-struct Category {
-    topic_list: TopicList,
+struct Rss {
+    channel: RssChannel,
 }
 #[derive(Deserialize)]
-struct TopicList {
-    topics: Vec<Topic>,
+struct RssChannel {
+    #[serde(default)]
+    item: Vec<Topic>,
 }
 #[derive(Deserialize)]
 struct Topic {
-    id: u64,
     title: String,
-    slug: String,
-    created_at: String,
+    link: String,
+    #[serde(rename = "pubDate")]
+    published: String,
+    #[serde(default)]
+    description: String,
 }
 
 fn topics(raw: &str, source: BulletinSource) -> Option<Vec<Bulletin>> {
-    let mut topics = serde_json::from_str::<Category>(raw)
-        .ok()?
-        .topic_list
-        .topics;
-    topics.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-    Some(
-        topics
-            .into_iter()
-            .filter(|t| !t.slug.starts_with("about-the-") && t.id > 0)
-            .take(12)
-            .map(|t| Bulletin {
-                id: format!("devforum:{}", t.id),
-                source: source.clone(),
-                title: t.title.chars().take(240).collect(),
-                summary: String::new(),
-                url: format!("https://devforum.roblox.com/t/topic/{}", t.id),
-                published: t.created_at,
-            })
-            .collect(),
-    )
+    let rss: Rss = quick_xml::de::from_str(raw).ok()?;
+    Some(rss.channel.item.into_iter().filter_map(|t| {
+        let url = url::Url::parse(&t.link).ok()?;
+        if url.origin().ascii_serialization() != "https://devforum.roblox.com"
+            || !url.username().is_empty() || url.password().is_some() {
+            return None;
+        }
+        let mut path = url.path_segments()?;
+        if path.next()? != "t" || path.next()?.starts_with("about-the-") {
+            return None;
+        }
+        let id = path.next()?.parse::<u64>().ok().filter(|id| *id > 0)?;
+        let published = chrono::DateTime::parse_from_rfc2822(&t.published)
+            .ok()?.with_timezone(&chrono::Utc).to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        Some(Bulletin {
+            id: format!("devforum:{id}"),
+            source: source.clone(),
+            title: t.title.chars().take(240).collect(),
+            summary: t.description.chars().take(24_000).collect(),
+            url: format!("https://devforum.roblox.com/t/topic/{id}"),
+            published,
+        })
+    }).take(12).collect())
 }
 
 async fn get(client: &reqwest::Client, url: &str) -> Option<String> {
@@ -201,10 +207,27 @@ mod tests {
                 .url
                 .starts_with("https://github.com/Unknown69511/UnknownAlt/releases/tag/")
         );
-        let raw = r#"{"topic_list":{"topics":[{"id":42,"title":"Test","slug":"//example.invalid","created_at":"2026-01-01"}]}}"#;
+        let raw = r#"<rss><channel><item><title>Test</title><link>https://devforum.roblox.com/t/a-topic/42</link><pubDate>Thu, 01 Jan 2026 12:00:00 +0000</pubDate><description><![CDATA[<p>A release &amp; screenshot.</p>]]></description></item></channel></rss>"#;
+        let decoded = topics(raw, BulletinSource::Roblox).unwrap();
+        assert_eq!(decoded[0].summary, "<p>A release &amp; screenshot.</p>");
         assert_eq!(
-            topics(raw, BulletinSource::Roblox).unwrap()[0].url,
+            decoded[0].url,
             "https://devforum.roblox.com/t/topic/42"
         );
+        assert!(topics(&raw.replace("devforum.roblox.com", "example.invalid"), BulletinSource::Roblox).unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore = "uses signed release repository metadata and public official Roblox RSS feeds"]
+    async fn official_feeds_supply_article_content() {
+        let feed = update_bulletins().await;
+        assert!(feed.unavailable.is_empty());
+        for source in [BulletinSource::UnknownAlt, BulletinSource::Roblox, BulletinSource::DevForum] {
+            assert!(feed.items.iter().any(|item|
+                std::mem::discriminant(&item.source) == std::mem::discriminant(&source) &&
+                !item.summary.is_empty() && !item.title.is_empty()));
+        }
+        let ids: std::collections::HashSet<_> = feed.items.iter().map(|item| &item.id).collect();
+        assert_eq!(feed.items.len(), ids.len());
     }
 }

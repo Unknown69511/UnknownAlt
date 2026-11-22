@@ -16,7 +16,7 @@ try {
   const raw = fs.readFileSync(path.join(output, MANIFEST_NAME));
   if (!verifyManifestSignature(raw, fs.readFileSync(path.join(output, SIGNATURE_NAME), "utf8"), channel)) throw new Error("Release manifest signature is invalid.");
   const manifest = validateManifest(JSON.parse(raw.toString("utf8")), channel);
-  if (manifest.version !== version || !verifyInstaller(fs.readFileSync(path.join(output, installerName(version))), manifest)) throw new Error("Release installer differs from the signed manifest.");
+  if (manifest.version !== version || !verifyInstaller(fs.readFileSync(path.join(output, "compat", installerName(version))), manifest)) throw new Error("Release installer differs from the signed manifest.");
   if (args.get("--offline")) {
     console.log(`Local signed-asset verification passed for ${repository} v${version}. Before upload, verify ${channel.visibility} repository visibility and that this version has never been published.`);
     process.exit(0);

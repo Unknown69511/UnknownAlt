@@ -11,7 +11,7 @@ const MANAGEMENT = ["management"] as const;
 const DIAGNOSIS = ["troubleshooter"] as const;
 const BACKUPS = ["automaticBackups"] as const;
 const useManagement = () => useQuery({ queryKey: MANAGEMENT, queryFn: api.managementStatus, refetchInterval: 2000, refetchIntervalInBackground: true });
-const useDiagnosis = () => useQuery({ queryKey: DIAGNOSIS, queryFn: api.troubleshootDiagnose, refetchInterval: 10000, refetchIntervalInBackground: true });
+export const useDiagnosis = () => useQuery({ queryKey: DIAGNOSIS, queryFn: api.troubleshootDiagnose, refetchInterval: 10000 });
 
 export function ClientManagementBar() {
   const qc = useQueryClient();
@@ -77,7 +77,7 @@ export function TroubleshooterDialog({ open, onClose }: { open: boolean; onClose
   </>;
 }
 
-export function SmartQueueRow() {
+export function SmartQueueRow({ inFarm = false }: { inFarm?: boolean } = {}) {
   const qc = useQueryClient();
   const status = useManagement();
   const [draft, setDraft] = useState<ManagementConfig | null>(null);
@@ -87,18 +87,17 @@ export function SmartQueueRow() {
   const save = async () => {
     if (!draft) return;
     setBusy(true);
-    try { qc.setQueryData(MANAGEMENT, await api.managementConfigure(draft)); toast(t("management.saved")); }
+    try { qc.setQueryData(MANAGEMENT, await api.managementConfigure({ ...draft, paused: config?.paused ?? draft.paused })); toast(t("management.saved")); }
     catch (e) { toastError(e); }
     finally { setBusy(false); }
   };
-  return <SettingRow id="smartQueue">
-    {draft && <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="flex flex-wrap items-center gap-3">
+  const fields = draft && <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="flex flex-wrap items-center gap-3">
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.resourceGuard} onChange={(e) => setDraft({ ...draft, resourceGuard: e.target.checked })} />{t("management.guard")}</label>
       <label className="text-sm">CPU % <input type="number" aria-label={t("management.cpuLimit")} className="input w-16" min={50} max={99} required value={draft.cpuLimit} onChange={(e) => setDraft({ ...draft, cpuLimit: Number(e.target.value) })} /></label>
       <label className="text-sm">RAM % <input type="number" aria-label={t("management.ramLimit")} className="input w-16" min={50} max={99} required value={draft.memoryLimit} onChange={(e) => setDraft({ ...draft, memoryLimit: Number(e.target.value) })} /></label>
       <Button size="sm" type="submit" disabled={busy}>{t("common.save")}</Button>
-    </form>}
-  </SettingRow>;
+    </form>;
+  return inFarm ? fields : <SettingRow id="smartQueue">{fields}</SettingRow>;
 }
 
 export function AutomaticBackupsRow() {

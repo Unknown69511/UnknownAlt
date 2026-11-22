@@ -1,4 +1,4 @@
-//! Roblox clients Unknown alt started: the multi-instance lock, process tracking, log watching
+//! Roblox clients UnknownALT started: the multi-instance lock, process tracking, log watching
 //! and closing. Nothing here reads or writes another process's memory or handles; anti-AFK
 //! (`afk`) presses a key the way a keyboard does.
 

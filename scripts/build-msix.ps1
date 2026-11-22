@@ -12,8 +12,8 @@ $version = (Get-Content -Raw (Join-Path $root 'src-tauri/tauri.conf.json') | Con
 if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)$') { throw 'MSIX requires a stable numeric version.' }
 if (!$OutDirectory) { $OutDirectory = Join-Path $root 'dist-msix' }
 $Binary = Get-Item -LiteralPath $Executable
-if ($Binary.VersionInfo.ProductVersion -ne $version -or $Binary.VersionInfo.ProductName -cne 'Unknown alt') {
-    throw 'The supplied EXE must be the matching clean release build of Unknown alt.'
+if ($Binary.VersionInfo.ProductVersion -ne $version -or $Binary.VersionInfo.ProductName -notin @('UnknownALT', 'Unknown alt')) {
+    throw 'The supplied EXE must be the matching clean release build of UnknownALT.'
 }
 & (Join-Path $PSScriptRoot 'assert-build-privacy.ps1') -Executable $Binary.FullName -SourceRoot $root
 $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
@@ -34,14 +34,14 @@ $manifest.Package.Identity.SetAttribute('Name', $IdentityName)
 $manifest.Package.Identity.SetAttribute('Publisher', $Publisher)
 $manifest.Package.Identity.SetAttribute('Version', "$version.0")
 $manifest.Save((Join-Path $stage 'AppxManifest.xml'))
-Copy-Item -LiteralPath $Binary.FullName -Destination (Join-Path $stage 'UnknownAlt.exe')
+Copy-Item -LiteralPath $Binary.FullName -Destination (Join-Path $stage 'UnknownALT.exe')
 foreach ($icon in @('StoreLogo.png','Square150x150Logo.png','Square44x44Logo.png')) {
     Copy-Item -LiteralPath (Join-Path $root "src-tauri/icons/$icon") -Destination (Join-Path $assets $icon)
 }
 foreach ($notice in @('LICENSE','NOTICE.md','REBRANDING.md')) {
     Copy-Item -LiteralPath (Join-Path $root $notice) -Destination $stage
 }
-$package = Join-Path ([IO.Path]::GetFullPath($OutDirectory)) "UnknownAlt-$version-x64.msix"
+$package = Join-Path ([IO.Path]::GetFullPath($OutDirectory)) "UnknownALT-$version-x64.msix"
 if (Test-Path -LiteralPath $package) { throw 'The package filename already exists. Pick a new output directory.' }
 & $make.FullName pack /d $stage /p $package /o
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx validation or packaging failed.' }

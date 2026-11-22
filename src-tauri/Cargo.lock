@@ -3545,6 +3545,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b"
 dependencies = [
  "memchr",
+ "serde",
 ]
 
 [[package]]
@@ -5476,18 +5477,21 @@ dependencies = [
 
 [[package]]
 name = "unknownalt"
-version = "1.2.3"
+version = "1.2.4"
 dependencies = [
  "aes-gcm",
  "argon2",
+ "chrono",
  "getrandom 0.4.3",
  "keyring",
  "log",
+ "quick-xml 0.42.0",
  "reqwest",
  "rusqlite",
  "rusqlite_migration",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",

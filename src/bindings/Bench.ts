@@ -34,6 +34,6 @@ otherMb: number, otherCores: number,
  */
 gpuPeak: number | null, caps: Caps, 
 /**
- * In the last 7 days: Unknown alt's memory restarts, crashes and hangs after a long run (`LONG_RUN_MS`).
+ * In the last 7 days: UnknownALT's memory restarts, crashes and hangs after a long run (`LONG_RUN_MS`).
  */
 memRestarts: number, longCrashes: number, };

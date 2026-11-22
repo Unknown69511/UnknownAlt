@@ -140,7 +140,7 @@ fn set(app: &AppHandle, keys: &[(String, String)], reserved: &[Shortcut]) -> Vec
             Ok(()) => true,
             Err(e) => {
                 log::warn!("hotkeys: could not register {key}: {e}");
-                off.push(((*key).to_owned(), Some(*k), AppError::Invalid(tr!("Windows wouldn't give Unknown alt {key}: another app probably uses it. Pick another.", key = *key))));
+                off.push(((*key).to_owned(), Some(*k), AppError::Invalid(tr!("Windows wouldn't give UnknownALT {key}: another app probably uses it. Pick another.", key = *key))));
                 false
             }
         }

@@ -7,7 +7,8 @@ import type { FarmSettings } from "./bindings/FarmSettings";
 import type { AudioChange } from "./bindings/AudioChange";
 import type { AudioLevel } from "./bindings/AudioLevel";
 import type { DiskUsage } from "./bindings/DiskUsage";
-export type { BulletinSource, AudioChange };
+export type { BulletinSource, Bulletins, AudioChange };
+export type { Bulletin } from "./bindings/Bulletin";
 import type { ManagementConfig } from "./bindings/ManagementConfig";
 import type { ManagementStatus } from "./bindings/ManagementStatus";
 import type { TroubleshootReport } from "./bindings/TroubleshootReport";
@@ -380,6 +381,15 @@ export const api = {
   /** UnknownAlt's version and the newer release the last check found (no network). */
   selfUpdateStatus: () => invoke<AppUpdate>("self_update_status"),
   updateBulletins: () => invoke<Bulletins>("update_bulletins"),
+  publicAnalyticsSearch: (query: string) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_search", { query }),
+  publicAnalyticsSnapshot: (universes: number[], details: boolean) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_snapshot", { universes, details }),
+  publicAnalyticsTrending: () => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_trending"),
+  publicAnalyticsStudio: (creator: number, group: boolean) => invoke<import("./features/analytics/types").PublicSnapshot>("public_analytics_studio", { creator, group }),
+  creatorAnalyticsConnect: (key: string) => invoke<void>("creator_analytics_connect", { key }),
+  creatorAnalyticsDisconnect: () => invoke<void>("creator_analytics_disconnect"),
+  creatorAnalyticsMetrics: (universe: number, metric: import("./features/analytics/types").CreatorMetric, start: string, end: string) =>
+    invoke<import("./features/analytics/types").MetricSeries[]>("creator_analytics_metrics", { universe, metric, start, end }),
+  creatorAnalyticsExport: (path: string, content: string) => invoke<void>("creator_analytics_export", { path, content }),
   farmStatus: () => invoke<FarmStatus>("farm_status"),
   farmConfigure: (settings: FarmSettings) => invoke<void>("farm_configure", { settings }),
   farmAudio: (id: string, change: AudioChange | null) => invoke<AudioLevel>("farm_audio", { id, change }),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import unknownAltIcon from "../../assets/UnknownAlt-icon.png";
+import unknownAltIcon from "../../assets/UnknownALT-icon.png";
 import { setSplashPhase, type SplashPhase } from "./phase";
 import "./splash.css";
 
@@ -93,7 +93,7 @@ export function Splash() {
       </div>
       <div className="mark">
         <div className="word">
-          <b>Unknown alt</b>
+          <b>UnknownALT</b>
           <span>v{import.meta.env.APP_VERSION}</span>
         </div>
       </div>

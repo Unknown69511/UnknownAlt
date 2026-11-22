@@ -28,7 +28,7 @@ const REPARSE_POINT: u32 = 0x400;
 struct Journal { schema: u32, files: Vec<usize> }
 
 fn invalid(reason: &str) -> AppError {
-    AppError::Invalid(format!("Unknown alt could not safely migrate its database filename: {reason}. No files were overwritten. Keep the database, key and journals together and restore the complete saved backup if needed."))
+    AppError::Invalid(format!("UnknownALT could not safely migrate its database filename: {reason}. No files were overwritten. Keep the database, key and journals together and restore the complete saved backup if needed."))
 }
 
 fn exists(path: &Path) -> Result<bool> {

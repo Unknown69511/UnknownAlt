@@ -3,6 +3,7 @@
 #[macro_use]
 mod i18n;
 mod bulletins;
+mod analytics;
 mod disk_usage;
 mod error;
 mod http;

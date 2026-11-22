@@ -88,7 +88,7 @@ struct File {
 }
 
 fn not_a_profile() -> AppError {
-    AppError::Invalid(tr!("This isn't an Unknown alt performance profile."))
+    AppError::Invalid(tr!("This isn't an UnknownALT performance profile."))
 }
 
 /// The profile of `v` (pure): every performance setting, plus the preview rate.
@@ -170,7 +170,7 @@ pub fn parse(text: &str, current: &Settings) -> Result<Profile> {
         return Err(not_a_profile());
     }
     if file.version > VERSION {
-        return Err(AppError::Invalid(tr!("This profile was made by a newer Unknown alt; update Unknown alt first.")));
+        return Err(AppError::Invalid(tr!("This profile was made by a newer UnknownALT; update UnknownALT first.")));
     }
     let mut p = file.settings;
     p.adaptive = p.adaptive.map(without_cores);
@@ -273,7 +273,7 @@ pub struct Bench {
     /// The clients' summed busiest-engine GPU use at its highest, percent (rough); None: Windows didn't say.
     pub gpu_peak: Option<f64>,
     pub caps: Caps,
-    /// In the last 7 days: Unknown alt's memory restarts, crashes and hangs after a long run (`LONG_RUN_MS`).
+    /// In the last 7 days: UnknownALT's memory restarts, crashes and hangs after a long run (`LONG_RUN_MS`).
     pub mem_restarts: u32,
     pub long_crashes: u32,
 }

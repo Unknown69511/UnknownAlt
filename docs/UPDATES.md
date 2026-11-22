@@ -1,4 +1,4 @@
-# Unknown alt releases and updates
+# UnknownALT releases and updates
 
 Source and installers are public at [Unknown69511/UnknownAlt](https://github.com/Unknown69511/UnknownAlt). Anyone can view the source and download a release. Public builds need no GitHub account, sign-in, access token or publisher credentials. Public source does not expose local accounts or grant repository write access.
 
@@ -6,7 +6,7 @@ Source and installers are public at [Unknown69511/UnknownAlt](https://github.com
 
 `src-tauri/update-channel.json` contains the owner/repository, stable channel, `visibility: "public"`, and the pinned P-256 public verification key. Public checks and downloads never load, refresh or send a saved GitHub credential. Old private connection files stay local and are ignored. Authentication code remains available for separately configured private builds.
 
-Checks run on startup and hourly, including in the tray. **Update** is always visible beside **Refresh**. Clicking checks the release source, reports when no newer version exists, and otherwise runs the existing verified download/install/restart flow. Checks already in progress are awaited; duplicate clicks cannot start parallel installations. The bounded signed manifest binds `com.unknownalt.desktop`, stable Windows x64, exact owned-repository installer URL, version, size and SHA-256. A P-256/SHA-256 signature in 64-byte IEEE-P1363 encoding covers UTF-8 `UnknownAlt update manifest v1\n` followed by exact JSON bytes.
+Checks run on startup and hourly, including in the tray. **Update** is always visible beside **Refresh**. Clicking checks the release source, reports when no newer version exists, and otherwise runs the existing verified download/install/restart flow. Checks already in progress are awaited. The bounded signed manifest binds `com.unknownalt.desktop`, stable Windows x64, exact owned-repository installer URL, version, size and SHA-256. A P-256/SHA-256 signature in 64-byte IEEE-P1363 encoding covers the compatibility prefix `UnknownAlt update manifest v1\n` followed by exact JSON bytes.
 
 Only the configured repository and allowlisted GitHub HTTPS asset storage can serve updates. Public downloads still require valid signatures and hashes. A replaced release asset or repository collaborator cannot forge an update without the separate signing key. The original product's feed and key are never trusted.
 
@@ -24,7 +24,7 @@ node scripts/release-sign.mjs --key-file 'C:\YourPrivateFolder\UnknownAlt-update
 node scripts/release-check-publish.mjs --offline
 ```
 
-Review and sign the exact final canonical installer locally. The signer rejects mismatched keys, source identities, filenames, sizes and versions. The offline preflight verifies signatures and bytes; separately verify the correct repository and unused version. Optional authenticated local preflight accepts an owner token only through the current process environment. Never embed that token in source or output.
+Review and sign the exact final `UnknownALT-Setup-X.Y.Z.exe` locally. The signer stages an identical copy as `dist-installer/compat/UnknownAlt-Setup-X.Y.Z.exe`. Installed updaters require that exact capitalization and check the Windows executable's legacy ProductName field. The upload uses the compatibility copy with the signed manifest. The offline preflight verifies signatures and bytes. Verify the correct repository and unused version before any approved upload.
 
 Commit with a GitHub no-reply email. Create a matching `vX.Y.Z` tag and stable Latest release containing these unchanged files:
 
@@ -35,7 +35,7 @@ UnknownAlt-update.json.sig
 SHA256SUMS.txt
 ```
 
-Also publish `UnknownAlt-Setup-X.Y.Z-Windows-x64.exe` for first installations with the full offline Microsoft WebView2 prerequisite. This larger package is separate from the canonical updater installer, which stays below 200 MB. Never reuse a version or replace its signed assets; publish a higher version.
+The separately built `UnknownALT-Setup-X.Y.Z-Windows-x64.exe` includes the full offline Microsoft WebView2 prerequisite. The canonical updater installer stays below 200 MB. Use a higher version for each release to preserve signed asset integrity.
 
 The owner-only release workflow builds unsigned candidates with read-only permissions. It never signs or publishes automatically. Public CI logs and artifacts must contain only clean source and generated app files. No personal profiles, credentials or signing material belong in workflows.
 

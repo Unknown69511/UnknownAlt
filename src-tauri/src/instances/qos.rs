@@ -25,7 +25,7 @@ pub const MAX_KBPS: u32 = 10_000_000;
 /// How long the elevated script may take once the prompt is answered.
 const TIMEOUT: Duration = Duration::from_secs(60);
 
-/// The script `apply` runs elevated (pure): removes Unknown alt's policy, then for a rate (kbps,
+/// The script `apply` runs elevated (pure): removes UnknownALT's policy, then for a rate (kbps,
 /// `MIN_KBPS..=MAX_KBPS`) adds it again; 0 only removes it. Nothing but the checked integer is
 /// put into it.
 pub fn script(kbps: u32) -> Result<String> {

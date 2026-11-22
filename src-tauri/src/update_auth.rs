@@ -434,7 +434,7 @@ pub(super) async fn poll(app:&AppHandle)->Result<UpdateAuth> {
     let repo=client()?.get(format!("https://api.github.com/repos/{}/{}",c.owner,c.repository))
         .header(ACCEPT,"application/vnd.github+json").header(AUTHORIZATION,authorization(&credential.token)?)
         .timeout(Duration::from_secs(30)).send().await.map_err(|_|invalid("The private repository access could not be checked."))?;
-    if !repo.status().is_success(){lock(&s.self_update.auth.state).pending=None;return Err(invalid("This GitHub account or App does not have access to the private Unknown alt repository. Only the publisher can invite collaborators."));}
+    if !repo.status().is_success(){lock(&s.self_update.auth.state).pending=None;return Err(invalid("This GitHub account or App does not have access to the private UnknownALT repository. Only the publisher can invite collaborators."));}
     #[derive(Deserialize)]struct Repo{private:bool,full_name:String}
     let repo:Repo=serde_json::from_slice(&bounded_response(repo,MAX_RESPONSE).await?).map_err(|_|invalid("The private update repository returned invalid metadata."))?;
     if !repo.private || !repo.full_name.eq_ignore_ascii_case(&format!("{}/{}",c.owner,c.repository)){return Err(invalid("The update repository must remain private and match the configured owner."));}

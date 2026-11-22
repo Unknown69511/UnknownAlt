@@ -214,7 +214,7 @@ pub fn unzip(zip: &Path, dest: &Path) -> Result<Unzipped> {
     // shortcut: the zip crate reads the whole central directory here, before the entry count can be
     // checked: a crafted 1 GB zip of millions of empty entries takes GBs of memory. Read the end
     // record's entry count first if such packs ever turn up.
-    let mut archive = zip::ZipArchive::new(file).map_err(|_| AppError::Invalid(tr!("That isn't a zip file Unknown alt can read.")))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|_| AppError::Invalid(tr!("That isn't a zip file UnknownALT can read.")))?;
     if archive.len() > MAX_FILES {
         return Err(too_big());
     }
@@ -232,7 +232,7 @@ pub fn unzip(zip: &Path, dest: &Path) -> Result<Unzipped> {
                 continue;
             }
             Err(zip::result::ZipError::UnsupportedArchive(_)) => {
-                return Err(AppError::Invalid(tr!("That zip is packed in a way Unknown alt can't read. Re-zip it as a normal zip.")));
+                return Err(AppError::Invalid(tr!("That zip is packed in a way UnknownALT can't read. Re-zip it as a normal zip.")));
             }
             Err(e) => return Err(AppError::Invalid(tr!("That zip is damaged: {why}", why = e))),
         };

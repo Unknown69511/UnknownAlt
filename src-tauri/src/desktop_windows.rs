@@ -66,7 +66,7 @@ pub struct App {
     pub self_update: self_update::SelfUpdater,
     /// Whether a Public network is connected (`network`).
     pub network: network::Network,
-    /// When the shutdown Unknown alt scheduled is due (Unix ms; `commands::shutdown_schedule`).
+    /// When the shutdown UnknownALT scheduled is due (Unix ms; `commands::shutdown_schedule`).
     pub shutdown: Mutex<Option<i64>>,
     /// Rotated cookies that arrived while the vault was locked, stored at the next unlock.
     pub rotated_later: Mutex<Vec<(i64, vault::Secret)>>,
@@ -143,7 +143,7 @@ fn chosen_dir(default: PathBuf, json: Option<&str>) -> std::result::Result<(Path
                 Ok((default, None))
             } else {
                 Err(tr!(
-                    "Unknown alt's data folder {folder} isn't available (no {db}). Connect that drive and start Unknown alt again, \
+                    "UnknownALT's data folder {folder} isn't available (no {db}). Connect that drive and start UnknownALT again, \
                      or delete {location} to start fresh in the default folder.",
                     folder = l.data_dir.display(),
                     db = DB_FILE,
@@ -156,7 +156,7 @@ fn chosen_dir(default: PathBuf, json: Option<&str>) -> std::result::Result<(Path
 }
 
 /// Writes location.json through a temporary file flushed to disk, so neither a crash nor a power
-/// cut leaves half of it (or an empty one, which would send Unknown alt to the default folder).
+/// cut leaves half of it (or an empty one, which would send UnknownALT to the default folder).
 pub fn write_location(l: &Location) -> std::io::Result<()> {
     use std::io::Write;
     let dir = default_dir();
@@ -184,7 +184,7 @@ pub fn same_dir(a: &Path, b: &Path) -> bool {
 }
 
 /// Where a data folder move to `path` goes: a full path that isn't the current folder or
-/// inside it, and holds no Unknown alt database yet.
+/// inside it, and holds no UnknownALT database yet.
 pub fn move_target(current: &Path, path: &str) -> Result<PathBuf> {
     let refuse = |why: String| Err(AppError::Invalid(why));
     let path = Path::new(path.trim());
@@ -193,13 +193,13 @@ pub fn move_target(current: &Path, path: &str) -> Result<PathBuf> {
     }
     let target = std::path::absolute(path)?;
     if same_dir(&target, current) {
-        return refuse(tr!("Unknown alt already keeps its data there."));
+        return refuse(tr!("UnknownALT already keeps its data there."));
     }
     if path_key(&target).starts_with(&path_key(current)) {
         return refuse(tr!("Pick a folder outside the current data folder."));
     }
     if storage::identity::has_database_files(&target) {
-        return refuse(tr!("That folder already has an Unknown alt database. Pick another one."));
+        return refuse(tr!("That folder already has an UnknownALT database. Pick another one."));
     }
     Ok(target)
 }
@@ -247,7 +247,7 @@ fn main_window(app: &AppHandle, data_dir: &Path, skip_splash: bool, hidden: bool
     let bg = Color(10, 10, 10, 255);
 
     let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-        .title("Unknown alt")
+        .title("UnknownALT")
         .inner_size(splash::DEFAULT.0, splash::DEFAULT.1)
         // The minimum size is set once the splash has grown (`splash`); shown by it too.
         .visible(false)
@@ -287,7 +287,7 @@ pub(crate) fn cdp_args() -> Option<String> {
     None
 }
 
-/// Only the Unknown alt window: pages in Roblox windows are never to reach a command, whatever origin
+/// Only the UnknownALT window: pages in Roblox windows are never to reach a command, whatever origin
 /// they manage to appear as.
 fn main_only(handler: impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static) -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     move |invoke| {
@@ -297,14 +297,14 @@ fn main_only(handler: impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'stati
             return true;
         }
         if !update_handoff::command_allowed(invoke.message.command()) {
-            invoke.resolver.reject("Unknown alt is finishing its update startup check. Please wait before making changes.");
+            invoke.resolver.reject("UnknownALT is finishing its update startup check. Please wait before making changes.");
             return true;
         }
         handler(invoke)
     }
 }
 
-/// The Unknown alt window stays on the app's own pages.
+/// The UnknownALT window stays on the app's own pages.
 fn in_app(url: &url::Url) -> bool {
     let host = url.host_str();
     (host == Some("tauri.localhost") && url.port().is_none() && url.username().is_empty() && url.password().is_none())
@@ -313,7 +313,7 @@ fn in_app(url: &url::Url) -> bool {
         || (cfg!(debug_assertions) && host == Some("localhost"))
 }
 
-/// Keeps a folder Unknown alt creates from being writable by other users of the PC: what lands in it
+/// Keeps a folder UnknownALT creates from being writable by other users of the PC: what lands in it
 /// includes the UI's WebView2 profile. A drive without permissions (exFAT) can't, and is left so.
 pub fn restrict_to_user(dir: &Path) {
     restrict_path(dir, true);
@@ -397,7 +397,7 @@ fn fatal(message: &str) -> ! {
         let _ = writeln!(f, "[fatal] {safe}");
     }
     // SAFETY: a plain modal message box with no owner window.
-    unsafe { MessageBoxW(None, &windows::core::HSTRING::from(message), windows::core::w!("Unknown alt"), MB_ICONERROR | MB_OK) };
+    unsafe { MessageBoxW(None, &windows::core::HSTRING::from(message), windows::core::w!("UnknownALT"), MB_ICONERROR | MB_OK) };
     std::process::exit(1)
 }
 
@@ -406,8 +406,8 @@ fn fatal_webview2() -> ! {
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::{IDYES, MB_ICONERROR, MB_YESNO, MessageBoxW, SW_SHOWNORMAL};
     let text = tr!(
-        "Unknown alt couldn't open its window. If this PC was very busy, try starting Unknown alt again.\n\n\
-         Otherwise, Unknown alt needs the Microsoft Edge WebView2 Runtime. Open Microsoft's download page in your browser now?"
+        "UnknownALT couldn't open its window. If this PC was very busy, try starting UnknownALT again.\n\n\
+         Otherwise, UnknownALT needs the Microsoft Edge WebView2 Runtime. Open Microsoft's download page in your browser now?"
     );
     // SAFETY: plain modal message box; opens Microsoft's WebView2 download link if the user clicks Yes.
     unsafe {
@@ -451,13 +451,13 @@ fn set_aside_unreadable(data_dir: &Path) -> bool {
     let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
     let aside = data_dir.join(format!("unreadable-{secs}"));
     let text = tr!(
-        "Windows can't unlock Unknown alt's database on this account. This happens after a Windows password \
+        "Windows can't unlock UnknownALT's database on this account. This happens after a Windows password \
          reset or reinstall, or with a data folder copied from another PC.\n\nStart with an empty \
          database? The old files are kept in {path}.",
         path = aside.display()
     );
     // SAFETY: a plain modal message box with no owner window.
-    let answer = unsafe { MessageBoxW(None, &windows::core::HSTRING::from(text), windows::core::w!("Unknown alt"), MB_ICONWARNING | MB_YESNO) };
+    let answer = unsafe { MessageBoxW(None, &windows::core::HSTRING::from(text), windows::core::w!("UnknownALT"), MB_ICONWARNING | MB_YESNO) };
     if answer != IDYES {
         return false;
     }
@@ -478,14 +478,14 @@ fn init(app: &TauriApp, data_dir: &Path, moved_from: Option<&Path>) -> std::resu
         Err(AppError::Crypto) if set_aside_unreadable(data_dir) => storage::Db::open(&db_path),
         r => r,
     }
-    .map_err(|e| tr!("Unknown alt can't open its database {path}: {why}", path = db_path.display(), why = e.message()))?;
+    .map_err(|e| tr!("UnknownALT can't open its database {path}: {why}", path = db_path.display(), why = e.message()))?;
     let record = db.vault_record().map_err(|e| e.message())?;
     // Only a database with a vault is the copy that replaces the old one.
     let moved_from = moved_from.filter(|_| record.is_some());
     let vault = match record {
         Some(rec) => vault::Vault::open(&rec).map_err(|e| {
             tr!(
-                "Unknown alt can't open its vault on this Windows account ({why}).\n\nIf this data folder came from another PC or \
+                "UnknownALT can't open its vault on this Windows account ({why}).\n\nIf this data folder came from another PC or \
                  Windows account, rename {path} and import an .unknownalt backup.",
                 why = e.message(),
                 path = db_path.display()
@@ -551,13 +551,13 @@ fn init(app: &TauriApp, data_dir: &Path, moved_from: Option<&Path>) -> std::resu
         let handle = app.handle().clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            commands::notice(&handle, true, tr!("Unknown alt restarted after it stopped responding. Unlock the vault so auto-rejoin and Discord alerts can keep running."));
+            commands::notice(&handle, true, tr!("UnknownALT restarted after it stopped responding. Unlock the vault so auto-rejoin and Discord alerts can keep running."));
         });
     } else if watchdog_restart {
         let handle = app.handle().clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            commands::notice(&handle, false, tr!("Unknown alt restarted in the tray after it stopped responding. Your running clients weren't closed."));
+            commands::notice(&handle, false, tr!("UnknownALT restarted in the tray after it stopped responding. Your running clients weren't closed."));
         });
     }
     if !isolated_fixture && let Err(e) = commands::set_panic_hotkey(app.handle(), "", &settings.panic_hotkey) {
@@ -742,7 +742,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         let shown = window.is_visible().unwrap_or(true) && !window.is_minimized().unwrap_or(false);
         set_main_shown(window.app_handle(), shown);
     }
-    // A layout preview left on screen would keep Unknown alt running for its last seconds.
+    // A layout preview left on screen would keep UnknownALT running for its last seconds.
     if let WindowEvent::Destroyed = event
         && window.label() == "main"
     {
@@ -798,7 +798,7 @@ fn main() {
     if let Err(e)=update_handoff::guard_startup() {fatal(&e.message());}
     let (data_dir, moved_from) = data_dir().unwrap_or_else(|e| fatal(&e));
     if let Err(e) = std::fs::create_dir_all(&data_dir) {
-        fatal(&tr!("Unknown alt can't create its data folder {path}: {why}", path = data_dir.display(), why = e));
+        fatal(&tr!("UnknownALT can't create its data folder {path}: {why}", path = data_dir.display(), why = e));
     }
     let log_dir = data_dir.join("logs");
     let _ = std::fs::create_dir_all(&log_dir);
@@ -996,6 +996,14 @@ fn main() {
             commands::online_ping,
             commands::self_update_status,
             bulletins::update_bulletins,
+            analytics::public_analytics_search,
+            analytics::public_analytics_snapshot,
+            analytics::public_analytics_trending,
+            analytics::public_analytics_studio,
+            analytics::creator_analytics_connect,
+            analytics::creator_analytics_disconnect,
+            analytics::creator_analytics_metrics,
+            analytics::creator_analytics_export,
             farm::farm_status,
             farm::farm_configure,
             farm::farm_audio,
@@ -1045,7 +1053,7 @@ fn main() {
             commands::network_status,
         ]))
         .build(context)
-        .unwrap_or_else(|e| fatal(&tr!("Unknown alt failed to start: {why}", why = e)))
+        .unwrap_or_else(|e| fatal(&tr!("UnknownALT failed to start: {why}", why = e)))
         .run(|app, event| {
             // Before the Exit event: the clipboard plugin has cleaned up by then.
             if let tauri::RunEvent::ExitRequested { code, api, .. } = &event {

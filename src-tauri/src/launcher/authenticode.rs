@@ -1,4 +1,4 @@
-//! Authenticode check of a downloaded installer (Windows), before Unknown alt ever runs it.
+//! Authenticode check of a downloaded installer (Windows), before UnknownALT ever runs it.
 //!
 //! Two checks, both required:
 //! 1. `WinVerifyTrust` (`WINTRUST_ACTION_GENERIC_VERIFY_V2`, no UI) on the file's own embedded
@@ -158,7 +158,7 @@ mod tests {
         assert!(e.contains("\"Microsoft Windows\", not Roblox Corporation"), "{e}");
     }
 
-    /// An embedded-signed Microsoft program (the WebView2 runtime Unknown alt needs anyway) is
+    /// An embedded-signed Microsoft program (the WebView2 runtime UnknownALT needs anyway) is
     /// trusted, but isn't Roblox's.
     #[test]
     fn signed_by_someone_else_is_refused() {

@@ -189,7 +189,7 @@ try {
         if ($scenario -ceq 'success') {
             Assert-True ($finalProgress.phase -ceq 'completed') 'The window closes after successful startup acknowledgement.'
         } else {
-            Assert-True ($finalProgress.phase -ceq 'failed') 'Failed or rolled back updates close the progress window.'
+            Assert-True ($finalProgress.phase -cin @('failed','rolled-back','recovery-needed')) 'Failed updates display a recovery outcome.'
         }
         $journal = Read-UpdateJson (Join-Path $caseStage 'transaction.json') 16000000
         if ($scenario -in @('installer-failure','probe-failure','commit-failure','recovery-live-app','registration-failure')) {

@@ -1,5 +1,5 @@
 //! A report to send when something goes wrong: versions, the performance settings, and the end of
-//! Unknown alt's log and of the Roblox client logs that matter, cleaned line by line (`redact`). Built
+//! UnknownALT's log and of the Roblox client logs that matter, cleaned line by line (`redact`). Built
 //! only when asked for, and it only goes where the user copies or saves it.
 
 use std::io::{Read, Seek, SeekFrom};
@@ -176,7 +176,7 @@ pub struct Sources {
 }
 
 pub fn report(src: &Sources, max: usize) -> String {
-    let mut sections = vec![("Unknown alt log".to_owned(), clean_tail(&src.unknownalt_log, UNKNOWNALT_LINES, &src.names))];
+    let mut sections = vec![("UnknownALT log".to_owned(), clean_tail(&src.unknownalt_log, UNKNOWNALT_LINES, &src.names))];
     for (n, log) in src.roblox_logs.iter().enumerate() {
         sections.push((format!("Roblox log {}", n + 1), clean_tail(log, ROBLOX_LINES, &src.names)));
     }

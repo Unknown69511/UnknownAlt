@@ -1,4 +1,4 @@
-//! What a client that ended badly leaves behind, written into Unknown alt's log (so into the diagnostics
+//! What a client that ended badly leaves behind, written into UnknownALT's log (so into the diagnostics
 //! report too): how long it really lived, the PC's state, the end of its logs cleaned line by line
 //! (`diagnostics::redact`), a crash dump if Roblox's crash handler wrote one, Windows' own record of
 //! the fault, and what all that points to. The process's exit code isn't here: reading it would mean
@@ -122,7 +122,7 @@ fn words(v: Verdict, c: &Ended) -> String {
         Verdict::Crashed => "the client itself crashed: see the crash dump and Windows' record below".to_owned(),
         Verdict::NoLog => "it ended before writing a log, with no crash recorded: it didn't get to start properly (look at antivirus, a damaged Roblox install or the client's version)".to_owned(),
         Verdict::Early => "it ended early by itself with no crash recorded: something closed it or it closed itself (look at the end of its log, an update or the anti-cheat)".to_owned(),
-        Verdict::Unknown => "it ended with no crash recorded: closed by hand, by another program or by itself (Roblox can't tell Unknown alt which)".to_owned(),
+        Verdict::Unknown => "it ended with no crash recorded: closed by hand, by another program or by itself (Roblox can't tell UnknownALT which)".to_owned(),
     }
 }
 

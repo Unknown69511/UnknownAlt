@@ -72,6 +72,8 @@ export function signingKey(pem, channel) {
 }
 
 export const installerName = version => `UnknownAlt-Setup-${stableVersion(version)}.exe`;
+// The signed updater filename is part of the v1 protocol checked by installed versions.
+export const brandedInstallerName = version => `UnknownALT-Setup-${stableVersion(version)}.exe`;
 export function releaseUrl(channel, version, fileName = installerName(version)) {
   validateChannel(channel);
   return `https://github.com/${channel.owner}/${channel.repository}/releases/download/v${stableVersion(version)}/${fileName}`;

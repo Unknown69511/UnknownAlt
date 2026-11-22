@@ -1,4 +1,4 @@
-name: Build Unknown alt release candidate
+name: Build UnknownALT release candidate
 
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         with:
           name: UnknownAlt-Candidate-${{ env.UNKNOWNALT_RELEASE_VERSION }}
-          path: dist-installer/UnknownAlt-Setup-*.exe
+          path: dist-installer/UnknownALT-Setup-*.exe
           if-no-files-found: error
           retention-days: 7
 

@@ -8,6 +8,8 @@ import { queryClient } from "../../data";
 import { Dialog } from "../../ui/Dialog";
 import { toast, toastError, Toaster } from "../../ui/Toast";
 import { UpdatesPage } from "../update/UpdatesPage";
+import { AnalyticsView } from "../analytics/AnalyticsView";
+import { useWatchlistCollector } from "../analytics/store";
 
 type Account = { userId: number; username: string; displayName: string; alias: string };
 type PortableStatus = {
@@ -24,8 +26,9 @@ export function PortableApp() {
 }
 
 function PortableShell() {
+  useWatchlistCollector();
   const query = useQuery({ queryKey: ["portableStatus"], queryFn: () => invoke<PortableStatus>("portable_status"), retry: false });
-  const [view, setView] = useState<"archive" | "updates" | "support">("archive");
+  const [view, setView] = useState<"archive" | "updates" | "analytics" | "support">("archive");
   const [action, setAction] = useState<{ type: "import" | "export"; path: string } | null>(null);
   const [password, setPassword] = useState("");
   const [replace, setReplace] = useState(false);
@@ -41,7 +44,7 @@ function PortableShell() {
 
   const pick = async (type: "import" | "export") => {
     try {
-      const filters = [{ name: "Unknown alt backup", extensions: ["unknownalt", "roalt"] }];
+      const filters = [{ name: "UnknownALT backup", extensions: ["unknownalt", "roalt"] }];
       const path = type === "import" ? await open({ multiple: false, directory: false, filters }) :
         await save({ defaultPath: "UnknownAlt-Backup.unknownalt", filters });
       if (typeof path !== "string") return;
@@ -72,20 +75,20 @@ function PortableShell() {
   };
   return <div className="app">
     <header className="flex flex-wrap items-center gap-3 p-3 border-b border-line">
-      <h1 className="font-semibold">Unknown alt</h1>
-      {(["archive", "updates", "support"] as const).map((item) => (
-        <button key={item} className="btn btn-sm" aria-pressed={view === item} onClick={() => setView(item)}>{item === "archive" ? "Account archive" : item === "updates" ? "Updates" : "Platform support"}</button>
+      <h1 className="font-semibold">UnknownALT</h1>
+      {(["archive", "updates", "analytics", "support"] as const).map((item) => (
+        <button key={item} className="btn btn-sm" aria-pressed={view === item} onClick={() => setView(item)}>{item === "archive" ? "Account archive" : item === "updates" ? "Updates" : item === "analytics" ? "Analytics" : "Platform support"}</button>
       ))}
       <button className="btn btn-sm ml-auto" onClick={() => openUrl("https://discord.gg/8EVsaWTH8S").catch(toastError)}>Discord</button>
     </header>
-    {view === "updates" ? <UpdatesPage packageVersion={data?.version ?? "—"} /> : view === "support" ? <main className="flex-1 overflow-auto p-4 space-y-3">
+    {view === "updates" ? <UpdatesPage packageVersion={data?.version ?? "—"} /> : view === "analytics" ? <AnalyticsView /> : view === "support" ? <main className="flex-1 overflow-auto p-4 space-y-3">
       <h2 className="text-xl font-semibold">Platform support</h2>
-      <p>This build supports encrypted account backup import and export, local snapshots, account profile links and the Updates page.</p>
+      <p>This build supports encrypted account archives, local snapshots, account profile links, Updates and Roblox Analytics.</p>
       <p>Roblox sign-in and Browse, managed launches, Farm Control Center, client previews and limits, Audio Mixer, anti-AFK, session alerts and automatic app installation require the Windows EXE build.</p>
       <p>macOS uses Keychain for the archive key. Linux requires an unlocked Secret Service keyring.</p>
     </main> : <main className="flex-1 min-h-0 overflow-auto p-4 space-y-3">
       <h2 className="text-xl font-semibold">Account archive</h2>
-      <p>Import a password-protected Unknown alt backup. The archive preserves accounts, settings and other data for export.</p>
+      <p>Import a password-protected UnknownALT backup. The archive preserves accounts, settings and other data for export.</p>
       {query.isPending && <p role="status">Opening archive…</p>}
       {query.error && <p role="alert">Could not open the archive. Check that your system keyring is available. <button className="btn btn-sm" onClick={() => void query.refetch()}>Retry</button></p>}
       <div className="flex flex-wrap gap-2">

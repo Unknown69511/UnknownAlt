@@ -1,16 +1,28 @@
-# Unknown alt 1.2.3
+# UnknownALT 1.2.4
+
+- Rebranded the UI, shortcuts, installers and application filenames as UnknownALT.
+- Updates now includes formatted official announcement text, permitted images,
+  source tabs, unread filters, cached articles and automatic refresh.
+- The update window shows measured verification progress, white progress fill
+  and recovery instructions when installation fails.
+- Simplified Farm Control Center with a client overview and separate sections
+  for warnings, recovery, performance, alerts, audio and storage.
+- Added Roblox public game analytics, a local watchlist and player history, and
+  read-only Roblox Open Cloud creator metrics with CSV export.
+
+# UnknownALT 1.2.3
 
 - In-app Windows EXE updates open a separate, centered progress window. It reports
-  download and installer progress and stays open while Unknown alt restarts.
-- Opening Unknown alt again during an update brings the progress window forward.
+  download and installer progress and stays open while UnknownALT restarts.
+- Opening UnknownALT again during an update brings the progress window forward.
 
-# Unknown alt 1.2.2
+# UnknownALT 1.2.2
 
 - Farm Control Center brings together managed-client problems, recovery actions,
   CPU and RAM readings, a priority account, session alerts and the audio mixer.
 - Storage Dashboard measures app data, database, logs and encrypted snapshots.
   Cleanup targets cached results and rotated app logs.
-- Updates shows Unknown alt release notes, Roblox release notes and DevForum
+- Updates shows UnknownALT release notes, Roblox release notes and DevForum
   announcements with filters and unread status. The pinned updater controls
   Windows EXE installation and progress.
 - Added Windows MSIX packaging and native archive build targets for macOS and
@@ -39,10 +51,10 @@ See [local safeguards](docs/LOCAL-SAFEGUARDS.md) for recovery limits and the
 isolated verification procedure. Windows
 Authenticode signing remains separate from the existing owner-signed update feed.
 
-# Unknown alt 1.2.0
+# UnknownALT 1.2.0
 
 Ported from inspectsoftware/RoALT through `59b027b`, retaining the MIT license and
-upstream notices. UnknownAlt keeps its independent application identity, custom
+upstream notices. UnknownALT keeps its independent application identity, custom
 mascot, Brown factory accent, Discord community and verified owner-controlled
 release channel. Original authenticated vault/backup markers remain only for data
 compatibility; they are not release feeds or visible branding.

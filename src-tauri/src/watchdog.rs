@@ -70,7 +70,7 @@ pub fn spawn(app: AppHandle) {
             }
             stuck += 1;
             if stuck == LOG_AFTER {
-                log::warn!("watchdog: the main thread hasn't answered for {} s; Unknown alt {} is stuck in: {}", stuck * 5, env!("CARGO_PKG_VERSION"), main_stack());
+                log::warn!("watchdog: the main thread hasn't answered for {} s; UnknownALT {} is stuck in: {}", stuck * 5, env!("CARGO_PKG_VERSION"), main_stack());
             } else if stuck == RESTART_AFTER {
                 log::error!("watchdog: the main thread hasn't answered for {} s; restarting in the tray (still in: {})", stuck * 5, main_stack());
                 if !restart(&app) {
@@ -269,10 +269,10 @@ fn restart(app: &AppHandle) -> bool {
     match std::env::current_exe() {
         Ok(exe) => {
             if let Err(e) = std::process::Command::new(exe).args([AFTER_ARG, &std::process::id().to_string(), TRAY_ARG]).spawn() {
-                log::error!("watchdog: could not start Unknown alt again: {e}");
+                log::error!("watchdog: could not start UnknownALT again: {e}");
             }
         }
-        Err(e) => log::error!("watchdog: could not start Unknown alt again: {e}"),
+        Err(e) => log::error!("watchdog: could not start UnknownALT again: {e}"),
     }
     remove_tray_icon();
     log::logger().flush();

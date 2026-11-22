@@ -1,4 +1,4 @@
-# This script is embedded in Unknown alt and staged in the current user's private update folder.
+# This script is embedded in UnknownALT and staged in the current user's private update folder.
 # It has no authority to download, install, terminate the app, or approve a transaction.
 param([Parameter(Mandatory=$true)][string]$StageDir)
 $ErrorActionPreference = 'Stop'
@@ -16,11 +16,12 @@ using System.Web.Script.Serialization;
 public sealed class UnknownAltUpdateWindow : Form
 {
     const int InstallerProgressMessage = 0x8144;
-    static readonly Color Brown = Color.FromArgb(139, 94, 60);
+    static readonly Color Fill = Color.White;
     static readonly Color Track = Color.FromArgb(43, 39, 36);
     readonly string statePath;
     readonly PictureBox logo;
     readonly Label status;
+    readonly Label heading;
     readonly ProgressTrack progress;
     readonly Timer timer;
     readonly Stopwatch elapsed = Stopwatch.StartNew();
@@ -53,8 +54,8 @@ public sealed class UnknownAltUpdateWindow : Form
         if (last == null || !IsAlive(last))
             throw new InvalidOperationException("The update has no active writer.");
 
-        Text = "Unknown alt Update - " + token.ToString("D");
-        AccessibleName = "Unknown alt Update";
+        Text = "UnknownALT Update - " + token.ToString("D");
+        AccessibleName = "UnknownALT Update";
         AutoScaleMode = AutoScaleMode.Dpi;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.None;
@@ -68,11 +69,11 @@ public sealed class UnknownAltUpdateWindow : Form
         ForeColor = Color.FromArgb(243, 237, 232);
         Font = new Font("Segoe UI", 10F);
         DoubleBuffered = true;
-        logo = new PictureBox { Location = new Point(164, 30), Size = new Size(92, 92), SizeMode = PictureBoxSizeMode.Zoom, AccessibleName = "Unknown alt mascot" };
+        logo = new PictureBox { Location = new Point(164, 30), Size = new Size(92, 92), SizeMode = PictureBoxSizeMode.Zoom, AccessibleName = "UnknownALT mascot" };
         using (var image = Image.FromFile(Path.Combine(stage, "update-progress.png")))
             logo.Image = new Bitmap(image);
-        var title = new Label {
-            Text = "Updating Unknown alt", Location = new Point(24, 140), Size = new Size(372, 34),
+        heading = new Label {
+            Text = "Updating UnknownALT", Location = new Point(24, 140), Size = new Size(372, 34),
             TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI Semibold", 16F)
         };
         status = new Label {
@@ -80,12 +81,12 @@ public sealed class UnknownAltUpdateWindow : Form
             TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.FromArgb(201, 190, 182)
         };
         progress = new ProgressTrack(this) { Location = new Point(32, 225), Size = new Size(356, 8) };
-        Controls.AddRange(new Control[] { logo, title, status, progress });
+        Controls.AddRange(new Control[] { logo, heading, status, progress });
 
         timer = new Timer { Interval = 30 };
         timer.Tick += Tick;
         Shown += delegate { Activate(); timer.Start(); };
-        FormClosed += delegate { timer.Dispose(); logo.Image.Dispose(); Icon.Dispose(); title.Font.Dispose(); Font.Dispose(); };
+        FormClosed += delegate { timer.Dispose(); logo.Image.Dispose(); Icon.Dispose(); heading.Font.Dispose(); Font.Dispose(); };
     }
 
     public static void Run(string stage)
@@ -126,10 +127,11 @@ public sealed class UnknownAltUpdateWindow : Form
         if (now >= nextPoll) {
             nextPoll = now + 120;
             last = ReadState() ?? last;
-            if (last.phase == "completed" || last.phase == "failed") { CloseFromTransaction(); return; }
+            if (last.phase == "completed") { CloseFromTransaction(); return; }
+            if (last.phase == "failed" || last.phase == "rolled-back" || last.phase == "recovery-needed") { ShowRecovery(last.phase); return; }
             if (!IsAlive(last)) {
                 if (missingSince < 0) missingSince = now;
-                if (now - missingSince > 2000) { CloseFromTransaction(); return; }
+                if (now - missingSince > 2000) { ShowRecovery("interrupted"); return; }
             } else missingSince = -1;
             if (phase != last.phase) {
                 phase = last.phase;
@@ -149,24 +151,44 @@ public sealed class UnknownAltUpdateWindow : Form
         Close();
     }
 
+    void ShowRecovery(string outcome)
+    {
+        if (permitClose) return;
+        permitClose = true;
+        timer.Stop();
+        progress.Hide();
+        heading.Text = "Update couldn't finish";
+        status.Size = new Size(372, 68);
+        status.Text = outcome == "rolled-back"
+            ? "The previous version and saved data were restored. Reopen UnknownALT and retry from Updates."
+            : outcome == "recovery-needed" || outcome == "interrupted"
+                ? "Reopen UnknownALT to recover the update. If recovery is still pending, restart Windows. Keep your backups."
+                : "Open UnknownALT and check Updates for details. You can retry the update from there.";
+        ClientSize = new Size(420, 315);
+        var close = new Button { Text = "Close", Size = new Size(96, 32), Location = new Point(162, 267), FlatStyle = FlatStyle.Flat, BackColor = Track };
+        close.Click += delegate { CloseFromTransaction(); };
+        Controls.Add(close);
+        close.Select();
+    }
+
     void UpdateDisplay()
     {
         string label;
         long current = 0, total = 0;
         switch (phase) {
             case "downloading": label = "Downloading update"; current = last.current; total = last.total; break;
-            case "verifying": label = "Verifying the download..."; break;
+            case "verifying": label = "Verifying the download"; current = last.current; total = last.total; break;
             case "backing-up": label = "Backing up your data..."; break;
-            case "closing": label = "Closing Unknown alt safely..."; break;
+            case "closing": label = "Closing UnknownALT safely..."; break;
             case "installing": label = "Installing update"; current = installCurrent; total = installTotal; break;
-            case "restarting": label = "Reopening Unknown alt..."; break;
+            case "restarting": label = "Reopening UnknownALT..."; break;
             case "restoring": label = "Restoring the previous version..."; break;
             default: label = "Preparing update..."; break;
         }
         determinate = total > 0 && current >= 0 && current <= total;
         target = determinate ? (double)current / total : 0;
         if (determinate) label += "  " + (int)((decimal)current * 100 / total) + "%";
-        else if (phase == "installing" || phase == "downloading") label += "...";
+        else if (phase == "installing" || phase == "downloading" || phase == "verifying") label += "...";
         if (status.Text != label) status.Text = label;
     }
 
@@ -174,6 +196,7 @@ public sealed class UnknownAltUpdateWindow : Form
     {
         const int WmClose = 0x0010;
         if (message.Msg == WmClose && !permitClose) return;
+        if (message.Msg == 0x8145) { ShowRecovery("failed"); return; }
         if (message.Msg == InstallerProgressMessage) {
             long current = message.WParam.ToInt64(), total = message.LParam.ToInt64();
             if (total > 0 && total <= Int32.MaxValue && current >= 0 && current <= total
@@ -205,7 +228,7 @@ public sealed class UnknownAltUpdateWindow : Form
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using (GraphicsPath shape = Rounded(width, height))
             using (var background = new SolidBrush(Track))
-            using (var fill = new SolidBrush(Brown)) {
+            using (var fill = new SolidBrush(Fill)) {
                 e.Graphics.FillPath(background, shape);
                 e.Graphics.SetClip(shape);
                 if (owner.determinate) {

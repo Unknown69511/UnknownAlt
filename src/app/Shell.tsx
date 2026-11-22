@@ -27,6 +27,7 @@ import { markViewEntering } from "../ui/motion";
 import { Divider, usePanelWidth } from "../ui/Resizer";
 import { readStored, writeStored } from "../ui/stored";
 import { LiveActivities } from "./LiveActivities";
+import { useWatchlistCollector } from "../features/analytics/store";
 import { MAIN_SECTIONS, requestNavigation, SECTION_ICON, SECTION_VIEW, SHORTCUT_VIEW, shortcutFor, TOOL_SECTIONS, useNavigationRequests, VIEW_NAME, type BrowseRequest, type Request, type Section, type View } from "./navigation";
 
 // Home is the start; every other view is its own chunk, fetched once Home has painted.
@@ -44,6 +45,7 @@ const ModsView = lazyView(() => import("../features/mods/ModsView"), (m) => m.Mo
 const MonitorView = lazyView(() => import("../features/monitor/MonitorView"), (m) => m.MonitorView);
 const FarmView = lazyView(() => import("../features/management/FarmView"), (m) => m.FarmView);
 const UpdatesPage = lazyView(() => import("../features/update/UpdatesPage"), (m) => m.UpdatesPage);
+const AnalyticsView = lazyView(() => import("../features/analytics/AnalyticsView"), (m) => m.AnalyticsView);
 const ServersView = lazyView(() => import("../features/servers/ServersView"), (m) => m.ServersView);
 const CrashesView = lazyView(() => import("../features/crashes/CrashesView"), (m) => m.CrashesView);
 const SettingsView = lazyView(() => import("../features/settings/SettingsView"), (m) => m.SettingsView);
@@ -74,6 +76,7 @@ function readSameServer(): SameServer {
  * side layout, and one view at a time. Owns the state that must outlive a view: picked accounts, the
  * draft target, Home's tabs, a launch in flight. */
 export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; settings: Settings; islandSlot: HTMLElement | null }) {
+  useWatchlistCollector();
   const nav = usePanelWidth("nav", 228, 180, 320);
   const qc = useQueryClient();
   const accounts = useAccounts();
@@ -123,7 +126,7 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
   const viewName = t(VIEW_NAME[view]);
 
   useEffect(() => {
-    document.title = `${viewName} · Unknown alt`;
+    document.title = `${viewName} · UnknownALT`;
   }, [viewName]);
 
   // So a first visit doesn't wait on its chunk (a switch is a transition: the old view stays meanwhile).
@@ -406,6 +409,8 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
             <FarmView accounts={accounts.data} />
           ) : view === "updates" ? (
             <UpdatesPage />
+          ) : view === "analytics" ? (
+            <AnalyticsView />
           ) : view === "monitor" ? (
             <MonitorView accounts={accounts.data} />
           ) : view === "discord" ? (

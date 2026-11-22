@@ -1,4 +1,4 @@
-//! Following the clients Unknown alt starts: one entry per launch, polled once a second.
+//! Following the clients UnknownALT starts: one entry per launch, polled once a second.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -35,7 +35,7 @@ pub fn challenged() -> String {
 pub fn auth_failed() -> String {
     tr!("Roblox refused the sign-in (error 403)")
 }
-/// The note of a client that ended without Unknown alt closing it and with nothing else to blame.
+/// The note of a client that ended without UnknownALT closing it and with nothing else to blame.
 pub fn unexpected() -> String {
     tr!("Closed unexpectedly")
 }
@@ -43,7 +43,7 @@ pub fn unexpected() -> String {
 pub fn hung() -> String {
     tr!("Not responding")
 }
-/// The note of a client the user (or Unknown alt) closed.
+/// The note of a client the user (or UnknownALT) closed.
 pub fn closed() -> String {
     tr!("Closed")
 }
@@ -81,7 +81,7 @@ pub struct Tracker {
 /// One window for the layout: (instance id, pid, window rect, client size the tiny sweep keeps).
 type Place = (String, u32, super::window::Rect, Option<(u32, u32)>);
 
-/// The window-layout placements, on Unknown alt's monitor: for `arrived` (instance id, pid, account; its
+/// The window-layout placements, on UnknownALT's monitor: for `arrived` (instance id, pid, account; its
 /// slot reserved now if need be) first, then, when the Fit grid's size changed, every other client
 /// already placed and not minimized. With the re-layout generation they belong to.
 /// The frame size to lay windows out with (Roblox windows share a style): measured on the first of
@@ -189,7 +189,7 @@ pub fn reserve(slots: &mut Vec<i64>, accounts: &[i64], live: &dyn Fn(i64) -> boo
     }
 }
 
-/// What a restarted Unknown alt needs to follow a running client again (`readopt`), kept in the
+/// What a restarted UnknownALT needs to follow a running client again (`readopt`), kept in the
 /// database while the client runs (`persist`).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Saved {
@@ -259,7 +259,7 @@ struct Entry {
     in_game_at: Option<i64>,
     /// Polls in a row its window was not responding (`process::hung`).
     hung_polls: u32,
-    /// Unknown alt gave up restarting it (the crash breaker): its note from then on.
+    /// UnknownALT gave up restarting it (the crash breaker): its note from then on.
     gave_up: Option<String>,
     /// Unix ms `rejoin` started working on relaunching it, which can take an hour: the one task for
     /// it, it isn't pruned, and Close all ends it (`cancel_relaunches`).
@@ -284,7 +284,7 @@ struct Entry {
     mem_strikes: u32,
     /// Its private memory at the last sample, MB.
     mem_mb: u64,
-    /// Unknown alt is closing it for its memory (`mark_restart`): its exit is recorded as `Mem`.
+    /// UnknownALT is closing it for its memory (`mark_restart`): its exit is recorded as `Mem`.
     mem_restart: bool,
     /// It has run for `Settings.restart_every_h` and may be restarted now (`check_uptime`).
     timed: bool,
@@ -501,7 +501,7 @@ impl Tracker {
         inst
     }
 
-    /// The running clients a restarted Unknown alt can follow again: those known to be the client
+    /// The running clients a restarted UnknownALT can follow again: those known to be the client
     /// itself (not a bootstrapper standing in for it).
     pub fn saved(&self) -> Vec<Saved> {
         self.entries()
@@ -541,7 +541,7 @@ impl Tracker {
         }
     }
 
-    /// Follows clients from before Unknown alt restarted again (before the first poll): each one
+    /// Follows clients from before UnknownALT restarted again (before the first poll): each one
     /// `readoptable` among the running Roblox clients `roblox`, its log read on from where it
     /// was. Returns the (pid, start time) of each one followed again.
     /// `played`: accounts the window layout leaves alone (full quality), given no slot.
@@ -650,7 +650,7 @@ impl Tracker {
 
     /// Time clients spent in a game since it was last handed out, as (account id, place id, ms):
     /// counted at each poll (`Played::step`), handed out when a client leaves a game or its place
-    /// or ends, and all of it when `flush` (once a minute, and at exit). Only Unknown alt's own clients.
+    /// or ends, and all of it when `flush` (once a minute, and at exit). Only UnknownALT's own clients.
     pub fn take_playtime(&self, now: i64, flush: bool) -> Vec<(i64, i64, i64)> {
         let mut out = std::mem::take(&mut *self.unsaved_play.lock().unwrap_or_else(|e| e.into_inner()));
         for e in self.entries().iter_mut() {
@@ -934,7 +934,7 @@ impl Tracker {
         self.entries().iter().any(|e| e.inst.id == id && !e.closing && e.cause().is_some())
     }
 
-    /// Still to be relaunched, after a check that took a while: `still_wants_rejoin` (`closed`: Unknown alt
+    /// Still to be relaunched, after a check that took a while: `still_wants_rejoin` (`closed`: UnknownALT
     /// closed it for this, so only that it isn't cleared), unless Close all stopped the relaunch or
     /// the account was launched since it began.
     pub fn relaunch_wanted(&self, id: &str, closed: bool) -> bool {
@@ -1198,7 +1198,7 @@ impl Tracker {
                         ONCE.call_once(|| log::warn!("LOCALAPPDATA not set: Roblox client logs can't be followed"));
                     }
                     let moved = s.tracker.poll(dir.as_deref(), &Live, &user_of, crate::commands::now_ms());
-                    // The shared login files are held only while Unknown alt's clients run (or launch).
+                    // The shared login files are held only while UnknownALT's clients run (or launch).
                     s.multi.release_if(|| !s.tracker.any_running());
                     // Also gives a client re-adopted under a new pid its limits again.
                     let clients = s.tracker.clients();
@@ -1324,7 +1324,7 @@ impl Tracker {
                     }
                     for mut c in s.tracker.take_crashes() {
                         // Asked now: the limiter forgets a gone client at its next sync.
-                        c.clues.push_str(&format!("; Unknown alt's limits at the end: {}", s.limiter.at_end(&c.instance_id, c.pid)));
+                        c.clues.push_str(&format!("; UnknownALT's limits at the end: {}", s.limiter.at_end(&c.instance_id, c.pid)));
                         log::warn!(
                             "instance {} of account {} ended: {:?}, given up on after {} s (gone after {:?} ms), place {:?}, reason {:?}",
                             c.instance_id,
@@ -1452,7 +1452,7 @@ impl Tracker {
     }
 }
 
-/// Follows the clients saved before Unknown alt closed again (`readopt`), as its own (not multi-
+/// Follows the clients saved before UnknownALT closed again (`readopt`), as its own (not multi-
 /// instance survivors); the saved ones no longer running go from the database.
 fn restore(app: &AppHandle) {
     let s = app.state::<crate::App>();
@@ -1483,7 +1483,7 @@ fn restore(app: &AppHandle) {
         }
     }
     s.multi.adopt(&found);
-    log::info!("following {} client(s) from before Unknown alt restarted", found.len());
+    log::info!("following {} client(s) from before UnknownALT restarted", found.len());
     if total > found.len() {
         log::debug!("{} saved client(s) no longer running, dropped", total - found.len());
     }
@@ -1681,7 +1681,7 @@ fn observe(e: &mut Entry, dir: Option<&Path>, procs: &dyn Procs, roblox: &mut Op
         e.gone_at.get_or_insert(now);
     }
     // ponytail: one window enumeration per client per poll; batch them if clients number hundreds.
-    // Kept once it is gone, so a hung client Unknown alt then closed still ends as hung.
+    // Kept once it is gone, so a hung client UnknownALT then closed still ends as hung.
     if e.alive && e.adopted {
         e.hung_polls = if procs.hung(e.inst.pid) { e.hung_polls.saturating_add(1) } else { 0 };
     }
@@ -1769,7 +1769,7 @@ fn adopt(e: &mut Entry, p: ProcInfo, taken: &mut Vec<u32>) {
 
 /// The client that wrote a log: started within a few seconds of the log's creation and since
 /// `after`. PIDs already followed are skipped. Nothing else counts: a client the user started
-/// themselves must never be taken for Unknown alt's.
+/// themselves must never be taken for UnknownALT's.
 fn pick_client(procs: &[ProcInfo], log_created: Option<u64>, after: u64, taken: &[u32]) -> Option<ProcInfo> {
     let c = log_created?;
     procs.iter().filter(|p| p.start_time >= after && !taken.contains(&p.pid) && p.start_time.abs_diff(c) <= LOG_SKEW_SECS).min_by_key(|p| p.start_time.abs_diff(c)).cloned()
@@ -1811,7 +1811,7 @@ fn settle(e: &mut Entry, now: i64) -> Option<CrashKind> {
     let written = !e.closing && e.writer_at.is_some_and(|w| now - w < WRITER_PROOF_MS);
     let ended = !e.alive && !may_appear(e, now) && !written;
     let (state, mut note) = state_of(&e.facts, e.log.is_some(), ended, e.closing, e.expected_user);
-    // A client Unknown alt closed for its memory ends as `Mem` (its note: "Closed").
+    // A client UnknownALT closed for its memory ends as `Mem` (its note: "Closed").
     let crash = match ended {
         true if e.closing && e.mem_restart => Some(CrashKind::Mem),
         true if e.closing && e.timed_restart => Some(CrashKind::Timed),
@@ -2706,7 +2706,7 @@ mod tests {
             assert_eq!(wants_rejoin(&inst(state, Some(HUNG)), &none, true), Some(Hang), "{state:?}");
         }
         assert_eq!(wants_rejoin(&inst(Disconnected, Some(HUNG)), &kicked, true), Some(Hang));
-        assert_eq!(wants_rejoin(&inst(Exited, Some("Closed")), &none, true), None, "a hung client Unknown alt closed");
+        assert_eq!(wants_rejoin(&inst(Exited, Some("Closed")), &none, true), None, "a hung client UnknownALT closed");
     }
 
     #[test]
@@ -2829,7 +2829,7 @@ mod tests {
         assert!(!t.begin_relaunch(&id, start) && t.is_relaunching(&id));
         poll(start + 201_000);
         assert!(t.relaunch_wanted(&id, false));
-        // Unknown alt's own close: `closing` no longer ends it, once it says so.
+        // UnknownALT's own close: `closing` no longer ends it, once it says so.
         t.entries()[0].closing = true;
         assert!(!t.relaunch_wanted(&id, false));
         assert!(t.relaunch_wanted(&id, true));
@@ -3066,7 +3066,7 @@ mod tests {
             t.check_memory(&|_| 4_096,true, &read);
         }
 
-        // Unknown alt closes it: it ends as a memory restart, with what it used.
+        // UnknownALT closes it: it ends as a memory restart, with what it used.
         t.mark_restart(&id, Some(CrashKind::Mem));
         procs.set(&[]);
         t.poll(None, &procs, &user_of, start + 3_000);

@@ -3,12 +3,12 @@
   Builds the Windows installer with its verified Microsoft WebView2 prerequisite.
 
 .DESCRIPTION
-  Release-builds the app (npm run tauri build -- --no-bundle), then compiles installer\UnknownAlt.iss
+  Release-builds the app (npm run tauri build -- --no-bundle), then compiles installer\UnknownALT.iss
   with Inno Setup 6. Prints the installer's path and SHA-256. Needs Rust (with the Build Tools'
   C++ workload), Node.js and Inno Setup 6 (https://jrsoftware.org/isdl.php).
 
 .PARAMETER Dev
-  Also keeps a copy as installers\UnknownAlt-Setup-<version>-dev-<yyyyMMdd-HHmm>.exe: one installer
+  Also keeps a copy as installers\UnknownALT-Setup-<version>-dev-<yyyyMMdd-HHmm>.exe: one installer
   per change, earlier ones never overwritten.
 
 .PARAMETER WebView2Installer
@@ -18,7 +18,7 @@
 
 .PARAMETER OfflineRuntime
   Embeds the complete x64 Evergreen Standalone runtime for offline first-time
-  setup. Output is UnknownAlt-Setup-<version>-Windows-x64.exe. Normal builds use
+  setup. Output is UnknownALT-Setup-<version>-Windows-x64.exe. Normal builds use
   the small bootstrapper and canonical updater filename; existing runtimes are
   reused. The full offline installer is deliberately not an updater-feed asset.
 
@@ -124,7 +124,7 @@ $exe = Join-Path $meta.target_directory 'release\unknownalt.exe'
 Write-Host 'Compiling the installer'
 $isccArgs = @('/Q', "/DAppVersion=$version", "/DAppNumVersion=$($version -replace '[-+].*$','')", "/DAppExe=$exe", "/DWebView2Installer=$WebView2Installer", "/DWebView2Sha256=$runtimeHash")
 if ($OfflineRuntime) { $isccArgs += '/DOfflineRuntime=1' }
-$isccArgs += "$root\installer\UnknownAlt.iss"
+$isccArgs += "$root\installer\UnknownALT.iss"
 # Antivirus scanning the fresh setup.exe can make ISCC's resource update fail once (error 110).
 foreach ($try in 1..2) {
     $ErrorActionPreference = 'Continue'
@@ -135,7 +135,7 @@ foreach ($try in 1..2) {
 }
 if ($LASTEXITCODE -ne 0) { Stop-Build "ISCC failed (exit $LASTEXITCODE)" 'fix the error ISCC names above, then run this again' }
 
-$outputBase = "UnknownAlt-Setup-$version" + $(if ($OfflineRuntime) { '-Windows-x64' } else { '' })
+$outputBase = "UnknownALT-Setup-$version" + $(if ($OfflineRuntime) { '-Windows-x64' } else { '' })
 $setup = Get-Item "$root\dist-installer\$outputBase.exe"
 if (-not $OfflineRuntime -and $setup.Length -gt 200000000) { Stop-Build 'the canonical update installer exceeds the supported 200 MB limit' 'keep full offline runtime payloads in the separate -OfflineRuntime build' }
 if ($Dev) {

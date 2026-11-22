@@ -64,7 +64,7 @@ pub struct Management {
 impl Management {
     pub fn new(db: &Db) -> Result<Self> {
         let config = db.setting_value(KEY)?.map(|j| serde_json::from_str::<ManagementConfig>(&j))
-            .transpose().map_err(|_| AppError::Invalid("Unknown alt's management settings are invalid. No client automation was started.".into()))?.unwrap_or_default();
+            .transpose().map_err(|_| AppError::Invalid("UnknownALT's management settings are invalid. No client automation was started.".into()))?.unwrap_or_default();
         config.validate()?;
         Ok(Self {
             config: Mutex::new(config),

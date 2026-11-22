@@ -205,8 +205,8 @@ function Assert-UpdateBinary([string]$Executable, [string]$ExpectedVersion) {
     $info = [Diagnostics.FileVersionInfo]::GetVersionInfo((Get-UpdatePath $Executable))
     $numeric = '{0}.{1}.{2}' -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart
     # Tauri's PE resources do not populate OriginalFilename; the request pins the actual basename.
-    $expectedName = if ((Get-UpdateVersion $ExpectedVersion) -ge [version]'1.1.3') { 'Unknown alt' } else { 'UnknownAlt' }
-    if ($info.ProductName -cne $expectedName -or $numeric -cne $ExpectedVersion) { throw 'The installed executable is not the expected Unknown alt version.' }
+    $names = if ((Get-UpdateVersion $ExpectedVersion) -ge [version]'1.1.3') { @('UnknownALT', 'Unknown alt') } else { @('UnknownAlt') }
+    if ($info.ProductName -cnotin $names -or $numeric -cne $ExpectedVersion) { throw 'The installed executable is not the expected UnknownALT version.' }
 }
 
 function Open-UpdateLock([string]$Path, [string]$Root, $Metadata) {
@@ -390,7 +390,7 @@ function Publish-UpdateProgress($Request, [string]$Phase) {
 function Show-UpdateRecoveryError([string]$Message) {
     # Hidden RunOnce recovery needs a visible last-resort result when it cannot recover safely.
     # This is never used for routine feed/network errors or a successfully restored installation.
-    try { $shell = New-Object -ComObject WScript.Shell; [void]$shell.Popup($Message, 0, 'Unknown alt update recovery', 16) } catch { }
+    try { $shell = New-Object -ComObject WScript.Shell; [void]$shell.Popup($Message, 0, 'UnknownALT update recovery', 16) } catch { }
 }
 
 function Start-UpdateApp($Request, [switch]$Probe) {
@@ -607,6 +607,8 @@ function Invoke-UnknownAltUpdate([string]$RequestPath, [switch]$Recovery, [switc
         if ($parentStopped -and $null -ne $request) { try { [void](Start-UpdateApp $request) } catch { } }
         if ($validated -and -not $OnlyValidate) {
             if ($ackDelivered) { Publish-UpdateProgress $request 'completed' }
+            elseif ($recoveryError) { Publish-UpdateProgress $request 'recovery-needed' }
+            elseif ($null -ne $journal -and $journal.phase -ceq 'rolled_back' -and $mayHaveInstalled) { Publish-UpdateProgress $request 'rolled-back' }
             else { Publish-UpdateProgress $request 'failed' }
         }
         if (-not [string]::IsNullOrEmpty($recoveryError)) { Show-UpdateRecoveryError $recoveryError }

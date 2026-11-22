@@ -149,7 +149,7 @@ fn assess(e: &Evidence) -> Vec<Diagnosis> {
     }
     if e.disconnected || e.recent == Some(Failure::Connection) {
         out.push(finding("connection","Recent connection failure","A network request failed or a managed client disconnected. This event alone does not identify which service or part of the connection failed.",
-            &["Check your internet connection and the affected service's status, such as Roblox or GitHub for Unknown alt updates.","Retry after the connection returns; leave firewall and antivirus protection enabled.","Retry configured automation without bypassing Pause All, Take control or the resource queue."],Some(Repair::RetryAutomation),false));
+            &["Check your internet connection and the affected service's status, such as Roblox or GitHub for UnknownALT updates.","Retry after the connection returns; leave firewall and antivirus protection enabled.","Retry configured automation without bypassing Pause All, Take control or the resource queue."],Some(Repair::RetryAutomation),false));
     }
     if e.recent == Some(Failure::RateLimit) {
         out.push(finding(
@@ -166,7 +166,7 @@ fn assess(e: &Evidence) -> Vec<Diagnosis> {
     }
     if e.public_guard {
         out.push(finding("network-policy","Launch blocked by your network policy","The current Windows network category is blocked by your existing app setting.",
-            &["Use a network you trust, or review the existing Public network setting yourself. Unknown alt will not change it automatically."],None,false));
+            &["Use a network you trust, or review the existing Public network setting yourself. UnknownALT will not change it automatically."],None,false));
     }
     if e.resource_wait {
         out.push(finding("resource-queue","Launch queue is waiting for resources","CPU/RAM readings have insufficient headroom, are warming up or are unavailable. Existing Roblox windows remain running.",
@@ -178,7 +178,7 @@ fn assess(e: &Evidence) -> Vec<Diagnosis> {
     }
     if e.recent == Some(Failure::Storage) {
         out.push(finding("storage","Local encrypted data needs attention","A database or encryption operation failed. No key, account or settings file will be deleted automatically.",
-            &["Check free disk space and that this is the same Windows user who owns the data.","Close Unknown alt before restoring a complete encrypted local backup. Keep its database and wrapped key together.","Never delete or reset the vault to try to repair a launch."],None,true));
+            &["Check free disk space and that this is the same Windows user who owns the data.","Close UnknownALT before restoring a complete encrypted local backup. Keep its database and wrapped key together.","Never delete or reset the vault to try to repair a launch."],None,true));
     }
     if e.recent == Some(Failure::Other) {
         out.push(finding(

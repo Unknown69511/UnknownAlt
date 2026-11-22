@@ -174,7 +174,7 @@ fn deeplink(rest: &str) -> ParsedInput {
     }
 }
 
-/// Unknown alt's own share links, `unknownalt://play?place=1&job=<uuid>` and `https://unknownalt.dev/play?...`:
+/// UnknownALT's own share links, `unknownalt://play?place=1&job=<uuid>` and `https://unknownalt.dev/play?...`:
 /// a public game or server only, never a private server's code.
 fn unknownalt(path: &str, q: &Query) -> ParsedInput {
     if !path.trim_matches('/').eq_ignore_ascii_case("play") {
@@ -471,7 +471,7 @@ mod tests {
             ("https://unknownalt.dev/?place=1", unsupported(not_game_why())),
             ("unknownalt:play?place=1", invalid(not_roblox_why())),
             ("https://unknownalt.dev.evil.com/play?place=1", invalid(not_roblox_why())),
-            // Private servers never travel in a Unknown alt link.
+            // Private servers never travel in a UnknownALT link.
             ("unknownalt://play?place=1&linkCode=123", place(1, None)),
         ];
         for (input, want) in cases {

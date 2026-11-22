@@ -53,7 +53,7 @@ pub fn list() -> Vec<RobloxLauncher> {
             kind,
             name: match kind {
                 LauncherKind::Roblox => "Roblox".into(),
-                LauncherKind::UnknownAlt => "Unknown alt".into(),
+                LauncherKind::UnknownAlt => "UnknownALT".into(),
                 LauncherKind::Bootstrapper => path.file_stem().map_or_else(String::new, |s| s.to_string_lossy().into_owned()),
             },
             // Roblox's own may be registered from another version folder; another UnknownAlt install isn't this one.
@@ -150,9 +150,9 @@ pub fn reclaim(s: &App) {
             Err(e) => log::warn!("could not take Roblox links back: {e}"),
         },
         Reclaim::LetGo => {
-            log::info!("Roblox links: {holder:?} holds them now; Unknown alt no longer takes them back");
+            log::info!("Roblox links: {holder:?} holds them now; UnknownALT no longer takes them back");
             if let Err(e) = s.db.set_setting_value(HOLD, None) {
-                log::warn!("could not save that Unknown alt lets go of Roblox links: {e}");
+                log::warn!("could not save that UnknownALT lets go of Roblox links: {e}");
             }
         }
     }
@@ -273,7 +273,7 @@ fn follow(app: &AppHandle, mut info: LaunchInfo, target: Option<LaunchTarget>, s
     };
     let s = app.state::<App>();
     let Some(account) = s.db.accounts().ok().and_then(|all| all.into_iter().find(|a| a.user_id == user)) else {
-        return log::info!("the client started from the browser (pid {}) plays a Roblox user Unknown alt doesn't have: not shown in Overview", info.pid);
+        return log::info!("the client started from the browser (pid {}) plays a Roblox user UnknownALT doesn't have: not shown in Overview", info.pid);
     };
     let Some(target) = target.or_else(|| facts.place_id.map(|place_id| LaunchTarget::Place { place_id, launch_data: None })) else { return };
     (info.account_id, info.place_id) = (account.id, facts.place_id);

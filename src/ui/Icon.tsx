@@ -1,5 +1,5 @@
 import { isRtl } from "../i18n";
-import unknownAltIcon from "../assets/UnknownAlt-icon.png";
+import unknownAltIcon from "../assets/UnknownALT-icon.png";
 
 // 16px outline icons: 1.5px strokes with round caps and joins, one consistent set. Dots are drawn as
 // zero-length strokes (round caps make them circles).
@@ -37,6 +37,7 @@ const paths = {
   signin: <path d="M9.5 2.5h2.7a1.3 1.3 0 0 1 1.3 1.3v8.4a1.3 1.3 0 0 1-1.3 1.3H9.5M2.5 8h7.2M7 5l3 3-3 3" />,
   chevron: <path d="M4 6l4 4 4-4" />,
   monitor: <path d="M1.5 8.6h2.6L5.8 4l3 8 1.7-3.4h4" />,
+  chart: <path d="M2.3 2.5v11h11.4M5 10l2.5-3.2 2.3 1.4L13 4.5" />,
   bell: <><path d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1 1H3z" /><path d="M6.5 14.2h3" /></>,
   play: <path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.5-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z" />,
   news: <><path d="M3 3.5h8.5v8.9A1.6 1.6 0 0 0 13.1 14H4.6A1.6 1.6 0 0 1 3 12.4z" /><path d="M11.5 6.5H13v5.9a1.6 1.6 0 0 1-1.5 1.6M5.4 6.2h3.7M5.4 8.7h3.7M5.4 11.2h2.2" /></>,

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "The Unknown alt window. Roblox login and session windows get no capability.",
+  "description": "The UnknownALT window. Roblox login and session windows get no capability.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -17,6 +17,7 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://www.roblox.com/*" },
+        { "url": "https://create.roblox.com/*" },
         { "url": "https://devforum.roblox.com/t/*" },
         { "url": "https://about.roblox.com/newsroom/*" },
         { "url": "https://github.com/login/device" },

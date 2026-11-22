@@ -9,8 +9,9 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use windows::Win32::UI::WindowsAndMessaging::{
     AllowSetForegroundWindow, FindWindowW, FlashWindow, SW_RESTORE, SetForegroundWindow,
-    ShowWindowAsync,
+    ShowWindowAsync, PostMessageW,
 };
+use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::core::PCWSTR;
 
 use crate::error::{AppError, Result};
@@ -19,7 +20,7 @@ use crate::update_handoff::{parent_start_time, system32};
 const SCRIPT: &str = include_str!("../update-progress.ps1");
 const LOGO: &[u8] = include_bytes!("../icons/128x128.png");
 const ICON: &[u8] = include_bytes!("../icons/icon.ico");
-const TITLE: &str = "Unknown alt Update - ";
+const TITLE: &str = "UnknownALT Update - ";
 const NO_CONSOLE: u32 = 0x0800_0000;
 static ACTIVE: Mutex<Option<PathBuf>> = Mutex::new(None);
 
@@ -143,7 +144,7 @@ impl Progress {
                 || Instant::now() >= until
             {
                 return Err(AppError::Invalid(
-                    "Unknown alt could not open its update window. Try again.".into(),
+                    "UnknownALT could not open its update window. Try again.".into(),
                 ));
             }
             std::thread::sleep(Duration::from_millis(40));
@@ -151,16 +152,30 @@ impl Progress {
     }
 
     fn write(&self, phase: &str, current: u64, total: u64) -> Result<()> {
+        Self::write_status(&self.stage, self.owner_start, phase, current, total)
+    }
+
+    fn write_status(stage: &Path, owner_start: u64, phase: &str, current: u64, total: u64) -> Result<()> {
         let status = Status {
             phase,
             current,
             total,
             owner_pid: std::process::id(),
-            owner_start: self.owner_start.to_string(),
+            owner_start: owner_start.to_string(),
         };
         let bytes = serde_json::to_vec(&status)
             .map_err(|_| AppError::Internal("Could not encode update progress.".into()))?;
-        crate::vault::backup::write_atomic(&self.stage.join("update-progress.json"), &bytes)
+        crate::vault::backup::write_atomic(&stage.join("update-progress.json"), &bytes)
+    }
+
+    pub fn reporter(&self) -> impl Fn(&str, u64, u64) + use<> {
+        let stage = self.stage.clone();
+        let owner = self.owner_start;
+        move |phase, current, total| {
+            if Self::write_status(&stage, owner, phase, current, total).is_err() {
+                log::debug!("Could not refresh the local update window status.");
+            }
+        }
     }
 
     pub fn set(&self, phase: &str, current: u64, total: u64) {
@@ -181,9 +196,14 @@ impl Drop for Progress {
             return;
         }
         if let Some(mut child) = self.child.take() {
-            self.set("failed", 0, 0);
-            let _ = child.kill();
-            let _ = child.wait();
+            // The stage can be cleaned immediately. The failure text uses no staged data.
+            let delivered = window(&self.stage).is_some_and(|hwnd| unsafe {
+                PostMessageW(Some(hwnd), 0x8145, WPARAM(0), LPARAM(0)).is_ok()
+            });
+            if !delivered {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
         }
         clear(&self.stage);
     }
@@ -201,7 +221,7 @@ mod tests {
                 "unknownalt-update-00000000-0000-0000-0000-000000000001"
             ))
             .as_deref(),
-            Some("Unknown alt Update - 00000000-0000-0000-0000-000000000001")
+            Some("UnknownALT Update - 00000000-0000-0000-0000-000000000001")
         );
     }
 }

@@ -24,13 +24,14 @@
 
 [Setup]
 AppId={{25C70510-83BD-4A26-B6AA-7D831FC934F3}
-AppName=Unknown alt
+AppName=UnknownALT
 AppVersion={#AppVersion}
-AppPublisher=Unknown alt
+AppPublisher=UnknownALT
+VersionInfoProductName=UnknownALT
 AppPublisherURL=https://github.com/Unknown69511/UnknownAlt
 VersionInfoVersion={#AppNumVersion}
 ; Per-user: {autopf} is %LOCALAPPDATA%\Programs.
-DefaultDirName={autopf}\UnknownAlt
+DefaultDirName={autopf}\UnknownALT
 UsePreviousAppDir=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -46,17 +47,17 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 WizardStyle=modern dynamic windows11
 SetupIconFile=..\src-tauri\icons\icon.ico
-UninstallDisplayIcon={app}\UnknownAlt.exe
-UninstallDisplayName=Unknown alt
+UninstallDisplayIcon={app}\UnknownALT.exe
+UninstallDisplayName=UnknownALT
 ; Updates wait for UnknownAlt to save and exit; never terminate a running app or game.
 AppMutex=com.unknownalt.desktop-sim
 CloseApplications=no
 RestartApplications=no
 OutputDir=..\dist-installer
 #ifdef OfflineRuntime
-OutputBaseFilename=UnknownAlt-Setup-{#AppVersion}-Windows-x64
+OutputBaseFilename=UnknownALT-Setup-{#AppVersion}-Windows-x64
 #else
-OutputBaseFilename=UnknownAlt-Setup-{#AppVersion}
+OutputBaseFilename=UnknownALT-Setup-{#AppVersion}
 #endif
 Compression=lzma2/max
 SolidCompression=yes
@@ -65,34 +66,34 @@ SolidCompression=yes
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "{#AppExe}"; DestDir: "{app}"; DestName: "UnknownAlt.exe"; Flags: ignoreversion
-Source: "..\src-tauri\icons\icon.ico"; DestDir: "{app}"; DestName: "UnknownAlt.ico"; Flags: ignoreversion
+Source: "{#AppExe}"; DestDir: "{app}"; DestName: "UnknownALT.exe"; Flags: ignoreversion
+Source: "..\src-tauri\icons\icon.ico"; DestDir: "{app}"; DestName: "UnknownALT.ico"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\NOTICE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\REBRANDING.md"; DestDir: "{app}"; Flags: ignoreversion
 ; Extracted only when needed, never copied into the app or its account-data folder.
-Source: "{#WebView2Installer}"; DestDir: "{tmp}"; DestName: "UnknownAlt-WebView2-Prerequisite.exe"; Flags: dontcopy nocompression
+Source: "{#WebView2Installer}"; DestDir: "{tmp}"; DestName: "UnknownALT-WebView2-Prerequisite.exe"; Flags: dontcopy nocompression
 
 [Icons]
-Name: "{autoprograms}\UnknownAlt"; Filename: "{app}\UnknownAlt.exe"; IconFilename: "{app}\UnknownAlt.ico"
-Name: "{autodesktop}\UnknownAlt"; Filename: "{app}\UnknownAlt.exe"; IconFilename: "{app}\UnknownAlt.ico"; Tasks: desktopicon
+Name: "{autoprograms}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"
+Name: "{autodesktop}\UnknownALT"; Filename: "{app}\UnknownALT.exe"; IconFilename: "{app}\UnknownALT.ico"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: ""; ValueData: "URL:UnknownAlt"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: ""; ValueData: "URL:UnknownALT"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\unknownalt"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKCU; Subkey: "Software\Classes\unknownalt\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\UnknownAlt.exe"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\unknownalt\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\UnknownALT.exe"" ""%1"""
 
 [Run]
-Filename: "{app}\UnknownAlt.exe"; Description: "{cm:LaunchProgram,Unknown alt}"; Flags: nowait postinstall skipifsilent; Check: WebView2Installed
+Filename: "{app}\UnknownALT.exe"; Description: "{cm:LaunchProgram,UnknownALT}"; Flags: nowait postinstall skipifsilent; Check: WebView2Installed
 ; A maintainer may explicitly request relaunch after a local branded upgrade.
-Filename: "{app}\UnknownAlt.exe"; Flags: nowait; Check: Relaunch
+Filename: "{app}\UnknownALT.exe"; Flags: nowait; Check: Relaunch
 
 [Code]
 const
   LegacyUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{F65209C5-78F5-4735-AE83-9F83EF9FCD83}_is1';
   OwnedUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{25C70510-83BD-4A26-B6AA-7D831FC934F3}_is1';
   WebView2Key = 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
-  WebView2Payload = 'UnknownAlt-WebView2-Prerequisite.exe';
+  WebView2Payload = 'UnknownALT-WebView2-Prerequisite.exe';
   WebView2PayloadSha256 = '{#WebView2Sha256}';
   { tauri-plugin-single-instance holds <identifier>-sim while UnknownAlt runs. }
   RunningMutex = 'com.unknownalt.desktop-sim';
@@ -135,12 +136,14 @@ begin
     LastProgressPercent := -1;
     Token := ExpandConstant('{param:UNKNOWNALTPROGRESS|}');
     if WizardSilent and ValidProgressToken(Token) then
-      ProgressCaption := 'Unknown alt Update - ' + Token;
+      ProgressCaption := 'UnknownALT Update - ' + Token;
   end;
   if (ProgressCaption = '') or (MaxProgress <= 0) or (CurProgress < 0) or (CurProgress > MaxProgress) then exit;
   Percent := (Int64(CurProgress) * 100) div MaxProgress;
   if Percent = LastProgressPercent then exit;
   Window := FindWindowByWindowName(ProgressCaption);
+  if Window = 0 then
+    Window := FindWindowByWindowName('Unknown alt Update - ' + Copy(ProgressCaption, Length('UnknownALT Update - ') + 1, 36));
   if Window <> 0 then
     if PostUpdateProgress(Window, $8144, CurProgress, MaxProgress) then
       LastProgressPercent := Percent;
@@ -162,28 +165,28 @@ begin
     ExtractTemporaryFile(WebView2Payload);
     PayloadPath := ExpandConstant('{tmp}\') + WebView2Payload;
     if CompareText(GetSHA256OfFile(PayloadPath), WebView2PayloadSha256) <> 0 then begin
-      Result := 'The Microsoft WebView2 runtime prerequisite failed verification. No application files were changed. Download a fresh Unknown alt installer.';
+      Result := 'The Microsoft WebView2 runtime prerequisite failed verification. No application files were changed. Download a fresh UnknownALT installer.';
       exit;
     end;
     Log('Installing the bundled Microsoft Edge WebView2 Runtime prerequisite.');
     if not Exec(PayloadPath, '/silent /install', '', SW_HIDE, ewWaitUntilTerminated, Code) then begin
-      Result := 'Microsoft Edge WebView2 Runtime could not be started. No application files were changed. Please retry Unknown alt Setup.';
+      Result := 'Microsoft Edge WebView2 Runtime could not be started. No application files were changed. Please retry UnknownALT Setup.';
       exit;
     end;
     if Code = 3010 then begin
       NeedsRestart := True;
-      Result := 'Microsoft Edge WebView2 Runtime needs Windows to restart. Restart Windows, then run Unknown alt Setup again. No application files were changed.';
+      Result := 'Microsoft Edge WebView2 Runtime needs Windows to restart. Restart Windows, then run UnknownALT Setup again. No application files were changed.';
       exit;
     end;
     if not WebView2Installed then begin
 #ifdef OfflineRuntime
-      Result := 'Microsoft Edge WebView2 Runtime did not finish installing (exit code ' + IntToStr(Code) + '). No application files were changed. Please retry Unknown alt Setup.';
+      Result := 'Microsoft Edge WebView2 Runtime did not finish installing (exit code ' + IntToStr(Code) + '). No application files were changed. Please retry UnknownALT Setup.';
 #else
-      Result := 'Microsoft Edge WebView2 Runtime did not finish installing (exit code ' + IntToStr(Code) + '). Connect to the internet and retry Unknown alt Setup, or use the full offline Windows x64 installer. No application files were changed.';
+      Result := 'Microsoft Edge WebView2 Runtime did not finish installing (exit code ' + IntToStr(Code) + '). Connect to the internet and retry UnknownALT Setup, or use the full offline Windows x64 installer. No application files were changed.';
 #endif
     end;
   except
-    Result := 'The bundled Microsoft Edge WebView2 Runtime could not be prepared. No application files were changed. Please retry Unknown alt Setup.';
+    Result := 'The bundled Microsoft Edge WebView2 Runtime could not be prepared. No application files were changed. Please retry UnknownALT Setup.';
   end;
 end;
 
@@ -222,12 +225,12 @@ begin
        (Base[8] >= '0') and (Base[8] <= '9') and
        (CompareText(ExtractFileExt(Base), '.exe') = 0) and FileExists(Candidate) then begin
       BackupDir := ExpandConstant('{localappdata}\UnknownAlt-legacy-installer-backup\{#AppVersion}');
-      if not ForceDirectories(BackupDir) then begin Result := 'Could not back up the previous Unknown alt installer.'; exit; end;
+      if not ForceDirectories(BackupDir) then begin Result := 'Could not back up the previous UnknownALT installer.'; exit; end;
       LegacyBackup := AddBackslash(BackupDir) + Base;
-      if not FileCopy(Candidate, LegacyBackup, False) then begin Result := 'Could not back up the previous Unknown alt uninstaller.'; exit; end;
+      if not FileCopy(Candidate, LegacyBackup, False) then begin Result := 'Could not back up the previous UnknownALT uninstaller.'; exit; end;
       if FileExists(ChangeFileExt(Candidate, '.dat')) and
          not FileCopy(ChangeFileExt(Candidate, '.dat'), ChangeFileExt(LegacyBackup, '.dat'), False) then begin
-        Result := 'Could not back up the previous Unknown alt uninstall log.'; exit;
+        Result := 'Could not back up the previous UnknownALT uninstall log.'; exit;
       end;
       LegacyUninstaller := Candidate;
     end;
@@ -280,7 +283,7 @@ function InitializeUninstall: Boolean;
 begin
   Result := True;
   while Result and CheckForMutexes(RunningMutex) do
-    Result := SuppressibleMsgBox('Unknown alt is running. Close it, then click OK.', mbError, MB_OKCANCEL, IDCANCEL) = IDOK;
+    Result := SuppressibleMsgBox('UnknownALT is running. Close it, then click OK.', mbError, MB_OKCANCEL, IDCANCEL) = IDOK;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
@@ -291,9 +294,9 @@ begin
   if (CurUninstallStep <> usPostUninstall) or UninstallSilent or not DirExists(Data) then
     exit;
   { Keep is the first button, so the default: TaskDialogMsgBox has no default-button flag. }
-  if TaskDialogMsgBox('Also delete your Unknown alt accounts and settings?',
+  if TaskDialogMsgBox('Also delete your UnknownALT accounts and settings?',
       'They are in ' + Data + '. Your Roblox accounts themselves are not affected.',
-      mbConfirmation, MB_YESNO, ['&Keep them' #13#10 'They are there again if you reinstall Unknown alt.',
+      mbConfirmation, MB_YESNO, ['&Keep them' #13#10 'They are there again if you reinstall UnknownALT.',
       '&Delete them' #13#10 'Saved accounts, cookies, groups and settings. This cannot be undone.'], 0) = IDNO then begin
     DelTree(Data, True, True, True);
     { The window position tauri-plugin-window-state keeps. }

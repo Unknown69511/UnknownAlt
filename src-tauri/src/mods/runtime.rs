@@ -72,7 +72,7 @@ pub fn prepare(s: &App, exe: ClientExe, self_updates: bool) -> (ClientExe, Optio
         return (exe, skip(tr!("Roblox is updating itself this launch. Modpacks apply from the next one.")));
     }
     let Some(version) = crate::launcher::update::installed_version(&exe.path) else {
-        return (exe, skip(tr!("Unknown alt can't tell which Roblox version this is.")));
+        return (exe, skip(tr!("UnknownALT can't tell which Roblox version this is.")));
     };
     match copy_for(&runtime, &exe.path, &version, &mods, &running()) {
         Ok((path, stats)) => {
@@ -94,7 +94,7 @@ pub fn prepare(s: &App, exe: ClientExe, self_updates: bool) -> (ClientExe, Optio
         }
         Err(e) => {
             log::warn!("mods: couldn't prepare the copy: {e}");
-            (exe, skip(tr!("Unknown alt couldn't prepare them ({why}).", why = e)))
+            (exe, skip(tr!("UnknownALT couldn't prepare them ({why}).", why = e)))
         }
     }
 }

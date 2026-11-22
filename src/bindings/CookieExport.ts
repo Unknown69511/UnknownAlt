@@ -13,6 +13,6 @@ path: string, count: number,
  */
 skipped: number, 
 /**
- * Unix ms when Unknown alt deletes it.
+ * Unix ms when UnknownALT deletes it.
  */
 deletesAt: number, };

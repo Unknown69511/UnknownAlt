@@ -22,7 +22,7 @@ try {
   if (next.visibility === "private" && !next.githubAppClientId) throw new Error("Private update releases require the registered read-only GitHub App public client ID.");
   if (process.env.GITHUB_REPOSITORY && `${next.owner}/${next.repository}`.toLowerCase() !== process.env.GITHUB_REPOSITORY.toLowerCase()) throw new Error("Configured release source must be this workflow's repository.");
   if (args.get("--check")) {
-    console.log(`Unknown alt ${projectVersion(root)} ${next.visibility.toUpperCase()} release channel: ${next.owner}/${next.repository} (stable). ${next.visibility === "public" ? "No login or embedded credentials required." : "GitHub App configured."}`);
+    console.log(`UnknownALT ${projectVersion(root)} ${next.visibility.toUpperCase()} release channel: ${next.owner}/${next.repository} (stable). ${next.visibility === "public" ? "No login or embedded credentials required." : "GitHub App configured."}`);
   } else {
     fs.writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`, "utf8");
     console.log(`Configured ${next.owner}/${next.repository}. Rebuild and distribute the configured bootstrap version before publishing updates.`);

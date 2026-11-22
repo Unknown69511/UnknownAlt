@@ -1,6 +1,6 @@
-# Unknown alt
+# UnknownALT
 
-Unknown alt is a local Windows account manager and launcher for Roblox. Version 1.2.2 adds Farm Control Center, per-client audio, storage cleanup, resource-aware launch scheduling and an Updates page. The app uses the charcoal coffee mascot and Brown as its default accent. The top Discord button opens the [Unknown alt community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
+UnknownALT is a local Windows account manager and launcher for Roblox. Version 1.2.2 adds Farm Control Center, per-client audio, storage cleanup, resource-aware launch scheduling and an Updates page. The app uses the charcoal coffee mascot and Brown as its default accent. The top Discord button opens the [UnknownALT community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
 
 ## Download and signed updates
 
@@ -18,8 +18,8 @@ Public read access does not grant repository write access. The owner invites col
 
 | Item | Default location |
 | --- | --- |
-| Installed app | `%LOCALAPPDATA%\Programs\UnknownAlt\UnknownAlt.exe` |
-| Accounts and settings | `%LOCALAPPDATA%\UnknownAlt\UnknownAlt.db` and its `.key`/WAL/SHM siblings |
+| Installed app | `%LOCALAPPDATA%\Programs\UnknownALT\UnknownAlt.exe` |
+| Accounts and settings | `%LOCALAPPDATA%\UnknownALT\UnknownAlt.db` and its `.key`/WAL/SHM siblings |
 | Encrypted local snapshots | `%LOCALAPPDATA%\UnknownAlt-backups` (five retained; never distribute) |
 | Window state | `%APPDATA%\com.unknownalt.desktop` |
 
@@ -37,7 +37,7 @@ npm ci
 .\scripts\build-installer.ps1
 ```
 
-The script builds the embedded production UI with `src-tauri/tauri.release.conf.json`, verifies Microsoft's WebView2 prerequisite, then creates the canonical `dist-installer\UnknownAlt-Setup-X.Y.Z.exe` update installer. A short, neutral Cargo registry/target path is recommended for Windows native builds and privacy.
+The script builds the embedded production UI with `src-tauri/tauri.release.conf.json`, verifies Microsoft's WebView2 prerequisite, then writes `dist-installer\UnknownALT-Setup-X.Y.Z.exe`. Release signing stages a legacy-named copy for installed updaters. A short, neutral Cargo registry/target path is recommended for Windows native builds and privacy.
 
 For the full first-installation package with the offline Microsoft x64 WebView2 Runtime:
 
@@ -45,7 +45,21 @@ For the full first-installation package with the offline Microsoft x64 WebView2 
 .\scripts\build-installer.ps1 -OfflineRuntime
 ```
 
-This creates `UnknownAlt-Setup-X.Y.Z-Windows-x64.exe`. It is a separate bootstrap download; future canonical update installers remain below the channel's size bound. Portable compiler locations can be provided with `-InnoCompiler` and `-PerlBin`. See [clean distribution](docs/DISTRIBUTION.md) for source-only staging and package audits.
+This creates `UnknownALT-Setup-X.Y.Z-Windows-x64.exe`. It includes the full WebView2 runtime. Portable compiler locations can be provided with `-InnoCompiler` and `-PerlBin`. See [clean distribution](docs/DISTRIBUTION.md) for staging and package audits.
+
+## Roblox Analytics
+
+Explore uses Roblox's public endpoints for search, player counts and game
+metadata. Watchlist entries are sampled every five minutes while the app runs.
+Charts show observations recorded on this device. Older buckets keep the
+highest observed value for that interval. Gaps represent missing samples.
+
+My Games connects with a Roblox Open Cloud API key scoped to selected experiences
+and Analytics read access. The key and reports stay in memory while the page
+is open. CSV export writes only to the location you choose. Roblox determines
+which metrics, breakdowns and dates each authorized experience can return.
+See [Analytics Query API](https://create.roblox.com/docs/cloud/guides/analytics)
+and [API key configuration](https://create.roblox.com/docs/cloud/auth/api-keys).
 
 Checks include `npm run build`, `node scripts/release-test.mjs` and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-update-helper.ps1`. Native targeted tests cover encrypted-data migration, update authentication/signatures, compatibility readers and recovery behavior. Never point tests at real account data.
 

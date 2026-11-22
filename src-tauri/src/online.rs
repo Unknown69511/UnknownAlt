@@ -1,4 +1,4 @@
-//! How many people use Unknown alt now, and how many accounts they're playing, shown beside the Discord
+//! How many people use UnknownALT now, and how many accounts they're playing, shown beside the Discord
 //! button while `settings.online_count` is on. Each ping sends only a random id made once per
 //! launch and how many Roblox clients UnknownAlt is running to UnknownAlt's counter (a Cloudflare Worker,
 //! `server/online-counter`), which answers how many ids it saw lately, their clients added up,
@@ -29,7 +29,7 @@ pub struct Online {
     pub every: Option<u32>,
 }
 
-/// Tells the counter this Unknown alt runs `playing` clients. The counter's answer, or None (logged)
+/// Tells the counter this UnknownALT runs `playing` clients. The counter's answer, or None (logged)
 /// when it can't be reached or read.
 pub async fn ping(_playing: usize) -> Option<Online> { None }
 

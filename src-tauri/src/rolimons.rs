@@ -35,7 +35,7 @@ struct State {
 /// Held across a download: two counts at once download once.
 static STATE: LazyLock<tokio::sync::Mutex<State>> = LazyLock::new(Default::default);
 
-/// The list Unknown alt holds (seeded from the cache table, at any age). With `fetch` (a count), one
+/// The list UnknownALT holds (seeded from the cache table, at any age). With `fetch` (a count), one
 /// older than 30 minutes is downloaded again first, unless a download failed in the last 5. None
 /// when there is no list at all.
 pub async fn items(db: &Db, now: i64, fetch: bool) -> Option<Arc<Items>> {

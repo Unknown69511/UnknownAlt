@@ -4,12 +4,12 @@
 //! pages the client's memory out, it pages back in as used; nothing is read or written). `plan` adds the settings:
 //! the adaptive manager's background limits, the fair CPU cap, the default trim and auto-spread
 //! affinity; the client being played, loading or hung, and Full quality accounts, get none of those.
-//! Roblox has no per-client frame cap Unknown alt could set without touching the client; a CPU cap is
+//! Roblox has no per-client frame cap UnknownALT could set without touching the client; a CPU cap is
 //! what lowers its load (its frame rate drops with it). Trim and memory priority lower the working
 //! set and RAM pressure, not commit. Process handles stay short-lived and are checked against the
 //! start time as in `process`; only the job handle is kept, so its cap can change later.
-//! A job outlives Unknown alt while its client runs, but a restarted Unknown alt can't find it again (nor
-//! knows what was set), so Unknown alt takes its limits back when it exits (`release_all`), resets what
+//! A job outlives UnknownALT while its client runs, but a restarted UnknownALT can't find it again (nor
+//! knows what was set), so UnknownALT takes its limits back when it exits (`release_all`), resets what
 //! it can on the clients it follows again (`reset_followed`) and sets them anew.
 
 use std::collections::HashMap;
@@ -377,8 +377,8 @@ impl Limiter {
     }
 
     /// At exit: takes back what was set (CPU cap off, efficiency mode off, every core), so a
-    /// restarted Unknown alt, which assumes nothing is set, starts from the client's own state.
-    // ponytail: an Unknown alt killed outright or aborted by a panic can't: see `reset_followed`.
+    /// restarted UnknownALT, which assumes nothing is set, starts from the client's own state.
+    // ponytail: an UnknownALT killed outright or aborted by a panic can't: see `reset_followed`.
     pub fn release_all(&self) {
         RELEASED.store(true, std::sync::atomic::Ordering::Relaxed);
         let applied = std::mem::take(&mut *self.applied.lock().unwrap_or_else(|e| e.into_inner()));
@@ -446,10 +446,10 @@ impl Limiter {
     }
 }
 
-/// A client followed again after Unknown alt restarted, which may never have got to `release_all`: its
+/// A client followed again after UnknownALT restarted, which may never have got to `release_all`: its
 /// efficiency mode and cores go back to the client's own (`sync` then sets what it should have).
-// ponytail: a cap can't be reset: its job's name went with Unknown alt's handle, and Windows has no way to
-// reach a process's job without one. So after Unknown alt is killed the old cap stays until the client
+// ponytail: a cap can't be reset: its job's name went with UnknownALT's handle, and Windows has no way to
+// reach a process's job without one. So after UnknownALT is killed the old cap stays until the client
 // closes (a new job nests inside it), even on the client played. A helper process holding the job
 // handles would lift it. Being in a job doesn't prove a cap (one taken off leaves its job behind),
 // so this is only logged. Returns whether it is in a job.
@@ -462,7 +462,7 @@ pub fn reset_followed(pid: u32, t0: u64) -> bool {
     // SAFETY: `h` is live; `inside` is a local.
     let inside = unsafe { IsProcessInJob(*h, None, &mut inside) }.is_ok() && inside.as_bool();
     if inside {
-        log::info!("client {pid} is already in a job: a CPU cap from before Unknown alt restarted may stay on until it closes");
+        log::info!("client {pid} is already in a job: a CPU cap from before UnknownALT restarted may stay on until it closes");
     }
     inside
 }
@@ -475,7 +475,7 @@ fn summary(a: Option<&Applied>, old_job: bool, free: bool, now: Instant) -> Stri
     let ago = |t: Option<Instant>| t.map_or_else(|| "never".to_owned(), |t| format!("{} s before", now.saturating_duration_since(t).as_secs()));
     let l = a.map(|a| a.limits).unwrap_or_default();
     format!(
-        "CPU cap {}, efficiency mode {}, cores {}, trim every {}; limits last set {}, last trimmed {}; in a job from before a Unknown alt restart: {old_job}; in front or played: {free}",
+        "CPU cap {}, efficiency mode {}, cores {}, trim every {}; limits last set {}, last trimmed {}; in a job from before a UnknownALT restart: {old_job}; in front or played: {free}",
         l.cpu_cap.map_or_else(|| "none".to_owned(), |c| format!("{c} %")),
         if l.eco { "on" } else { "off" },
         l.affinity.map_or_else(|| "all".to_owned(), |m| format!("{m:#x}")),
@@ -831,7 +831,7 @@ mod tests {
     #[test]
     fn a_followed_client_gets_its_efficiency_mode_and_cores_back() {
         let (mut child, pid, t0) = ping();
-        // What an Unknown alt that was killed leaves behind: it never told this one.
+        // What an UnknownALT that was killed leaves behind: it never told this one.
         Limiter::new().apply("i", pid, t0, Limits { eco: true, affinity: Some(1), ..Limits::default() }).unwrap();
         reset_followed(pid, t0);
         if let Some(masks) = throttling(pid) {
@@ -844,7 +844,8 @@ mod tests {
 
     #[test]
     fn a_client_back_from_the_front_keeps_its_trim_schedule() {
-        let now = Instant::now();
+        // Synthetic time makes the hour-old observation valid just after Windows boots.
+        let now = Instant::now() + Duration::from_secs(3600);
         assert_eq!(next_trim(now, None, Some(15)), now + FIRST_TRIM, "never trimmed");
         let an_hour_ago = now.checked_sub(Duration::from_secs(3600)).unwrap();
         assert_eq!(next_trim(now, Some(an_hour_ago), Some(15)), now + FIRST_TRIM, "overdue, but it settles first");
@@ -916,7 +917,7 @@ mod tests {
         assert_eq!(l.grown_trim(at(195), busy, |_, _| panic!("read before the next look")), None);
         assert_eq!(grown(200, 850), None, "under a quarter");
         assert_eq!(grown(210, 850), None);
-        // Far lower without a trim of Unknown alt's: the user's, or Windows'. It must settle again.
+        // Far lower without a trim of UnknownALT's: the user's, or Windows'. It must settle again.
         assert_eq!(grown(220, 50), None);
         assert_eq!(l.applied.lock().unwrap()["a"].baseline, None);
         assert_eq!(grown(230, 900), None, "not growth");
@@ -1012,14 +1013,14 @@ mod tests {
         let now = Instant::now() + Duration::from_secs(1000);
         assert_eq!(
             summary(None, false, true, now),
-            "CPU cap none, efficiency mode off, cores all, trim every off; limits last set never, last trimmed never; in a job from before a Unknown alt restart: false; in front or played: true"
+            "CPU cap none, efficiency mode off, cores all, trim every off; limits last set never, last trimmed never; in a job from before a UnknownALT restart: false; in front or played: true"
         );
         let mut a = Applied::new(7, 9);
         a.limits = Limits { cpu_cap: Some(25), eco: true, affinity: Some(0xF), trim_every_min: Some(10) };
         (a.changed, a.trimmed_at) = (Some(now - Duration::from_secs(312)), Some(now - Duration::from_secs(4)));
         assert_eq!(
             summary(Some(&a), true, false, now),
-            "CPU cap 25 %, efficiency mode on, cores 0xf, trim every 10 min; limits last set 312 s before, last trimmed 4 s before; in a job from before a Unknown alt restart: true; in front or played: false"
+            "CPU cap 25 %, efficiency mode on, cores 0xf, trim every 10 min; limits last set 312 s before, last trimmed 4 s before; in a job from before a UnknownALT restart: true; in front or played: false"
         );
     }
 

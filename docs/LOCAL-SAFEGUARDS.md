@@ -2,7 +2,7 @@
 
 ## Encrypted snapshots
 
-The built-in Unknown alt updater creates a consistent encrypted database snapshot
+The built-in UnknownALT updater creates a consistent encrypted database snapshot
 after verifying the downloaded installer and before handing off installation.
 An unsuccessful snapshot stops that update. No vault unlock is required: accounts
 remain encrypted inside the encrypted database, and its key stays wrapped by
@@ -21,7 +21,7 @@ not include browser profiles or the installed executable. They are not portable
 to another Windows identity. Use the existing password-protected export when
 moving to another PC or user. Do not include the snapshot folder in a distribution.
 
-To recover, quit Unknown alt completely and rename the current complete data folder
+To recover, quit UnknownALT completely and rename the current complete data folder
 aside so it stays available. Create an empty replacement at that same active data
 path, then copy a snapshot's `UnknownAlt.db` and `UnknownAlt.db.key` into it together.
 Start a compatible app version. Do not mix old WAL/SHM journals with restored data
