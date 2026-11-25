@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api";
-import { record, useAnalyticsStore } from "../analytics/store";
-import type { PublicGame } from "../analytics/types";
+import { recordDiscovery, useDiscoveryStore } from "./store";
+import type { PublicGame } from "./types";
 import { category, nearbyGames } from "./catalog";
 
-export function RelatedGames({ game, select, compare }: { game: PublicGame; select: (game: PublicGame) => void; compare?: (game: PublicGame) => void }) {
-  const { records } = useAnalyticsStore();
+export function RelatedGames({ game, select }: { game: PublicGame; select: (game: PublicGame) => void }) {
+  const { records } = useDiscoveryStore();
   const official = useQuery({
     queryKey: ["publicSimilarGames", game.universeId], retry: false, staleTime: 600_000,
     queryFn: async () => {
       const snapshot = await api.publicSimilarGames(game.universeId);
-      record(snapshot, true);
+      recordDiscovery(snapshot);
       return snapshot.games;
     },
   });
@@ -23,7 +23,7 @@ export function RelatedGames({ game, select, compare }: { game: PublicGame; sele
       {related.map((item) => <div className="flex gap-1 min-w-0" key={item.universeId}><button className="btn flex-1 min-w-0 justify-start text-left" onClick={() => select(item)}>
         {item.icon && <img src={item.icon} alt="" width={26} height={26} className="rounded shrink-0" loading="lazy" />}
         <span className="min-w-0"><span className="block truncate">{item.name}</span>{category(item) && <span className="block text-xs text-fg-2 truncate">{category(item)}</span>}</span>
-      </button>{compare && <button className="btn btn-sm shrink-0" aria-label={`Compare ${item.name}`} onClick={() => compare(item)}>Compare</button>}</div>)}
+      </button></div>)}
     </div>}
   </section>;
 }

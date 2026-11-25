@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { openNotificationTarget, type Request } from "../../app/navigation";
 import { readStored, writeStored } from "../../ui/stored";
 import { toast } from "../../ui/Toast";
+import { afterStartup, dropStartupNotices } from "./startup";
 
 export const categories = {
   friends: "Friend requests", game: "Game updates", app: "UnknownALT updates", announcements: "Roblox announcements",
@@ -22,7 +23,12 @@ function initial(): State {
     for (const type of Object.keys(categories) as Category[]) {
       if (typeof existing?.options?.[type] === "boolean") options[type] = existing.options[type];
     }
-    return { options, history: Array.isArray(existing?.history) ? existing.history.slice(0, 100) : [] };
+    const history = Array.isArray(existing?.history) ? existing.history.slice(0, 100).map((notice) => {
+      const view: string = notice.target?.view;
+      // Old game alerts still open the saved game from Discover.
+      return view === "analytics" ? { ...notice, target: { ...notice.target, view: "discover" as const } } : notice;
+    }) : [];
+    return { options, history };
   } catch { return { options: defaults, history: [] }; }
 }
 
@@ -40,6 +46,7 @@ function save(next: State) {
 }
 export function useNotifications() { return useSyncExternalStore(subscribe, read, read); }
 export function setNotification(type: Category, enabled: boolean) {
+  if (!enabled) dropStartupNotices(`notice:${type}:`);
   save({ ...state, options: { ...state.options, [type]: enabled } });
 }
 export function openNotice(id: string) {
@@ -50,6 +57,11 @@ export function openNotice(id: string) {
 }
 
 export function notify(type: Category, key: string, text: string, target: Target) {
+  if (!state.options[type]) return;
+  afterStartup(`notice:${type}:${key}`, () => deliver(type, key, text, target));
+}
+
+function deliver(type: Category, key: string, text: string, target: Target) {
   if (!state.options[type] || state.history.some((notice) => notice.key === key && notice.type === type)) return;
   const item = { id: crypto.randomUUID(), key, type, text: text.slice(0, 240), target, at: Date.now(), read: false };
   save({ ...state, history: [item, ...state.history].slice(0, 100) });

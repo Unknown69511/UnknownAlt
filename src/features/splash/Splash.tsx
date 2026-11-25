@@ -76,7 +76,7 @@ export function Splash() {
     <div
       className={`splash ${state === "out" ? "out" : ""}`}
       data-tauri-drag-region
-      onTransitionEnd={(e) => e.target === e.currentTarget && setState("gone")}
+      onTransitionEnd={(e) => state === "out" && e.target === e.currentTarget && e.propertyName === "opacity" && setState("gone")}
       aria-hidden="true"
     >
       <div className="mark" data-tauri-drag-region>

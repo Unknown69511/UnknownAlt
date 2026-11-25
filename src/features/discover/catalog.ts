@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { fmtNum } from "../../i18n";
 import { api } from "../../api";
-import { dayChange } from "../analytics/history";
-import { record, type GameRecord } from "../analytics/store";
-import type { Discovery, PublicGame } from "../analytics/types";
+import { HOUR, recordDiscovery, type GameRecord } from "./store";
+import type { Discovery, PublicGame } from "./types";
 
 export const lists = ["Trending", "Most popular", "Fastest-growing", "Newly released", "Record-breaking", "Underrated"] as const;
 export type List = (typeof lists)[number];
@@ -21,7 +20,14 @@ export function approval(game: PublicGame) {
 }
 export const percent = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
 export function growth(game: PublicGame, at: number, records: Record<number, GameRecord>) {
-  return dayChange(records[game.universeId]?.samples ?? [], at, game.playing);
+  if (game.playing == null) return null;
+  const expected = at - 24 * HOUR;
+  let baseline: { at: number; players: number } | undefined;
+  for (const point of records[game.universeId]?.samples ?? []) {
+    if (Math.abs(point.at - expected) > HOUR) continue;
+    if (!baseline || Math.abs(point.at - expected) < Math.abs(baseline.at - expected)) baseline = point;
+  }
+  return baseline && baseline.players > 0 ? (game.playing - baseline.players) / baseline.players * 100 : null;
 }
 export function category(game: PublicGame) {
   return game.genre && game.genre !== "All" ? game.genre : "";
@@ -58,7 +64,7 @@ export function useDiscovery(enabled = true) {
     refetchInterval: 300_000, retry: false, staleTime: 300_000,
     queryFn: async () => {
       const feed = await api.publicDiscovery();
-      record(feed.snapshot, true);
+      recordDiscovery(feed.snapshot);
       try { localStorage.setItem(catalogKey, JSON.stringify(feed)); } catch { /* caching is optional */ }
       return feed;
     },
@@ -68,12 +74,23 @@ export function useGameSearch(term: string) {
   return useQuery({
     queryKey: ["publicGameSearch", term], enabled: !!term, retry: false, staleTime: 120_000,
     queryFn: async () => {
-      const snapshot = await api.publicAnalyticsSearch(term);
-      record(snapshot, true);
+      const snapshot = await api.publicDiscoverySearch(term);
+      recordDiscovery(snapshot);
       return snapshot;
     },
   });
 }
+export function useWatchedGames(ids: number[], enabled: boolean) {
+  return useQuery({
+    queryKey: ["discoveryWatchlist", ids], enabled: enabled && ids.length > 0, retry: false, staleTime: 300_000,
+    queryFn: async () => {
+      const snapshot = await api.publicDiscoveryGames(ids);
+      recordDiscovery(snapshot);
+      return snapshot;
+    },
+  });
+}
+
 export function nearbyGames(game: PublicGame, catalog: PublicGame[]) {
   const words = (text: string) => (text.toLowerCase().match(/[\p{L}\d]{4,}/gu) ?? []).slice(0, 80);
   const terms = new Set(words(`${game.name} ${game.description ?? ""}`));

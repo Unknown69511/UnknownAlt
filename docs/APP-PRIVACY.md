@@ -17,16 +17,14 @@ These requests do not include saved Roblox accounts or sessions. The Microsoft
 Store edition uses the Store for package updates. The app does not send usage
 telemetry to the UnknownALT maintainer.
 
-Discover and public Analytics request Roblox's public game data without saved
-accounts or sessions. RoWatcher, RobloxGameStats, and CCUCheck receive requests
-for public game IDs, charts, and history without account credentials. Public
-history, watchlists, followed games, and observations are stored locally in
-bounded caches. Roblox Status uses the official Roblox status site and its
-public Status.io feed. Notification preferences and history are local. If you
-enable friend request alerts, UnknownALT checks pending counts with the
-existing Roblox sessions for valid stored accounts. Native Windows alerts
-can appear in Windows notification history. Public analytics requests do not
-attach Roblox account sessions.
+Discover requests public Roblox game listings, metadata, and artwork without
+saved accounts or sessions. Discover keeps a local watchlist and limited recent
+readings for rankings. If you follow a game, the app checks Roblox for its
+updated date. Roblox Status uses the official Roblox status site and its
+public Status.io feed. Notification preferences and history are stored locally.
+If you enable friend request alerts, UnknownALT checks pending counts with
+existing Roblox sessions for valid stored accounts. Native Windows alerts can
+appear in Windows notification history.
 
 Optional Discord notifications send the configured event details to the Discord
 webhook you supply. Optional Rich Presence shares the game or managed-client

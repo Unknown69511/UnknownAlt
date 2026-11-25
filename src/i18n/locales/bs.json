@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "Općenito",
+  "settings.section.farming": "Farmanje",
+  "settings.section.storage": "Pohrana",
   "common.cancel": "Otkaži",
   "common.save": "Sačuvaj",
   "common.close": "Zatvori",
@@ -1996,7 +1999,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analitika",
   "settings.numberFormat": "Format brojeva",
   "settings.numberFormatHint": "Odaberite prikaz brojeva, Robuxa i valuta.",
   "settings.numberCompact": "Skraćeno",

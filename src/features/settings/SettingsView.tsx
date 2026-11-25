@@ -10,7 +10,7 @@ import { Icon, type IconName } from "../../ui/Icon";
 import { Collapse, ListPresence, prefersReducedMotion, RISE, SPRING, TWEEN } from "../../ui/motion";
 import { useStored } from "../../ui/stored";
 import { BenchPanel, PERFORMANCE_RENDERERS, PresetsPanel, ReviewProvider, SharePanel } from "../performance/panels";
-import { AREAS, type Panel, type SettingsArea } from "./areas";
+import { AREAS, settingsCategory, type Panel, type SettingsArea } from "./areas";
 import { NotificationsPanel } from "../notifications/NotificationsPanel";
 import { GOALS } from "./goals";
 import { jumpTo, requestJump } from "./jump";
@@ -94,7 +94,8 @@ const panel = (name: Panel, block?: string) => {
 };
 
 /** Where an area starts in either grouping: among goals, the one that holds its first row. */
-function blockOf(area: SettingsArea, by: By) {
+function blockOf(request: SettingsArea, by: By) {
+  const area = settingsCategory(request);
   if (by === "areas" || area === "notifications") return `${area}/0`;
   const row = AREAS.find((a) => a.id === area)!.groups.find((g) => !g.panel)?.ids[0];
   const goal = GOALS.find((g) => row && (g.start.includes(row) || g.tune.includes(row)));
@@ -374,7 +375,10 @@ const Page = memo(function Page({ by }: { by: By }) {
     ))}<NotificationsPanel block="notifications/0" /></>;
   return AREAS.map((a) => (
     <section key={a.id} className="set-area" aria-labelledby={`set-area-${a.id}`}>
-      <h2 id={`set-area-${a.id}`} className="page-title set-area-title" data-block={`${a.id}/0`}>{t(a.label)}</h2>
+      <header data-block={`${a.id}/0`} className="set-goal-head">
+        <h2 id={`set-area-${a.id}`} className="page-title set-area-title"><Icon name={a.icon} size={22} /> {t(a.label)}</h2>
+        {a.description && <p className="page-sub">{t(a.description)}</p>}
+      </header>
       {a.groups.map((g, i) => {
         // The first group starts where its area does: the area's title is its block.
         const block = i ? `${a.id}/${i}` : undefined;

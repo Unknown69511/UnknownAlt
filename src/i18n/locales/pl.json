@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "Ogólne",
+  "settings.section.farming": "Farmienie",
+  "settings.section.storage": "Pamięć",
   "common.cancel": "Anuluj",
   "common.save": "Zapisz",
   "common.close": "Zamknij",
@@ -1996,7 +1999,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Analityka",
   "settings.numberFormat": "Format liczb",
   "settings.numberFormatHint": "Wybierz sposób wyświetlania liczb, Robux i walut.",
   "settings.numberCompact": "Krótki",

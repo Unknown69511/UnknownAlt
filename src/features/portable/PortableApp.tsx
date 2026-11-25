@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { applyAccent, DEFAULT_ACCENT, GROUNDS } from "../../app/theme";
+import { useNavigationRequests, type Request } from "../../app/navigation";
 import { applyNumberFormat, readNumberFormat, t } from "../../i18n";
 import { queryClient } from "../../data";
 import { Dialog } from "../../ui/Dialog";
 import { toast, toastError, Toaster } from "../../ui/Toast";
+import { finishStartupNotices } from "../notifications/startup";
 import { UpdatesPage } from "../update/UpdatesPage";
-import { AnalyticsView } from "../analytics/AnalyticsView";
-import { useWatchlistCollector } from "../analytics/store";
+import { useFollowedGameUpdates } from "../discover/store";
 import { DiscoverView } from "../discover/DiscoverView";
 import { StatusView } from "../discover/StatusView";
 import { useRobloxStatus } from "../discover/useRobloxStatus";
@@ -26,16 +27,23 @@ type PortableStatus = {
 };
 
 export function PortableApp() {
+  useEffect(() => { finishStartupNotices(); }, []);
   return <QueryClientProvider client={queryClient}><PortableShell /><Toaster /></QueryClientProvider>;
 }
 
 function PortableShell() {
-  useWatchlistCollector();
+  useFollowedGameUpdates();
   const query = useQuery({ queryKey: ["portableStatus"], queryFn: () => invoke<PortableStatus>("portable_status"), retry: false });
   useRobloxStatus();
-  const [view, setView] = useState<"archive" | "updates" | "analytics" | "discover" | "status" | "support" | "settings">("archive");
+  const [view, setView] = useState<"archive" | "updates" | "discover" | "status" | "support" | "settings">("archive");
+  const [game, setGame] = useState<number>();
+  useNavigationRequests(useCallback((request: Request) => {
+    if (request.view === "discover") {
+      setGame(request.game);
+      setView("discover");
+    }
+  }, []));
   const [format, setFormat] = useState(readNumberFormat);
-  const [analyticsGame, setAnalyticsGame] = useState<number>();
   const [action, setAction] = useState<{ type: "import" | "export"; path: string } | null>(null);
   const [password, setPassword] = useState("");
   const [replace, setReplace] = useState(false);
@@ -83,14 +91,13 @@ function PortableShell() {
   return <div className="app">
     <header className="flex flex-wrap items-center gap-3 p-3 border-b border-line">
       <h1 className="font-semibold">UnknownALT</h1>
-      {([["archive", "Account archive"], ["discover", "Discover"], ["analytics", "Analytics"], ["status", "Roblox Status"], ["updates", "Updates"], ["support", "Platform support"], ["settings", t("app.nav.settings")]] as const).map(([item, label]) => (
+      {([["archive", "Account archive"], ["discover", "Discover"], ["status", "Roblox Status"], ["updates", "Updates"], ["support", "Platform support"], ["settings", t("app.nav.settings")]] as const).map(([item, label]) => (
         <button key={item} className="btn btn-sm" aria-pressed={view === item} onClick={() => setView(item)}>{label}</button>
       ))}
       <button className="btn btn-sm ml-auto" onClick={() => openUrl("https://discord.gg/8EVsaWTH8S").catch(toastError)}>Discord</button>
     </header>
     {view === "updates" ? <UpdatesPage packageVersion={data?.version ?? "—"} />
-      : view === "analytics" ? <AnalyticsView initialGame={analyticsGame} />
-      : view === "discover" ? <DiscoverView analyze={(id) => { setAnalyticsGame(id); setView("analytics"); }} />
+      : view === "discover" ? <DiscoverView openGame={game} />
       : view === "status" ? <StatusView />
       : view === "settings" ? <main className="flex-1 overflow-auto p-4">
       <section className="panel p-4 space-y-3"><label className="flex flex-wrap items-center gap-2">{t("settings.numberFormat")}
@@ -102,7 +109,7 @@ function PortableShell() {
       </label><p className="text-sm text-fg-2">{t("settings.numberFormatHint")}</p></section>
     </main> : view === "support" ? <main className="flex-1 overflow-auto p-4 space-y-3">
       <h2 className="text-xl font-semibold">Platform support</h2>
-      <p>This build supports encrypted account archives, local snapshots, account profile links, Updates and Roblox Analytics.</p>
+      <p>This build supports encrypted account archives, local snapshots, account profile links, Updates and Roblox game discovery.</p>
       <p>Roblox sign-in and Browse, managed launches, Farm Control Center, client previews and limits, Audio Mixer, anti-AFK, session alerts and automatic app installation require the Windows EXE build.</p>
       <p>macOS uses Keychain for the archive key. Linux requires an unlocked Secret Service keyring.</p>
     </main> : <main className="flex-1 min-h-0 overflow-auto p-4 space-y-3">

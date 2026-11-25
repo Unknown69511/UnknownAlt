@@ -433,3 +433,6 @@
     background: var(--line);
   }
 }
+
+.set-area-title { display: flex; align-items: center; gap: .55rem; }
+.set-area-title > svg { color: var(--user-accent-text); flex: none; }

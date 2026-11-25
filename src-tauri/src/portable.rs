@@ -329,19 +329,12 @@ mod native {
                 portable_export,
                 portable_backup,
                 crate::bulletins::update_bulletins,
-                crate::analytics::public_analytics_search,
-                crate::analytics_archive::analytics_archive,
-                crate::analytics::public_analytics_snapshot,
-                crate::analytics::public_analytics_trending,
-                crate::analytics::public_analytics_studio,
-                crate::analytics::public_discovery,
-                crate::analytics::public_similar_games,
-                crate::analytics::public_game_extras,
+                crate::discovery::public_discovery_search,
+                crate::discovery::public_discovery_games,
+                crate::discovery::public_discovery_updates,
+                crate::discovery::public_discovery,
+                crate::discovery::public_similar_games,
                 crate::roblox_status::roblox_service_status,
-                crate::analytics::creator_analytics_connect,
-                crate::analytics::creator_analytics_disconnect,
-                crate::analytics::creator_analytics_metrics,
-                crate::analytics::creator_analytics_export
             ])
             .run(tauri::generate_context!())
             .expect("UnknownALT could not start");

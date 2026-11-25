@@ -8,7 +8,7 @@ import type { View } from "../../app/navigation";
 import type { AntiAfk, DiscordEvents, DiscordRpc, Settings, VaultStatus } from "../../api";
 import type { MemThrottle } from "../../bindings/MemThrottle";
 import type { RenderFlags } from "../../bindings/RenderFlags";
-import { AREAS, ROW_IDS, type AreaDef, type SettingsArea } from "./areas";
+import { AREAS, CATEGORY_FOR_ROW, ROW_IDS, type AreaDef, type SettingsArea } from "./areas";
 import { GOALS, UNPLACED } from "./goals";
 import { SHORTCUTS } from "./shortcuts";
 import { PERFORMANCE_ENTRIES } from "../performance/entries";
@@ -254,7 +254,12 @@ const KEY_ENTRIES: readonly Entry[] = SHORTCUTS.map((s) => ({
   aliases: ["shortcut", "hotkey", s.combo.toLowerCase()],
 }));
 
-export const ENTRIES: readonly Entry[] = [...SETTINGS_ENTRIES, ...PERFORMANCE_ENTRIES, ...DISCORD_ENTRIES, ...LINK_ENTRIES, ...KEY_ENTRIES];
+export const ENTRIES: readonly Entry[] = [...SETTINGS_ENTRIES, ...PERFORMANCE_ENTRIES, ...DISCORD_ENTRIES, ...LINK_ENTRIES, ...KEY_ENTRIES]
+  .map((row) => {
+    if (row.place.view !== "settings") return row;
+    const area = CATEGORY_FOR_ROW.get(row.parent ?? row.id);
+    return area ? { ...row, place: { ...row.place, area } } : row;
+  });
 
 const BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
 const KIDS = new Map<string, Entry[]>();

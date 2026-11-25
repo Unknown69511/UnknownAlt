@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "Общие",
+  "settings.section.farming": "Фарм",
+  "settings.section.storage": "Хранилище",
   "common.cancel": "Отмена",
   "common.save": "Сохранить",
   "common.close": "Закрыть",
@@ -1996,7 +1999,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Аналитика",
   "settings.numberFormat": "Формат чисел",
   "settings.numberFormatHint": "Выберите способ отображения чисел, Robux и валют.",
   "settings.numberCompact": "Краткий",

@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "一般",
+  "settings.section.farming": "ファーミング",
+  "settings.section.storage": "ストレージ",
   "common.cancel": "キャンセル",
   "common.save": "保存",
   "common.close": "閉じる",
@@ -1874,7 +1877,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "分析",
   "settings.numberFormat": "数値の表示形式",
   "settings.numberFormatHint": "件数、Robux、通貨の表示方法を選択します。",
   "settings.numberCompact": "省略",

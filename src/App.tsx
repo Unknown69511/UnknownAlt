@@ -9,6 +9,7 @@ import { playAllAgain } from "./features/dashboard/Ended";
 import { PublicNetworkBanner } from "./features/settings/PublicNetworkBanner";
 import { resetLaunches } from "./features/launch/launchQueue";
 import { Splash } from "./features/splash/Splash";
+import { afterStartup } from "./features/notifications/startup";
 import { RecoveryCodeHost } from "./features/vault/recoveryCode";
 import { UnlockScreen, type LockReason } from "./features/vault/UnlockScreen";
 import { applyNumberFormat, t, useLang } from "./i18n";
@@ -71,7 +72,7 @@ function Root() {
         // Boot reads rejected by the trial-update barrier must recover after native commit.
         // These queries otherwise remain failed because their usual policy disables retries.
         void qc.invalidateQueries({ predicate: (q) => q.state.status === "error" });
-        if (result) toast(result.message, result.status === "success" ? "ok" : "error");
+        if (result) afterStartup(`update-health:${result.status}`, () => toast(result.message, result.status === "success" ? "ok" : "error"));
       });
     }).catch((e) => {
       if (!stopped) {
@@ -117,7 +118,8 @@ function Root() {
       events.onPlayAgain(() => playAllAgain(qc)),
       events.onCloseAsk(() => setCloseAsk(true)),
       // Errors stay until dismissed: the window may have been hidden in the tray.
-      events.onNotice((n) => toast(n.message, n.error ? "error" : "ok", n.error, n.error ? "error" : "notification")),
+      events.onNotice((n) => afterStartup(`native:${n.error}:${n.message}`,
+        () => toast(n.message, n.error ? "error" : "ok", n.error, n.error ? "error" : "notification"))),
       events.onVaultLocked(() => {
         // A manual lock waits up to ~5 s for session windows to close first.
         if (Date.now() - manualLockAt.current > 8000) setLockReason("idle");

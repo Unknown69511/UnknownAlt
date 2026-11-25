@@ -33,7 +33,7 @@ const LISTED: readonly Goal[] = [
   },
   {
     id: "look", icon: "palette", title: "settings.goal.look", say: "settings.goal.lookSay",
-    start: ["theme", "themes", "accent", "language"], tune: ["look", "lookShare", "corners", "background", "density", "tabLayout", "sounds", "motion", "skipSplash"], links: [],
+    start: ["theme", "themes", "accent", "language"], tune: ["look", "lookShare", "corners", "background", "density", "tabLayout", "sounds", "motion", "skipSplash", "numberFormat"], links: [],
   },
   {
     id: "protect", icon: "shield", title: "settings.goal.protect", say: "settings.goal.protectSay",

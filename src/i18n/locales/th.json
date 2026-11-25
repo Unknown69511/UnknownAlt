@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "ทั่วไป",
+  "settings.section.farming": "ฟาร์ม",
+  "settings.section.storage": "พื้นที่จัดเก็บ",
   "common.cancel": "ยกเลิก",
   "common.save": "บันทึก",
   "common.close": "ปิด",
@@ -1874,7 +1877,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "การวิเคราะห์",
   "settings.numberFormat": "รูปแบบตัวเลข",
   "settings.numberFormatHint": "เลือกวิธีแสดงจำนวน Robux และสกุลเงิน",
   "settings.numberCompact": "ย่อ",

@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "Chung",
+  "settings.section.farming": "Cày tự động",
+  "settings.section.storage": "Lưu trữ",
   "common.cancel": "Hủy",
   "common.save": "Lưu",
   "common.close": "Đóng",
@@ -1874,7 +1877,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "Phân tích",
   "settings.numberFormat": "Định dạng số",
   "settings.numberFormatHint": "Chọn cách hiển thị số lượng, Robux và tiền tệ.",
   "settings.numberCompact": "Rút gọn",

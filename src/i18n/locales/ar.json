@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "عام",
+  "settings.section.farming": "الزراعة",
+  "settings.section.storage": "التخزين",
   "common.cancel": "إلغاء",
   "common.save": "حفظ",
   "common.close": "إغلاق",
@@ -2179,7 +2182,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "التحليلات",
   "settings.numberFormat": "تنسيق الأرقام",
   "settings.numberFormatHint": "اختر طريقة عرض الأعداد والروبوكس والعملات.",
   "settings.numberCompact": "مختصر",

@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "常规",
+  "settings.section.farming": "挂机管理",
+  "settings.section.storage": "存储",
   "common.cancel": "取消",
   "common.save": "保存",
   "common.close": "关闭",
@@ -1874,7 +1877,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "数据分析",
   "settings.numberFormat": "数字格式",
   "settings.numberFormatHint": "选择计数、Robux 和货币的显示方式。",
   "settings.numberCompact": "简写",

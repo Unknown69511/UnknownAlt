@@ -3,8 +3,7 @@
 #[macro_use]
 mod i18n;
 mod bulletins;
-mod analytics;
-mod analytics_archive;
+mod discovery;
 mod roblox_status;
 #[cfg(windows)]
 mod fullscreen;

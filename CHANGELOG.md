@@ -1,3 +1,33 @@
+# UnknownALT 1.2.13
+
+- Removed the Roblox Analytics pages, charts, creator reports, settings, and background collection. The app clears old Analytics caches and no longer contacts third-party analytics providers.
+- Discover keeps Roblox search, rankings, and similar games. Existing saved games, followed-game alerts, and older game notifications carry over to Discover.
+- Number Format is now in Appearance, and Rolimons values is in About.
+- The signed Windows update preserves the account vault and existing settings.
+
+# UnknownALT 1.2.12
+
+- Redesigned Analytics with compact, theme-aware navigation, rankings and dashboards.
+- Updated game, studio, People and creator views with a shared responsive layout.
+- Improved chart sizing, comparison styling and drag measurement on narrow windows.
+- Kept list filters and scroll position when opening a game and returning to the list.
+
+# UnknownALT 1.2.11
+
+- Display official Roblox live CCU and preserve RoWatcher’s measured spikes.
+  Separate daily average, peak and minimum, and verify CCUCheck’s place-to-universe mapping.
+- Rebuilt chart controls, game statistic cards, People, and chart-position history.
+- Expanded filters for rankings, new releases, growth, genres and the activity calendar.
+
+# UnknownALT 1.2.10
+
+- Kept recorded analytics visible through background refreshes. Excluded modeled
+  pre-tracking readings and reduced chart gaps caused by competing data sources.
+- Added chart drag measurement, same-time last-week comparisons, platform weekly
+  peaks and growth, tracked market shares, and expanded game and studio rankings.
+- Added creator icons, estimates with source labels, and busiest-hour charts.
+- Reorganized Settings and delayed startup alerts until the main view is ready.
+
 # UnknownALT 1.2.9
 
 - Historical charts keep loaded data, the selected metric, the date range,

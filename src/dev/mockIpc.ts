@@ -1457,21 +1457,14 @@ async function handle(cmd: string, args: Args): Promise<unknown> {
     case "online_ping":
       return !DEMO && settings.onlineCount ? { online: 1284, playing: 5120 } : null;
     case "update_bulletins": return { items: [], unavailable: [] };
-    case "analytics_archive": return null;
-    case "public_analytics_search":
-    case "public_analytics_snapshot":
-    case "public_similar_games":
-    case "public_analytics_studio":
-    case "public_analytics_trending": return { observedAt: Date.now(), games: [] };
+    case "public_discovery_search":
+    case "public_discovery_games":
+    case "public_similar_games": return { observedAt: Date.now(), games: [] };
+    case "public_discovery_updates": return [];
     case "public_discovery": return { snapshot: { observedAt: Date.now(), games: [] }, trending: [], popular: [], rising: [] };
-    case "public_game_extras": return { passes: [], badges: [], thumbnails: [] };
     case "native_notification": return;
     case "friend_request_counts": return [];
     case "roblox_service_status": return { current: null, historyHtml: null, checkedAt: Date.now() };
-    case "creator_analytics_connect":
-    case "creator_analytics_disconnect":
-    case "creator_analytics_export": return undefined;
-    case "creator_analytics_metrics": return [];
     case "farm_status": return { settings: mockFarm, usage: null };
     case "farm_configure": mockFarm = args.settings as typeof mockFarm; return;
     case "farm_audio": return { sessions: 0, volume: 100, muted: false };

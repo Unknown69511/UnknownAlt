@@ -27,9 +27,10 @@ import { markViewEntering } from "../ui/motion";
 import { Divider, usePanelWidth } from "../ui/Resizer";
 import { readStored, writeStored } from "../ui/stored";
 import { LiveActivities } from "./LiveActivities";
-import { useWatchlistCollector } from "../features/analytics/store";
+import { useFollowedGameUpdates } from "../features/discover/store";
 import { useRobloxStatus } from "../features/discover/useRobloxStatus";
 import { useNotificationSources } from "../features/notifications/useNotificationSources";
+import { finishStartupNotices } from "../features/notifications/startup";
 import { MAIN_SECTIONS, requestNavigation, SECTION_ICON, SECTION_VIEW, SHORTCUT_VIEW, shortcutFor, TOOL_SECTIONS, useNavigationRequests, VIEW_NAME, type BrowseRequest, type Request, type Section, type View } from "./navigation";
 
 // Home is the start; every other view is its own chunk, fetched once Home has painted.
@@ -47,7 +48,6 @@ const ModsView = lazyView(() => import("../features/mods/ModsView"), (m) => m.Mo
 const MonitorView = lazyView(() => import("../features/monitor/MonitorView"), (m) => m.MonitorView);
 const FarmView = lazyView(() => import("../features/management/FarmView"), (m) => m.FarmView);
 const UpdatesPage = lazyView(() => import("../features/update/UpdatesPage"), (m) => m.UpdatesPage);
-const AnalyticsView = lazyView(() => import("../features/analytics/AnalyticsView"), (m) => m.AnalyticsView);
 const DiscoverView = lazyView(() => import("../features/discover/DiscoverView"), (m) => m.DiscoverView);
 const StatusView = lazyView(() => import("../features/discover/StatusView"), (m) => m.StatusView);
 const ServersView = lazyView(() => import("../features/servers/ServersView"), (m) => m.ServersView);
@@ -80,7 +80,7 @@ function readSameServer(): SameServer {
  * side layout, and one view at a time. Owns the state that must outlive a view: picked accounts, the
  * draft target, Home's tabs, a launch in flight. */
 export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; settings: Settings; islandSlot: HTMLElement | null }) {
-  useWatchlistCollector();
+  useFollowedGameUpdates();
   useRobloxStatus();
   const nav = usePanelWidth("nav", 228, 180, 320);
   const qc = useQueryClient();
@@ -89,7 +89,7 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
   const groups = useGroups();
   const instances = useInstances().data ?? [];
   const [view, setView] = useState<View>("dashboard");
-  const [analyticsGame, setAnalyticsGame] = useState<number>();
+  const [discoveryGame, setDiscoveryGame] = useState<number>();
   const [openedBulletin, setOpenedBulletin] = useState<string>();
   // The Settings area a link asked for on the way there (the app menu's shortcuts, a notice). None
   // once Settings is left: it then opens where it was.
@@ -116,6 +116,11 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
   const [adding, setAdding] = useState(false);
   const [addOn, setAddOn] = useState<AddTab>("login");
   const phase = useSplashPhase();
+  useEffect(() => {
+    if (phase !== "gone" || !accounts.data || !groups.data || !islandSlot) return;
+    const frame = requestAnimationFrame(() => finishStartupNotices());
+    return () => cancelAnimationFrame(frame);
+  }, [phase, accounts.data, groups.data, islandSlot]);
   const setSettings = useSetSettings({ quiet: true });
   const [onboarding, setOnboarding] = useOnboardingOpen(phase === "gone" && !!accounts.data, () => opensOnItsOwn(QA, settings.onboarded, accounts.data?.length ?? 0, seenThisRun()));
   const [touring, setTouring] = useState(false);
@@ -219,7 +224,7 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
         const browse = r.browse;
         if (browse) setBrowseAsk({ ...browse, n: ++browseSeq });
         if (r.play) setDraft(draftFor(r.play));
-        if (r.view === "analytics") setAnalyticsGame(r.game);
+        if (r.view === "discover") setDiscoveryGame(r.game);
         if (r.view === "updates") setOpenedBulletin(r.bulletin);
         handlers.current.go(r.view);
       }
@@ -419,10 +424,8 @@ export function Shell({ vault, settings, islandSlot }: { vault: VaultStatus; set
             <FarmView accounts={accounts.data} />
           ) : view === "updates" ? (
             <UpdatesPage openedBulletin={openedBulletin} />
-          ) : view === "analytics" ? (
-            <AnalyticsView initialGame={analyticsGame} />
           ) : view === "discover" ? (
-            <DiscoverView analyze={(id) => { setAnalyticsGame(id); go("analytics"); }} />
+            <DiscoverView openGame={discoveryGame} />
           ) : view === "status" ? (
             <StatusView />
           ) : view === "monitor" ? (

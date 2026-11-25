@@ -1,7 +1,7 @@
 {
   "name": "unknownalt",
   "private": true,
-  "version": "1.2.9",
+  "version": "1.2.13",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "i18n:check": "node scripts/check-i18n.mjs",
     "ipc:check": "node scripts/check-ipc.mjs",
     "typecheck": "tsc --noEmit",
-    "test:analytics": "node scripts/test-analytics.mjs",
+    "test:discover": "node scripts/test-discover.mjs",
     "test:sounds": "node --experimental-strip-types scripts/test-sounds.mjs",
     "test:liquid": "node --experimental-strip-types scripts/test-liquid.mjs",
     "test:look": "node --experimental-strip-types scripts/test-look.mjs",

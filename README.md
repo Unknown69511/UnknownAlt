@@ -1,6 +1,6 @@
 # UnknownALT
 
-UnknownALT is a local Windows account manager and launcher for Roblox. It includes Farm Control Center, per-client audio, resource-aware launch scheduling, game discovery and analytics, and the Roblox service status monitor. Brown is the default accent. The top Discord button opens the [UnknownALT community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
+UnknownALT is a local Windows account manager and launcher for Roblox. It includes Farm Control Center, per-client audio, resource-aware launch scheduling, game discovery, and the Roblox service status monitor. Brown is the default accent. The top Discord button opens the [UnknownALT community](https://discord.gg/8EVsaWTH8S). See the [changelog](CHANGELOG.md) and [app privacy notice](docs/APP-PRIVACY.md).
 
 ## Download and signed updates
 
@@ -47,39 +47,16 @@ For the full first-installation package with the offline Microsoft x64 WebView2 
 
 This creates `UnknownALT-Setup-X.Y.Z-Windows-x64.exe`. It includes the full WebView2 runtime. Portable compiler locations can be provided with `-InnoCompiler` and `-PerlBin`. See [clean distribution](docs/DISTRIBUTION.md) for staging and package audits.
 
-## Roblox Analytics
+## Roblox discovery and status
 
 **Tools → Discover** searches Roblox and shows official trending and popular
 lists. Growth and underrated rankings cover the displayed catalog. Newly
 released uses Roblox's public experience creation dates. Similar games come
 from Roblox recommendations or genre and description matches in loaded games.
 
-**Tools → Analytics** shows Roblox's official game charts, independent platform
-samples, player records, studios, genres, and a game activity calendar. Search
-Roblox by name or link to open a game's analytics. Charts support date ranges,
-drag-to-zoom, game comparisons and attributed CSV exports.
-
-Game player history combines [RoWatcher daily records](https://rowatcher.com/developers)
-(CC BY 4.0, up to 730 days), [CCUCheck's public recorded history](https://ccucheck.com/docs),
-[RobloxGameStats](https://robloxgamestats.com/docs/api), and recent public Roblox
-observations. Each game has one reading per daily bucket. RoWatcher daily averages
-take priority and are compared against complete days from CCUCheck. Individual
-fallback readings do not contribute to average or growth calculations. Coverage
-varies by game and metric. Daily tables and chart CSVs preserve source attribution.
-Unobserved periods appear as gaps. Platform totals
-cover experiences tracked by the named provider. Figures titled **Est.** are
-model estimates. The **Official Top Earning** chart shows Roblox ranking order
-without dollar amounts. Pick USD, Robux, or Both for estimates. Robux shows
-gross spending. USD is the model’s before-tax DevEx equivalent at the standard
-rate. Studio estimates cover only games with available models. The global
-**Appearance → Number Format** setting changes the display without changing
-stored values or CSV exports.
-
-Watched games still support local samples and notifications. A bounded public
-history cache enables offline viewing when previously requested records are
-available. Public analytics uses anonymous requests and never shares saved
-Roblox credentials with public data providers. Icon and thumbnail history
-uses dates first observed locally through Roblox's public media endpoints.
+Watchlist games in Discover to find them again and follow changes to the update date
+reported by Roblox. Rankings that depend on player growth use recent readings
+collected while using Discover. Number formatting is in **Settings → Appearance**.
 
 **Tools → Roblox Status** shows service health, current incidents and resolved
 incident history. In-app alerts can be enabled on that page. Press **F11**
@@ -88,13 +65,6 @@ to toggle fullscreen or **Escape** to return to the prior window state.
 Use **Settings → Notifications** to choose which alerts you receive and open
 their history. The Windows installer registers native notifications for use
 while UnknownALT is in the background. Friend request checks are opt-in.
-
-My Games connects with a Roblox Open Cloud API key scoped to selected experiences
-and Analytics read access. The key and reports stay in memory while the page
-is open. CSV export writes only to the location you choose. Roblox determines
-which metrics, breakdowns and dates each authorized experience can return.
-See [Analytics Query API](https://create.roblox.com/docs/cloud/guides/analytics)
-and [API key configuration](https://create.roblox.com/docs/cloud/auth/api-keys).
 
 Checks include `npm run build`, `node scripts/release-test.mjs` and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-update-helper.ps1`. Native targeted tests cover encrypted-data migration, update authentication/signatures, compatibility readers and recovery behavior. Never point tests at real account data.
 

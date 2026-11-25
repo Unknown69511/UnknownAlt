@@ -1,4 +1,7 @@
 {
+  "settings.section.general": "일반",
+  "settings.section.farming": "파밍",
+  "settings.section.storage": "저장소",
   "common.cancel": "취소",
   "common.save": "저장",
   "common.close": "닫기",
@@ -1874,7 +1877,6 @@
   "launch.crash.exitGroup": "Client exits",
   "app.nav.farm": "Farm Control Center",
   "app.nav.updates": "Updates",
-  "app.nav.analytics": "분석",
   "settings.numberFormat": "숫자 형식",
   "settings.numberFormatHint": "개수, Robux, 통화의 표시 방식을 선택하세요.",
   "settings.numberCompact": "간략",

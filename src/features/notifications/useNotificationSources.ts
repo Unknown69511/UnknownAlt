@@ -5,6 +5,7 @@ import { useCrashes, useInstances } from "../../data";
 import { useOwnedUpdate } from "../update/OwnedUpdate";
 import { useAnnouncementFeed } from "../update/UpdatesPage";
 import { notify, openNotice, useNotifications } from "./store";
+import { dropStartupNotices } from "./startup";
 
 export function useNotificationSources(accounts: AccountSummary[] | undefined) {
   const { options } = useNotifications();
@@ -21,6 +22,7 @@ export function useNotificationSources(accounts: AccountSummary[] | undefined) {
     return () => { void unlisten.then((remove) => remove()).catch(() => {}); };
   }, []);
   useEffect(() => {
+    dropStartupNotices("notice:app:");
     if (status?.configured && status.available) {
       notify("app", status.available, `UnknownALT ${status.available} is ready to install.`, { view: "updates" });
     }
